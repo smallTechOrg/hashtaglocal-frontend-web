@@ -4,14 +4,16 @@
 @import "./components/typography.css";
 
 @theme inline {
-  --color-cream: #c4bbaf;
-  --color-cinereous: #A5978B;
-  --color-brown: #5c4742;
-  --color-liver: #5C4742;
-  --color-redwood: #8D5B4C;
-  --color-caput: #5A2A27;
-  --color-licorice: #1D0E0C;
-  --color-khaki:#A5978B;
+  --color-green: #256d1b;
+  --color-walnut: #5b3000;
+  --color-ink-black: #001219;
+  --color-dark-teal: #005f73;
+  --color-dark-cyan: #0a9396;
+  --color-wheat: #e9d8a6;
+  --color-golden-orange: #ee9b00;
+  --color-burnt-caramel: #ca6702;
+  --color-rusty-spice: #bb3e03;
+  --color-oxidized-iron: #ae2012;
 }
 
 body {

@@ -10,9 +10,8 @@ export default function Header() {
                 <Image
                     src="./logo-black.png"
                     alt="Logo"
-                    width={60}
-                    height={60}
-
+                    width={50}
+                    height={0}
                 />
             </div>
         </header>

@@ -11,8 +11,11 @@ const montserrat = Montserrat({
 });
 
 export const metadata: Metadata = {
-  title: "Demo Page",
-  description: "A frontend boilerplate",
+  title: "#local",
+  description: "A location based community platform",
+  icons: {
+    icon: "/logo-black.png",
+  },
 };
 
 export default function RootLayout({
