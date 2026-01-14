@@ -1,39 +1,45 @@
 @import "tailwindcss";
 
 :root {
-  --background: var(--color-wheat);
-  --foreground: var(--color-ink-black);
   --font-sans: var(--font-montserrat);
 }
 
-h1{
-  @apply text-center
-    font-[600]
-    text-2xl sm:text-3xl md:text-3xl lg:text-4xl
-    text-green;
+h1, h2, h3, p {
+  @apply m-0 leading-none;
+}
+
+h1 {
+  @apply font-[500]
+  text-[24px]
+  sm:text-[30px]
+  md:text-[32px]
+  lg:text-3xl
+  text-green;
 }
 h2 {
-  @apply font-[600]
-    text-lg
-    sm:text-xl
-    md:text-2xl
-    lg:text-2xl
-    text-walnut;
+  @apply font-[400]
+  text-[18px]
+  sm:text-[22px]
+  md:text-[26px]
+  lg:text-2xl
+  text-walnut;
 }
-h3{
-     @apply font-[600]
-    text-base
-    sm:text-xl
-    md:text-2xl
-    lg:text-2xl
-    text-dark-teal;
+h3 {
+  @apply font-[300]
+  text-[16px]
+  sm:text-[18px]
+  md:text-[20px]
+  lg:text-xl
+  text-dark-teal;
 }
 p {
   @apply 
-   text-justify
-   leading-snug
-    text-sm sm:text-lg md:text-lg lg:text-lg
-    text-ink-black;
+  font-[300]
+  text-[14px] 
+  sm:text-[16px]
+  md:text-[17px]
+  lg:text-lg
+  text-green;
 }
 a{
     @apply text-dark-cyan

@@ -14,6 +14,12 @@
   --color-burnt-caramel: #ca6702;
   --color-rusty-spice: #bb3e03;
   --color-oxidized-iron: #ae2012;
+  --colour-vanilla-cream: #F3EACE;
+}
+
+:root {
+  --background: var(--color-vanilla-cream);
+  --foreground: var(--color-ink-black);
 }
 
 body {

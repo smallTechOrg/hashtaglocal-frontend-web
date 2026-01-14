@@ -4,5 +4,9 @@ header {
   @apply 
     w-full 
     flex justify-between 
-    p-2 items-center;
+    p-2 items-start overflow-visible;
+}
+
+header img {
+  overflow: visible;
 }
