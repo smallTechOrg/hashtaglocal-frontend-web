@@ -1,0 +1,10 @@
+@import "tailwindcss";
+
+header {
+  @apply bg-brown 
+    w-full 
+    flex justify-between 
+    border-licorice border-b-1
+    shadow-xl/25
+    p-2 items-center;
+}
