@@ -2,8 +2,6 @@
 @import "./components/core/footer.css";
 @import "./components/core/header.css";
 @import "./components/typography.css";
-@import './components/common/dropdown.css';
-@import './components/common/card.css';
 
 @theme inline {
   --color-cream: #c4bbaf;
