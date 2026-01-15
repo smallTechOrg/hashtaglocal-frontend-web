@@ -2,6 +2,20 @@
 import React, { useEffect, useRef, useState } from "react";
 import "./map.css";
 
+interface GoogleMapsWindow extends Window {
+  google?: {
+    maps: {
+      Map: new (...args: unknown[]) => unknown;
+      Marker: new (...args: unknown[]) => unknown;
+      InfoWindow: new (...args: unknown[]) => unknown;
+      LatLngBounds: new (...args: unknown[]) => unknown;
+      SymbolPath: {
+        CIRCLE: string;
+      };
+    };
+  };
+}
+
 interface LocationPin {
   id: string;
   lat: number;
@@ -75,7 +89,7 @@ export default function Map() {
       try {
         const center = { lat: 12.9352, lng: 77.6245 };
 
-        const map = new (window as any).google.maps.Map(mapRef.current, {
+        const map = new (window as GoogleMapsWindow).google!.maps.Map(mapRef.current, {
           zoom: 12,
           center: center,
           mapTypeControl: true,
@@ -90,25 +104,32 @@ export default function Map() {
               stylers: [{ visibility: "off" }], // Hide landmark labels
             },
           ],
-        });
+        }) as unknown as {
+          fitBounds: (bounds: unknown, padding: Record<string, number>) => void;
+        };
 
         // Add markers for each location
-        const bounds = new (window as any).google.maps.LatLngBounds();
+        const bounds = new (window as GoogleMapsWindow).google!.maps.LatLngBounds() as unknown as {
+          extend: (latLng: unknown) => void;
+        };
 
         sampleLocations.forEach((location) => {
-          const marker = new (window as any).google.maps.Marker({
+          const marker = new (window as GoogleMapsWindow).google!.maps.Marker({
             position: { lat: location.lat, lng: location.lng },
             map: map,
             title: location.title,
             icon: {
-              path: (window as any).google.maps.SymbolPath.CIRCLE,
+              path: (window as GoogleMapsWindow).google!.maps.SymbolPath.CIRCLE,
               scale: 12, 
               fillColor: "#FF5733", 
               fillOpacity: 1,
               strokeColor: "#fff",
               strokeWeight: 2,
             },
-          });
+          }) as unknown as {
+            getPosition: () => unknown;
+            addListener: (event: string, callback: () => void) => void;
+          };
 
           // Extend bounds to include this marker
           bounds.extend(marker.getPosition());
@@ -118,7 +139,7 @@ export default function Map() {
             setSelectedLocation(location);
 
             // Create info window content
-            const infoWindow = new (window as any).google.maps.InfoWindow({
+            const infoWindow = new (window as GoogleMapsWindow).google!.maps.InfoWindow({
               content: `
                 <div style="padding: 12px; max-width: 250px;">
                   <img src="${location.image}" alt="${location.title}" style="width: 100%; height: 150px; object-fit: cover; border-radius: 4px; margin-bottom: 8px;" />
@@ -127,7 +148,9 @@ export default function Map() {
                   <p style="margin: 8px 0; font-size: 12px; color: #999;">Lat: ${location.lat.toFixed(4)}, Lng: ${location.lng.toFixed(4)}</p>
                 </div>
               `,
-            });
+            }) as unknown as {
+              open: (map: unknown, marker: unknown) => void;
+            };
 
             infoWindow.open(map, marker);
           });
@@ -143,7 +166,7 @@ export default function Map() {
     };
 
     const checkAndInitialize = () => {
-      if ((window as any).google && (window as any).google.maps) {
+      if ((window as GoogleMapsWindow).google && (window as GoogleMapsWindow).google?.maps) {
         initializeMap();
       } else {
         // Retry after a short delay
@@ -152,7 +175,7 @@ export default function Map() {
     };
 
     // Load Google Maps API script
-    if (!((window as any).google && (window as any).google.maps)) {
+    if (!((window as GoogleMapsWindow).google && (window as GoogleMapsWindow).google?.maps)) {
       const script = document.createElement("script");
       script.src = `https://maps.googleapis.com/maps/api/js?key=AIzaSyCzJVwEPi_lq4CeiuafySI8-QKGEnDK3-o`;
       script.async = true;
