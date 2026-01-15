@@ -1,113 +1,184 @@
 "use client";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
+import "./map.css";
 
 interface LocationPin {
   id: string;
   lat: number;
   lng: number;
   title: string;
+  description: string;
+  image: string;
 }
 
-// Sample locations in Bangalore
+// Sample locations in Bangalore with mock data
 const sampleLocations: LocationPin[] = [
-  { id: "1", lat: 12.9716, lng: 77.5946, title: "Downtown Bangalore" },
-  { id: "2", lat: 12.935, lng: 77.6245, title: "Whitefield" },
-  { id: "3", lat: 12.9352, lng: 77.624, title: "Koramangala" },
-  { id: "4", lat: 13.0361, lng: 77.5959, title: "Indiranagar" },
-  { id: "5", lat: 12.9698, lng: 77.7499, title: "Marathahalli" },
+  {
+    id: "1",
+    lat: 12.9716,
+    lng: 77.5946,
+    title: "Downtown Bangalore",
+    description: "Historic business district",
+    image: "https://images.unsplash.com/photo-1580274455191-1c62238fa333?w=300&h=200&fit=crop",
+  },
+  {
+    id: "2",
+    lat: 12.935,
+    lng: 77.6245,
+    title: "Whitefield",
+    description: "Tech hub and IT corridor",
+    image: "https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?w=300&h=200&fit=crop",
+  },
+  {
+    id: "3",
+    lat: 12.9352,
+    lng: 77.624,
+    title: "Koramangala",
+    description: "Trendy cafe and restaurant district",
+    image: "https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=300&h=200&fit=crop",
+  },
+  {
+    id: "4",
+    lat: 13.0361,
+    lng: 77.5959,
+    title: "Indiranagar",
+    description: "Vibrant residential area",
+    image: "https://images.unsplash.com/photo-1469022563149-aa64dbd37dae?w=300&h=200&fit=crop",
+  },
+  {
+    id: "5",
+    lat: 12.9698,
+    lng: 77.7499,
+    title: "Marathahalli",
+    description: "Commercial and retail center",
+    image: "https://images.unsplash.com/photo-1486325212027-8081e485255e?w=300&h=200&fit=crop",
+  },
 ];
 
 export default function Map() {
+  const mapRef = useRef<HTMLDivElement>(null);
   const [isMapLoaded, setIsMapLoaded] = useState(false);
+  const [selectedLocation, setSelectedLocation] = useState<LocationPin | null>(
+    null
+  );
 
   useEffect(() => {
-    // Simulate map loading
-    const timer = setTimeout(() => {
-      setIsMapLoaded(true);
-    }, 500);
+    // Ensure we're in a browser environment
+    if (typeof window === "undefined") return;
 
-    return () => clearTimeout(timer);
-  }, []);
+    const initializeMap = () => {
+      if (!mapRef.current) {
+        console.warn("Map ref not available");
+        return;
+      }
+
+      try {
+        const center = { lat: 12.9352, lng: 77.6245 };
+
+        const map = new (window as any).google.maps.Map(mapRef.current, {
+          zoom: 12,
+          center: center,
+          mapTypeControl: true,
+          fullscreenControl: true,
+          zoomControl: true,
+          streetViewControl: true,
+        });
+
+        // Add markers for each location
+        sampleLocations.forEach((location) => {
+          const marker = new (window as any).google.maps.Marker({
+            position: { lat: location.lat, lng: location.lng },
+            map: map,
+            title: location.title,
+            icon: {
+              path: (window as any).google.maps.SymbolPath.CIRCLE,
+              scale: 12, 
+              fillColor: "#FF5733", 
+              fillOpacity: 1,
+              strokeColor: "#fff",
+              strokeWeight: 2,
+            },
+          });
+
+          // Add click listener to marker
+          marker.addListener("click", () => {
+            setSelectedLocation(location);
+
+            // Create info window content
+            const infoWindow = new (window as any).google.maps.InfoWindow({
+              content: `
+                <div style="padding: 12px; max-width: 250px;">
+                  <img src="${location.image}" alt="${location.title}" style="width: 100%; height: 150px; object-fit: cover; border-radius: 4px; margin-bottom: 8px;" />
+                  <h3 style="margin: 8px 0; font-size: 16px; font-weight: bold;">${location.title}</h3>
+                  <p style="margin: 4px 0; font-size: 14px; color: #666;">${location.description}</p>
+                  <p style="margin: 8px 0; font-size: 12px; color: #999;">Lat: ${location.lat.toFixed(4)}, Lng: ${location.lng.toFixed(4)}</p>
+                </div>
+              `,
+            });
+
+            infoWindow.open(map, marker);
+          });
+        });
+
+        setIsMapLoaded(true);
+      } catch (error) {
+        console.error("Error initializing map:", error);
+      }
+    };
+
+    const checkAndInitialize = () => {
+      if ((window as any).google && (window as any).google.maps) {
+        initializeMap();
+      } else {
+        // Retry after a short delay
+        setTimeout(checkAndInitialize, 500);
+      }
+    };
+
+    // Load Google Maps API script
+    if (!((window as any).google && (window as any).google.maps)) {
+      const script = document.createElement("script");
+      script.src = `https://maps.googleapis.com/maps/api/js?key=AIzaSyCzJVwEPi_lq4CeiuafySI8-QKGEnDK3-o`;
+      script.async = true;
+      script.defer = false;
+      script.onload = () => {
+        initializeMap();
+      };
+      script.onerror = () => {
+        console.error("Failed to load Google Maps API");
+      };
+      document.head.appendChild(script);
+    } else {
+      checkAndInitialize();
+    }
+  }, [setSelectedLocation]);
 
   return (
-    <div className="map-container">
-      {!isMapLoaded && (
-        <div className="map-loading">
-          <p>Loading map...</p>
+    <div className="map-wrapper">
+      <div
+        ref={mapRef}
+        className={`map-container ${isMapLoaded ? "map-loaded" : ""}`}
+      />
+      {selectedLocation && (
+        <div className="location-detail-panel">
+          <button
+            className="close-button"
+            onClick={() => setSelectedLocation(null)}
+          >
+            ✕
+          </button>
+          <img
+            src={selectedLocation.image}
+            alt={selectedLocation.title}
+            className="detail-image"
+          />
+          <h2 className="detail-title">{selectedLocation.title}</h2>
+          <p className="detail-description">{selectedLocation.description}</p>
+          <p className="detail-coordinates">
+            📍 {selectedLocation.lat.toFixed(4)}, {selectedLocation.lng.toFixed(4)}
+          </p>
         </div>
       )}
-      <svg
-        viewBox="0 0 400 500"
-        className={`map-svg ${isMapLoaded ? "map-loaded" : ""}`}
-      >
-        {/* Bangalore city boundary approximation */}
-        <defs>
-          <pattern
-            id="city-pattern"
-            patternUnits="userSpaceOnUse"
-            width="4"
-            height="4"
-          >
-            <circle cx="2" cy="2" r="0.5" fill="#e0e7ff" />
-          </pattern>
-        </defs>
-
-        {/* City background */}
-        <rect width="400" height="500" fill="#f3f4f6" />
-        <rect
-          x="50"
-          y="50"
-          width="300"
-          height="400"
-          fill="url(#city-pattern)"
-          stroke="#9ca3af"
-          strokeWidth="2"
-        />
-
-        {/* City label */}
-        <text x="200" y="30" textAnchor="middle" fontSize="16" fill="#4b5563">
-          Bangalore Metropolitan Area
-        </text>
-
-        {/* Location pins */}
-        {sampleLocations.map((location) => {
-          // Map lat/lng to SVG coordinates
-          const svgX = 50 + ((location.lng - 77.4) / 0.5) * 300;
-          const svgY = 50 + ((13.1 - location.lat) / 0.5) * 400;
-
-          return (
-            <g key={location.id}>
-              {/* Pin circle */}
-              <circle
-                cx={svgX}
-                cy={svgY}
-                r="8"
-                fill="#10b981"
-                opacity="0.8"
-              />
-              {/* Pin border */}
-              <circle
-                cx={svgX}
-                cy={svgY}
-                r="8"
-                fill="none"
-                stroke="#059669"
-                strokeWidth="2"
-              />
-              {/* Pin indicator */}
-              <circle cx={svgX} cy={svgY} r="3" fill="white" />
-            </g>
-          );
-        })}
-      </svg>
-
-      {/* Legend */}
-      <div className="map-legend">
-        <div className="legend-item">
-          <span className="legend-dot"></span>
-          <span className="legend-text">Reported Issues</span>
-        </div>
-      </div>
     </div>
   );
 }
