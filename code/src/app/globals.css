@@ -1,7 +1,4 @@
 @import "tailwindcss";
-@import "./components/core/footer.css";
-@import "./components/core/header.css";
-@import "./components/typography.css";
 
 @theme inline {
   --color-green: #256d1b;
@@ -17,15 +14,23 @@
   --colour-vanilla-cream: #F3EACE;
 }
 
-:root {
-  --background: var(--color-vanilla-cream);
-  --foreground: var(--color-ink-black);
+@layer base {
+  :root {
+    --background: var(--color-vanilla-cream);
+    --foreground: var(--color-ink-black);
+  }
+
+  body {
+    background: var(--background);
+    color: var(--foreground);
+    font-family: var(--font-montserrat), sans-serif;
+    margin: 0;
+    padding: 0;
+  }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: var(--font-montserrat), sans-serif;
-  margin: 0;
-  padding: 0;
+@layer components {
+  @import "./components/core/footer.css";
+  @import "./components/core/header.css";
+  @import "./components/typography.css";
 }

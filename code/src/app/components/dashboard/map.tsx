@@ -31,12 +31,28 @@ const sampleLocations: LocationPin[] = [
   },
   {
     id: "3",
-    lat: 13.0361,
-    lng: 77.5959,
+    lat: 12.9152,
+    lng: 77.624,
+    title: "Pothole",
+    description: "100 Feet Road",
+    image: "https://cdn.cartoq.com/photos/small_massive_pothole_on_bengaluru_road_3c27b25fc1.jpg",
+  },
+   {
+    id: "5",
+    lat: 12.9416,
+    lng: 77.5846,
     title: "Garbage Dump",
     description: "Sarjapur Road",
     image: "https://erns72xipwt.exactdn.com/wp-content/uploads-new/2025/08/Garbage-blackspots_HSR-Layout_Bengaluru_August-2025_Gangadharan-B-1-1024x769.jpg?strip=all&lossy=1&ssl=1",
   },
+  {
+    id: "4",
+    lat: 12.9416,
+    lng: 77.5946,
+    title: "Garbage Dump",
+    description: "Sarjapur Road",
+    image: "https://erns72xipwt.exactdn.com/wp-content/uploads-new/2025/08/Garbage-blackspots_HSR-Layout_Bengaluru_August-2025_Gangadharan-B-1-1024x769.jpg?strip=all&lossy=1&ssl=1",
+  }
 ];
 
 export default function Map() {
