@@ -6,9 +6,9 @@ export default function Invite() {
   return (
     <section className="invite-container">
       <div className="invite-content">
-        <p className="invite-callout">
+        <h3 className="text-wheat">
           Tired of complaining? Want to start contributing?
-        </p>
+        </h3>
         <button className="invite-button">Join The Movement</button>
       </div>
     </section>

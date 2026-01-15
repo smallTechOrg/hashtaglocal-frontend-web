@@ -17,41 +17,25 @@ const sampleLocations: LocationPin[] = [
     id: "1",
     lat: 12.9716,
     lng: 77.5946,
-    title: "Downtown Bangalore",
-    description: "Historic business district",
-    image: "https://images.unsplash.com/photo-1580274455191-1c62238fa333?w=300&h=200&fit=crop",
+    title: "Pothole",
+    description: "CV Raman Road",
+    image: "https://cdn.cartoq.com/photos/small_massive_pothole_on_bengaluru_road_3c27b25fc1.jpg",
   },
   {
     id: "2",
-    lat: 12.935,
-    lng: 77.6245,
-    title: "Whitefield",
-    description: "Tech hub and IT corridor",
-    image: "https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?w=300&h=200&fit=crop",
+    lat: 12.9352,
+    lng: 77.624,
+    title: "Pothole",
+    description: "100 Feet Road",
+    image: "https://cdn.cartoq.com/photos/small_massive_pothole_on_bengaluru_road_3c27b25fc1.jpg",
   },
   {
     id: "3",
-    lat: 12.9352,
-    lng: 77.624,
-    title: "Koramangala",
-    description: "Trendy cafe and restaurant district",
-    image: "https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=300&h=200&fit=crop",
-  },
-  {
-    id: "4",
     lat: 13.0361,
     lng: 77.5959,
-    title: "Indiranagar",
-    description: "Vibrant residential area",
-    image: "https://images.unsplash.com/photo-1469022563149-aa64dbd37dae?w=300&h=200&fit=crop",
-  },
-  {
-    id: "5",
-    lat: 12.9698,
-    lng: 77.7499,
-    title: "Marathahalli",
-    description: "Commercial and retail center",
-    image: "https://images.unsplash.com/photo-1486325212027-8081e485255e?w=300&h=200&fit=crop",
+    title: "Garbage Dump",
+    description: "Sarjapur Road",
+    image: "https://erns72xipwt.exactdn.com/wp-content/uploads-new/2025/08/Garbage-blackspots_HSR-Layout_Bengaluru_August-2025_Gangadharan-B-1-1024x769.jpg?strip=all&lossy=1&ssl=1",
   },
 ];
 
@@ -82,9 +66,19 @@ export default function Map() {
           fullscreenControl: true,
           zoomControl: true,
           streetViewControl: true,
+          tilt: 45, // Enable 3D view with 45-degree tilt
+          styles: [
+            {
+              featureType: "poi",
+              elementType: "labels",
+              stylers: [{ visibility: "off" }], // Hide landmark labels
+            },
+          ],
         });
 
         // Add markers for each location
+        const bounds = new (window as any).google.maps.LatLngBounds();
+
         sampleLocations.forEach((location) => {
           const marker = new (window as any).google.maps.Marker({
             position: { lat: location.lat, lng: location.lng },
@@ -99,6 +93,9 @@ export default function Map() {
               strokeWeight: 2,
             },
           });
+
+          // Extend bounds to include this marker
+          bounds.extend(marker.getPosition());
 
           // Add click listener to marker
           marker.addListener("click", () => {
@@ -119,6 +116,9 @@ export default function Map() {
             infoWindow.open(map, marker);
           });
         });
+
+        // Auto-zoom to fit all markers with padding
+        map.fitBounds(bounds, { top: 50, right: 50, bottom: 50, left: 50 });
 
         setIsMapLoaded(true);
       } catch (error) {
