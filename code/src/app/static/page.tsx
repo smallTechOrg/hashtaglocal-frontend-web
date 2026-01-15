@@ -1,8 +1,12 @@
-
+"use client";
+import Dashboard from "../components/dashboard/dashboard";
+import Invite from "../components/invite/invite";
 
 export default function Static() {
     return (
-        <div className="p-3">
+        <div>
+            <Dashboard />
+            <Invite />
         </div>
     )
 }
