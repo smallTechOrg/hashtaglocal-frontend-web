@@ -36,7 +36,9 @@ interface IssuesResponse {
   };
 }
 
-const ENDPOINT = "/api/issues";
+const ENDPOINT = process.env.NEXT_PUBLIC_EXPORT_STATIC === "true"
+  ? "https://staging.api.smalltech.in/local/api/v1/issues"
+  : "/api/issues";
 
 function formatDate(value?: string): string {
   if (!value) return "Unknown";
