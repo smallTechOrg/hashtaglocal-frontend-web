@@ -1,13 +1,11 @@
 import type { NextConfig } from "next";
 
+const isProduction = process.env.NODE_ENV === "production";
+
 const nextConfig: NextConfig = {
   images: { unoptimized: true },
-  // Static export for GitHub Pages
-  ...(process.env.EXPORT_STATIC === "true" && {
-    output: "export",
-  }),
-  // Rewrites proxy for local dev & server deployments
-  ...(!process.env.EXPORT_STATIC && {
+  ...(isProduction && { output: "export" }),
+  ...(!isProduction && {
     async rewrites() {
       return [
         {

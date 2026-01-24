@@ -36,7 +36,7 @@ interface IssuesResponse {
   };
 }
 
-const ENDPOINT = process.env.NEXT_PUBLIC_EXPORT_STATIC === "true"
+const ENDPOINT = process.env.NODE_ENV === "production"
   ? "https://staging.api.smalltech.in/local/api/v1/issues"
   : "/api/issues";
 

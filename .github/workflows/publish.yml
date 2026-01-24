@@ -33,9 +33,6 @@ jobs:
       - name: Build with Next.js 🏗️
         run: npx next build
         working-directory: ./code
-        env:
-          EXPORT_STATIC: "true"
-          NEXT_PUBLIC_EXPORT_STATIC: "true"
 
       - name: Upload artifact 📡
         uses: actions/upload-pages-artifact@v3
