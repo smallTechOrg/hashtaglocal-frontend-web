@@ -1,10 +1,13 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  output: "export",
   images: { unoptimized: true },
-  // Only use rewrites if running in dev/server mode (not static export)
-  ...(process.env.NODE_ENV !== "production" && {
+  // Static export for GitHub Pages
+  ...(process.env.EXPORT_STATIC === "true" && {
+    output: "export",
+  }),
+  // Rewrites proxy for local dev & server deployments
+  ...(!process.env.EXPORT_STATIC && {
     async rewrites() {
       return [
         {
