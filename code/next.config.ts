@@ -12,6 +12,10 @@ const nextConfig: NextConfig = {
           source: "/api/issues",
           destination: "https://staging.api.smalltech.in/local/api/v1/issues",
         },
+        {
+          source: "/api/issue/:id",
+          destination: "https://staging.api.smalltech.in/local/api/v1/issue/:id",
+        },
       ];
     },
   }),

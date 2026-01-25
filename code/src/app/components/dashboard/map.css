@@ -17,6 +17,21 @@
   opacity: 1;
 }
 
+  /* Loading state */
+  .map-loading {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: white;
+    padding: 16px 24px;
+    border-radius: 0.5rem;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    z-index: 20;
+    font-size: 14px;
+    color: #6b7280;
+  }
+
 /* Location detail panel */
 .location-detail-panel {
   position: absolute;
@@ -95,4 +110,16 @@
   color: #9ca3af;
   margin: 8px 0 0 0;
   font-family: monospace;
+}
+
+.detail-link {
+  display: inline-block;
+  margin-top: 10px;
+  color: #2563eb;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.detail-link:hover {
+  text-decoration: underline;
 }
