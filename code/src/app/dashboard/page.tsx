@@ -14,19 +14,6 @@ const ENDPOINT = process.env.NODE_ENV === "production"
   ? "https://staging.api.smalltech.in/local/api/v1/issues"
   : "/api/issues";
 
-function formatDate(value?: string): string {
-  if (!value) return "Unknown";
-  const parsed = new Date(value);
-  if (Number.isNaN(parsed.getTime())) return value;
-  return parsed.toLocaleString(undefined, {
-    weekday: "short",
-    month: "short",
-    day: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-}
-
 function pickMedia(issue: Issue): string | undefined {
   if (!issue.media_urls || issue.media_urls.length === 0) return undefined;
   const photo = issue.media_urls.find((item) => item.type === "photo" && item.url);
