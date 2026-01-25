@@ -24,6 +24,13 @@ export default function DashboardPage() {
   const [issues, setIssues] = useState<Issue[]>([]);
   const [status, setStatus] = useState<"loading" | "error" | "ready">("loading");
   const [editingIssue, setEditingIssue] = useState<Issue | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage] = useState(30);
+  
+  // Filter states
+  const [selectedHashtag, setSelectedHashtag] = useState<string>("all");
+  const [selectedStatus, setSelectedStatus] = useState<string>("all");
+  const [selectedType, setSelectedType] = useState<string>("all");
 
   useEffect(() => {
     const controller = new AbortController();
@@ -60,11 +67,79 @@ export default function DashboardPage() {
     }
   };
 
-  const totals = useMemo(() => {
-    const totalVotes = issues.reduce((sum, issue) => sum + (issue.vote_count || 0), 0);
-    const totalVerifications = issues.reduce((sum, issue) => sum + (issue.verify_count || 0), 0);
-    return { count: issues.length, totalVotes, totalVerifications };
+  // Extract unique filter options
+  const filterOptions = useMemo(() => {
+    const hashtags = new Set<string>();
+    const statuses = new Set<string>();
+    const types = new Set<string>();
+    
+    issues.forEach((issue) => {
+      if (issue.location?.locality?.hashtags) {
+        issue.location.locality.hashtags.forEach(tag => hashtags.add(tag));
+      }
+      if (issue.status) statuses.add(issue.status);
+      if (issue.type) types.add(issue.type);
+    });
+    
+    return {
+      hashtags: Array.from(hashtags).sort(),
+      statuses: Array.from(statuses).sort(),
+      types: Array.from(types).sort(),
+    };
   }, [issues]);
+
+  // Apply filters
+  const filteredIssues = useMemo(() => {
+    return issues.filter((issue) => {
+      // Hashtag filter
+      if (selectedHashtag !== "all") {
+        const issueHashtags = issue.location?.locality?.hashtags || [];
+        if (!issueHashtags.includes(selectedHashtag)) return false;
+      }
+      
+      // Status filter
+      if (selectedStatus !== "all" && issue.status !== selectedStatus) {
+        return false;
+      }
+      
+      // Type filter
+      if (selectedType !== "all" && issue.type !== selectedType) {
+        return false;
+      }
+      
+      return true;
+    });
+  }, [issues, selectedHashtag, selectedStatus, selectedType]);
+
+  const totals = useMemo(() => {
+    const totalVotes = filteredIssues.reduce((sum, issue) => sum + (issue.vote_count || 0), 0);
+    const totalVerifications = filteredIssues.reduce((sum, issue) => sum + (issue.verify_count || 0), 0);
+    return { count: filteredIssues.length, totalVotes, totalVerifications };
+  }, [filteredIssues]);
+
+  // Pagination logic
+  const totalPages = Math.ceil(filteredIssues.length / itemsPerPage);
+  const paginatedIssues = useMemo(() => {
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    return filteredIssues.slice(startIndex, endIndex);
+  }, [filteredIssues, currentPage, itemsPerPage]);
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  // Reset to page 1 when issues or filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [issues.length, selectedHashtag, selectedStatus, selectedType]);
+
+  const handleClearFilters = () => {
+    setSelectedHashtag("all");
+    setSelectedStatus("all");
+    setSelectedType("all");
+  };
 
   return (
     <section className="issues-dashboard">
@@ -92,6 +167,70 @@ export default function DashboardPage() {
         </div>
       </div>
 
+      {status === "ready" && issues.length > 0 && (
+        <div className="filters-section">
+          <div className="filters-header">
+            <h3 className="filters-title">Filters</h3>
+            {(selectedHashtag !== "all" || selectedStatus !== "all" || selectedType !== "all") && (
+              <button className="clear-filters-btn" onClick={handleClearFilters}>
+                Clear all
+              </button>
+            )}
+          </div>
+          <div className="filters-grid">
+            <div className="filter-group">
+              <label htmlFor="hashtag-filter" className="filter-label">Hashtag</label>
+              <select
+                id="hashtag-filter"
+                className="filter-select"
+                value={selectedHashtag}
+                onChange={(e) => setSelectedHashtag(e.target.value)}
+              >
+                <option value="all">All hashtags</option>
+                {filterOptions.hashtags.map((tag) => (
+                  <option key={tag} value={tag}>{tag}</option>
+                ))}
+              </select>
+            </div>
+
+            <div className="filter-group">
+              <label htmlFor="status-filter" className="filter-label">Status</label>
+              <select
+                id="status-filter"
+                className="filter-select"
+                value={selectedStatus}
+                onChange={(e) => setSelectedStatus(e.target.value)}
+              >
+                <option value="all">All statuses</option>
+                {filterOptions.statuses.map((stat) => (
+                  <option key={stat} value={stat}>{stat}</option>
+                ))}
+              </select>
+            </div>
+
+            <div className="filter-group">
+              <label htmlFor="type-filter" className="filter-label">Type</label>
+              <select
+                id="type-filter"
+                className="filter-select"
+                value={selectedType}
+                onChange={(e) => setSelectedType(e.target.value)}
+              >
+                <option value="all">All types</option>
+                {filterOptions.types.map((type) => (
+                  <option key={type} value={type}>{type}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+          {filteredIssues.length === 0 && (
+            <div className="no-results">
+              No issues match the selected filters. Try adjusting your filters.
+            </div>
+          )}
+        </div>
+      )}
+
       {status === "loading" && (
         <div className="status-card">Loading the latest issues...</div>
       )}
@@ -106,61 +245,118 @@ export default function DashboardPage() {
         <div className="status-card">No issues found.</div>
       )}
 
-      {issues.length > 0 && (
-        <div className="issues-grid">
-          {issues.map((issue) => {
-            const media = pickMedia(issue);
-            const hashtags = issue.location?.locality?.hashtags || [];
-            const locationLabel =
-              issue.location?.colloquial_name || issue.location?.address || "Unknown location";
-            return (
-              <article className="issue-card" key={issue.id}>
-                <div className="issue-media">
-                  {media ? (
-                    <img src={media} alt="Issue media" className="issue-media__img" />
-                  ) : (
-                    <div className="issue-media__placeholder">No image</div>
-                  )}
-                  <div className="pill-row">
-                    {issue.type && <span className="pill pill-type">{issue.type}</span>}
-                    {issue.status && <span className="pill pill-status">{issue.status}</span>}
-                  </div>
-                </div>
-
-                <div className="issue-card__body">
-                  <p className="issue-description">
-                    {issue.description?.trim() || "No description provided."}
-                  </p>
-
-                  <div className="tags-and-location">
-                    <div className="tag-row">
-                      {hashtags.length > 0 ? (
-                        hashtags.map((tag) => (
-                          <span className="chip" key={tag}>
-                            {tag}
-                          </span>
-                        ))
-                      ) : (
-                        <span className="chip chip-muted">#untagged</span>
-                      )}
+      {filteredIssues.length > 0 && (
+        <>
+          <div className="issues-grid">
+            {paginatedIssues.map((issue) => {
+              const media = pickMedia(issue);
+              const hashtags = issue.location?.locality?.hashtags || [];
+              const locationLabel =
+                issue.location?.colloquial_name || issue.location?.address || "Unknown location";
+              return (
+                <article className="issue-card" key={issue.id}>
+                  <div className="issue-media">
+                    {media ? (
+                      <img 
+                        src={media} 
+                        alt="Issue media" 
+                        className="issue-media__img"
+                        loading="lazy"
+                        decoding="async"
+                      />
+                    ) : (
+                      <div className="issue-media__placeholder">No image</div>
+                    )}
+                    <div className="pill-row">
+                      {issue.type && <span className="pill pill-type">{issue.type}</span>}
+                      {issue.status && <span className="pill pill-status">{issue.status}</span>}
                     </div>
-                    <p className="location-text">{locationLabel}</p>
                   </div>
-                </div>
 
-                <footer className="issue-card__footer">
-                  <button 
-                    className="edit-btn"
-                    onClick={() => setEditingIssue(issue)}
-                    aria-label="Edit issue"
-                  >
-                    Edit
-                  </button>
-                </footer>
-              </article>
-            );
-          })}
-        </div>
+                  <div className="issue-card__body">
+                    <p className="issue-description">
+                      {issue.description?.trim() || "No description provided."}
+                    </p>
+
+                    <div className="tags-and-location">
+                      <div className="tag-row">
+                        {hashtags.length > 0 ? (
+                          hashtags.map((tag) => (
+                            <span className="chip" key={tag}>
+                              {tag}
+                            </span>
+                          ))
+                        ) : (
+                          <span className="chip chip-muted">#untagged</span>
+                        )}
+                      </div>
+                      <p className="location-text">{locationLabel}</p>
+                    </div>
+                  </div>
+
+                  <footer className="issue-card__footer">
+                    <button 
+                      className="edit-btn"
+                      onClick={() => setEditingIssue(issue)}
+                      aria-label="Edit issue"
+                    >
+                      Edit
+                    </button>
+                  </footer>
+                </article>
+              );
+            })}
+          </div>
+
+          {totalPages > 1 && (
+            <div className="pagination">
+              <button
+                className="pagination-btn"
+                onClick={() => handlePageChange(currentPage - 1)}
+                disabled={currentPage === 1}
+              >
+                Previous
+              </button>
+              
+              <div className="pagination-numbers">
+                {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => {
+                  // Show first page, last page, current page, and pages around current
+                  const showPage = 
+                    page === 1 || 
+                    page === totalPages || 
+                    (page >= currentPage - 1 && page <= currentPage + 1);
+                  
+                  const showEllipsisBefore = page === currentPage - 2 && currentPage > 3;
+                  const showEllipsisAfter = page === currentPage + 2 && currentPage < totalPages - 2;
+
+                  if (showEllipsisBefore || showEllipsisAfter) {
+                    return <span key={page} className="pagination-ellipsis">...</span>;
+                  }
+
+                  if (!showPage) return null;
+
+                  return (
+                    <button
+                      key={page}
+                      className={`pagination-number ${currentPage === page ? 'active' : ''}`}
+                      onClick={() => handlePageChange(page)}
+                    >
+                      {page}
+                    </button>
+                  );
+                })}
+              </div>
+
+              <button
+                className="pagination-btn"
+                onClick={() => handlePageChange(currentPage + 1)}
+                disabled={currentPage === totalPages}
+              >
+                Next
+              </button>
+            </div>
+          )}
+        </>
       )}
 
       {editingIssue && (
