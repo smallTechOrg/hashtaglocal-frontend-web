@@ -290,6 +290,13 @@
   font-weight: 600;
 }
 
+.time-ago {
+  margin: 0.5rem 0 0;
+  color: #6b7280;
+  font-size: 0.85rem;
+  font-style: italic;
+}
+
 .issue-card__footer {
   display: flex;
   align-items: center;
