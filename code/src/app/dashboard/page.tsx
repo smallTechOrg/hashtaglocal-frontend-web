@@ -1,34 +1,8 @@
 "use client";
 import { useEffect, useMemo, useState } from "react";
 import "./dashboard.css";
-
-interface Issue {
-  id: number;
-  user?: {
-    username?: string;
-    profile_photo?: string;
-  };
-  location?: {
-    lat?: number;
-    lng?: number;
-    address?: string;
-    colloquial_name?: string;
-    locality?: {
-      hashtags?: string[];
-    };
-  };
-  type?: string;
-  description?: string;
-  created_at?: string;
-  media_urls?: Array<{
-    type?: string;
-    url?: string;
-  }>;
-  vote_count?: number;
-  verify_count?: number;
-  status?: string;
-  rank?: number;
-}
+import { Issue } from "../models/issue";
+import EditIssueModal from "../components/dashboard/editIssueModal";
 
 interface IssuesResponse {
   data?: {
@@ -62,6 +36,7 @@ function pickMedia(issue: Issue): string | undefined {
 export default function DashboardPage() {
   const [issues, setIssues] = useState<Issue[]>([]);
   const [status, setStatus] = useState<"loading" | "error" | "ready">("loading");
+  const [editingIssue, setEditingIssue] = useState<Issue | null>(null);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -83,6 +58,20 @@ export default function DashboardPage() {
     load();
     return () => controller.abort();
   }, []);
+
+  const handleRefresh = async () => {
+    setStatus("loading");
+    try {
+      const res = await fetch(ENDPOINT, { cache: "no-store" });
+      if (!res.ok) throw new Error(`Request failed with ${res.status}`);
+      const payload: IssuesResponse = await res.json();
+      setIssues(payload.data?.issues || []);
+      setStatus("ready");
+    } catch (err) {
+      console.error("Failed to refresh issues", err);
+      setStatus("error");
+    }
+  };
 
   const totals = useMemo(() => {
     const totalVotes = issues.reduce((sum, issue) => sum + (issue.vote_count || 0), 0);
@@ -173,29 +162,26 @@ export default function DashboardPage() {
                 </div>
 
                 <footer className="issue-card__footer">
-                  <div className="user-compact">
-                    <div className="avatar avatar-small">
-                      {issue.user?.profile_photo ? (
-                        <img src={issue.user.profile_photo} alt={issue.user.username || "User"} />
-                      ) : (
-                        <div className="avatar-fallback">{(issue.user?.username || "?")[0]}</div>
-                      )}
-                    </div>
-                    <div>
-                      <p className="user-name small">{issue.user?.username || "Anonymous"}</p>
-                      <p className="created-at">{formatDate(issue.created_at)}</p>
-                    </div>
-                  </div>
-                  <div className="counters small">
-                    <span>👍 {issue.vote_count ?? 0}</span>
-                    <span>✅ {issue.verify_count ?? 0}</span>
-                    <span>⭐ {issue.rank ?? 0}</span>
-                  </div>
+                  <button 
+                    className="edit-btn"
+                    onClick={() => setEditingIssue(issue)}
+                    aria-label="Edit issue"
+                  >
+                    Edit
+                  </button>
                 </footer>
               </article>
             );
           })}
         </div>
+      )}
+
+      {editingIssue && (
+        <EditIssueModal
+          issue={editingIssue}
+          onClose={() => setEditingIssue(null)}
+          onUpdate={handleRefresh}
+        />
       )}
     </section>
   );
