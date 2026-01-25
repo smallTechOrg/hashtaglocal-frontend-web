@@ -1,10 +1,16 @@
 "use client";
 import React, { useEffect } from "react";
 
+declare global {
+  interface Window {
+    redirectToThankYou?: () => void;
+  }
+}
+
 export default function Join() {
   useEffect(() => {
     // Define the redirect function globally
-    (window as any).redirectToThankYou = function() {
+    window.redirectToThankYou = function() {
       window.location.href = "/";
     };
 
@@ -16,7 +22,7 @@ export default function Join() {
 
     // Cleanup
     return () => {
-      delete (window as any).redirectToThankYou;
+      delete window.redirectToThankYou;
       if (document.body.contains(script)) {
         document.body.removeChild(script);
       }
