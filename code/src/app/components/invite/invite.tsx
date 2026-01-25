@@ -1,5 +1,6 @@
 "use client";
 import React from "react";
+import Link from "next/link";
 import "./invite.css";
 
 export default function Invite() {
@@ -9,9 +10,9 @@ export default function Invite() {
         <h3 className="font-[500] mb-2">
           Tired of complaining? Start Contributing.
         </h3>
-        <a href="https://form.typeform.com/to/OI3uc4p3">
-        <button className="invite-button">Join The Movement</button>
-        </a>
+        <Link href="/join">
+          <button className="invite-button">Join The Movement</button>
+        </Link>
       </div>
     </section>
   );
