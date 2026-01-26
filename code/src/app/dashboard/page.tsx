@@ -1,4 +1,5 @@
 "use client";
+import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import "./dashboard.css";
 import { Issue } from "../models/issue";
@@ -325,6 +326,13 @@ export default function DashboardPage() {
                   </div>
 
                   <footer className="issue-card__footer">
+                    <Link
+                      href={`/issue/${issue.id}`}
+                      className="view-btn"
+                      aria-label="View issue details"
+                    >
+                      View
+                    </Link>
                     <button 
                       className="edit-btn"
                       onClick={() => setEditingIssue(issue)}
