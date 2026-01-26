@@ -68,6 +68,7 @@ export default function IssueClient({ issueId: propIssueId }: { issueId: string 
   const [status, setStatus] = useState<"loading" | "error" | "ready">("loading");
   const [editingIssue, setEditingIssue] = useState<Issue | null>(null);
   const [canEdit, setCanEdit] = useState(false);
+  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     // Check localStorage for edit access
@@ -105,6 +106,16 @@ export default function IssueClient({ issueId: propIssueId }: { issueId: string 
   const locationLabel = issue?.location?.colloquial_name || issue?.location?.address || "Unknown location";
   const hasCoords = issue?.location?.lat != null && issue?.location?.lng != null;
 
+  const copyLink = async () => {
+    try {
+      await navigator.clipboard.writeText(window.location.href);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch (err) {
+      console.error('Failed to copy link:', err);
+    }
+  };
+
   return (
     <main className="issue-page">
       <div className="issue-hero">
@@ -128,7 +139,9 @@ export default function IssueClient({ issueId: propIssueId }: { issueId: string 
                 Open in Maps
               </a>
             )}
-            <Link className="primary-btn" href={`/issue/${issue.id}`}>Permalink</Link>
+            <button className="primary-btn" type="button" onClick={copyLink}>
+              {copied ? "Copied!" : "Copy Link"}
+            </button>
             {canEdit && (
               <button className="primary-btn" type="button" onClick={() => setEditingIssue(issue)}>
                 Edit
@@ -174,14 +187,6 @@ export default function IssueClient({ issueId: propIssueId }: { issueId: string 
             <div className="meta-box">
               <p className="meta-label">Type</p>
               <p className="meta-value">{issue.type || "Unknown"}</p>
-            </div>
-            <div className="meta-box">
-              <p className="meta-label">Votes</p>
-              <p className="meta-value">{issue.vote_count ?? 0}</p>
-            </div>
-            <div className="meta-box">
-              <p className="meta-label">Verifications</p>
-              <p className="meta-value">{issue.verify_count ?? 0}</p>
             </div>
             <div className="meta-box">
               <p className="meta-label">📍 Coordinates</p>
