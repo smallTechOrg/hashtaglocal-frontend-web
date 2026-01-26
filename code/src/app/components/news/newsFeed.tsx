@@ -116,7 +116,7 @@ export default function NewsFeed() {
       <div className="news-feed-container">
         {/* Header */}
         <div className="news-feed-header">
-          <h2 className="news-feed-title text-walnut">News</h2>
+          <h2 className="news-feed-title text-walnut">news</h2>
         </div>
 
         {/* Category Filters */}

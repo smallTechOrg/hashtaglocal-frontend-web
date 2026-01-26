@@ -115,9 +115,10 @@ export default function Dashboard() {
                 display: "flex",
                 alignItems: "center",
                 gap: "0.5rem",
+                marginBottom: "1rem",
               }}
             >
-              <h2 style={{ margin: 0 }}>#bengaluru</h2>
+              <h1 style={{ margin: 0 }} className="text-walnut">#bengaluru</h1>
               <span style={{ fontSize: "0.8em" }}>▼</span>
             </button>
             {showCityDropdown && (
