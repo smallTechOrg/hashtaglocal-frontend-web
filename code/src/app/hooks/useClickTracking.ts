@@ -2,11 +2,6 @@
 import { useCallback } from 'react';
 import { trackClick, EventCategory, trackExternalLink } from '../utils/analytics';
 
-interface ClickTrackingOptions {
-  category?: EventCategory;
-  additionalParams?: Record<string, string | number | boolean | undefined>;
-}
-
 /**
  * Hook to create a trackable click handler
  */
@@ -56,7 +51,10 @@ export function useLinkTracking() {
 export function createTrackedClickHandler(
   elementName: string,
   onClick?: () => void,
-  options: ClickTrackingOptions = {}
+  options: {
+    category?: EventCategory;
+    additionalParams?: Record<string, string | number | boolean | undefined>;
+  } = {}
 ) {
   return () => {
     const { category = EventCategory.USER_INTERACTION, additionalParams = {} } = options;

@@ -55,11 +55,10 @@ export enum EventAction {
   LOAD_ERROR = 'load_error',
 }
 
-interface AnalyticsEventParams {
+interface AnalyticsEventParams extends Record<string, string | number | boolean | undefined> {
   event_category?: EventCategory;
   event_label?: string;
   value?: number;
-  [key: string]: string | number | boolean | undefined;
 }
 
 /**

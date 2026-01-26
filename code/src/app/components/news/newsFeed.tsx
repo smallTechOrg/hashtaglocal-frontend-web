@@ -22,7 +22,7 @@ const CATEGORIES: { value: FilterCategory; label: string }[] = [
 ];
 
 export default function NewsFeed() {
-  const [selectedCategory, setSelectedCategory] = useState<FilterCategory>('ALL');
+  const [selectedCategory, setSelectedCategory] = useState<FilterCategory>('WASTE');
   const [newsData, setNewsData] = useState<NewsApiResponse | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
