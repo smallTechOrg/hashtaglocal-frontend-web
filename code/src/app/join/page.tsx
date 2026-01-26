@@ -53,13 +53,14 @@ export default function Join() {
       display: "flex", 
       flexDirection: "column",
       alignItems: "center",
-      justifyContent: "center",
-      padding: "2rem"
+      justifyContent: "flex-start",
+      padding: "1rem",
+      paddingTop: "1.5rem"
     }}>
       <h1 style={{ 
-        fontSize: "2rem", 
+        fontSize: "clamp(1.25rem, 5vw, 1.75rem)", 
         fontWeight: "500", 
-        marginBottom: "2rem",
+        marginBottom: "1rem",
         textAlign: "center"
       }}>
         Join The Movement
@@ -67,7 +68,7 @@ export default function Join() {
       <div 
         data-tf-widget="OI3uc4p3" 
         data-tf-on-submit="redirectToThankYou"
-        style={{ width: "100%", maxWidth: "800px", height: "600px" }}
+        style={{ width: "100%", maxWidth: "800px", height: "auto", minHeight: "clamp(400px, 70vh, 550px)" }}
       ></div>
     </div>
   );
