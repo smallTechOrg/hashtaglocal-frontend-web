@@ -45,6 +45,34 @@
   margin: 0.25rem auto 0.75rem;
 }
 
+@media (max-width: 768px) {
+  .dashboard-filters {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    padding-bottom: 6px;
+    scrollbar-width: thin;
+    justify-content: flex-start;
+  }
+
+  .dashboard-filters::-webkit-scrollbar {
+    height: 6px;
+  }
+
+  .dashboard-filters::-webkit-scrollbar-track {
+    background: var(--colour-vanilla-cream);
+    border-radius: 3px;
+  }
+
+  .dashboard-filters::-webkit-scrollbar-thumb {
+    background: var(--color-walnut);
+    border-radius: 3px;
+  }
+
+  .dashboard-filters::-webkit-scrollbar-thumb:hover {
+    background: var(--color-dark-teal);
+  }
+}
+
 .dashboard-filter {
   padding: 9px 14px;
   border: 1px solid var(--color-walnut);
