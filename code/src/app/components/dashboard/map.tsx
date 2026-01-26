@@ -55,7 +55,7 @@ const getLocationLabel = (pin: LocationPin) =>
 
 export default function Map() {
   const mapRef = useRef<HTMLDivElement>(null);
-  const mapInstanceRef = useRef<any>(null);
+  const mapInstanceRef = useRef<google.maps.Map | null>(null);
   const [isMapLoaded, setIsMapLoaded] = useState(false);
   const [selectedLocation, setSelectedLocation] = useState<LocationPin | null>(null);
   const [locations, setLocations] = useState<LocationPin[]>([]);
