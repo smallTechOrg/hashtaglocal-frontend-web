@@ -8,7 +8,7 @@
     "start": "next start",
     "lint": "next lint",
     "deploy": "gh-pages -d out",
-    "prepare": "husky"
+    "prepare": "husky && git config core.hooksPath code/.husky"
   },
   "dependencies": {
     "next": "15.3.4",
