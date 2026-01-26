@@ -42,7 +42,7 @@ p {
   text-green;
 }
 a{
-    @apply text-dark-cyan
+    @apply text-green
     hover:text-golden-orange
     transition-colors duration-200;
 }

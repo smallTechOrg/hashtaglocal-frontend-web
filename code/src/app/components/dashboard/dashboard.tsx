@@ -8,7 +8,7 @@ export default function Dashboard() {
     <section className="dashboard-container">
       <div className="dashboard-content">
         <div className="dashboard-header">
-          <h2>#Bengaluru</h2>
+          <h2>#bengaluru</h2>
           <p className="mt-2 font-[200] text-walnut">
             A city wide dashboard to view all the reported issues.
           </p>

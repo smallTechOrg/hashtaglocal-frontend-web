@@ -55,6 +55,13 @@ export default function DashboardPage() {
   const [editingIssue, setEditingIssue] = useState<Issue | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(30);
+  const [canEdit, setCanEdit] = useState(false);
+
+  useEffect(() => {
+    // Check localStorage for edit access
+    const hasEditAccess = localStorage.getItem('dev_edit_access') === 'true';
+    setCanEdit(hasEditAccess);
+  }, []);
   
   // Filter states
   const [selectedHashtag, setSelectedHashtag] = useState<string>("all");
@@ -333,13 +340,15 @@ export default function DashboardPage() {
                     >
                       View
                     </Link>
-                    <button 
-                      className="edit-btn"
-                      onClick={() => setEditingIssue(issue)}
-                      aria-label="Edit issue"
-                    >
-                      Edit
-                    </button>
+                    {canEdit && (
+                      <button 
+                        className="edit-btn"
+                        onClick={() => setEditingIssue(issue)}
+                        aria-label="Edit issue"
+                      >
+                        Edit
+                      </button>
+                    )}
                   </footer>
                 </article>
               );
