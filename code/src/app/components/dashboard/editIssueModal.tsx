@@ -14,6 +14,10 @@ export default function EditIssueModal({ issue, onClose, onUpdate }: EditIssueMo
   const [status, setStatus] = useState<string>(issue.status || "");
   const [type, setType] = useState<string>(issue.type || "");
   const [description, setDescription] = useState<string>(issue.description || "");
+  const initialCoords = issue.location?.lat && issue.location?.lng 
+    ? `${issue.location.lat}, ${issue.location.lng}` 
+    : "";
+  const [coordinates, setCoordinates] = useState<string>(initialCoords);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -34,6 +38,24 @@ export default function EditIssueModal({ issue, onClose, onUpdate }: EditIssueMo
       }
       if (description !== issue.description) {
         updates.description = description;
+      }
+      
+      // Parse coordinates if changed
+      if (coordinates.trim()) {
+        const parts = coordinates.split(',').map(s => s.trim());
+        if (parts.length === 2) {
+          const latNum = parseFloat(parts[0]);
+          const lngNum = parseFloat(parts[1]);
+          
+          if (!isNaN(latNum) && !isNaN(lngNum)) {
+            if (latNum !== issue.location?.lat) {
+              updates.lat = latNum;
+            }
+            if (lngNum !== issue.location?.lng) {
+              updates.lng = lngNum;
+            }
+          }
+        }
       }
 
       // Only update if there are changes
@@ -104,6 +126,18 @@ export default function EditIssueModal({ issue, onClose, onUpdate }: EditIssueMo
               onChange={(e) => setDescription(e.target.value)}
               className="form-textarea"
               rows={4}
+            />
+          </div>
+
+          <div className="form-group">
+            <label htmlFor="coordinates">Coordinates (Latitude, Longitude)</label>
+            <input
+              id="coordinates"
+              type="text"
+              value={coordinates}
+              onChange={(e) => setCoordinates(e.target.value)}
+              className="form-select"
+              placeholder="e.g., 12.945722, 77.675312"
             />
           </div>
 

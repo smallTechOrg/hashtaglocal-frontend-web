@@ -197,6 +197,7 @@ export default function Map() {
               {selectedLocation.type && <span className="issue-pill">{selectedLocation.type}</span>}
             </div>
             <p className="detail-location">{getLocationLabel(selectedLocation)}</p>
+            <p className="detail-meta">📍 {selectedLocation.lat.toFixed(6)}, {selectedLocation.lng.toFixed(6)}</p>
             <p className="detail-description">{selectedLocation.description}</p>
             <p className="detail-meta">{formatTimeAgo(selectedLocation.createdAt)}</p>
             <a className="detail-link" href={`/issue/${selectedLocation.id}`}>
