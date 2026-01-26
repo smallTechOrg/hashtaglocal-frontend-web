@@ -16,6 +16,7 @@ const ISSUE_FILTERS: { value: IssueFilter; label: string }[] = [
   { value: IssueType.POLLUTION, label: "🌫️ Pollution" },
   { value: IssueType.HYGIENE, label: "🧼 Hygiene" },
   { value: IssueType.SAFETY, label: "🛡️ Safety" },
+  { value: IssueType.OTHER, label: "📌 Other" },
 ];
 
 interface IssuesResponse {
