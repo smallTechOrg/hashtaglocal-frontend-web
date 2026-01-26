@@ -3,7 +3,7 @@ export default function Footer() {
     return (
         <footer>
             <span>
-                Made with ❤️ @ © {currentYear} smallTech, India
+                Made with ❤️ © {currentYear} smallTech, India
             </span>
         </footer>
     );
