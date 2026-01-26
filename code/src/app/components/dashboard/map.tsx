@@ -194,6 +194,15 @@ export default function Map({ selectedType }: MapProps) {
 
   return (
     <div className="map-layout">
+      <div className="map-wrapper">
+        {isLoading && (
+          <div className="map-loading">
+            <p>Loading issues...</p>
+          </div>
+        )}
+        <div ref={mapRef} className={`map-container ${isMapLoaded ? "map-loaded" : ""}`} />
+      </div>
+
       <aside className="map-side-panel">
         {selectedLocation ? (
           <div className="detail-card">
@@ -241,15 +250,6 @@ export default function Map({ selectedType }: MapProps) {
           />
         )}
       </aside>
-
-      <div className="map-wrapper">
-        {isLoading && (
-          <div className="map-loading">
-            <p>Loading issues...</p>
-          </div>
-        )}
-        <div ref={mapRef} className={`map-container ${isMapLoaded ? "map-loaded" : ""}`} />
-      </div>
     </div>
   );
 }
