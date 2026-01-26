@@ -177,7 +177,7 @@ export default function DashboardPage() {
           <p className="eyebrow">Live city feed</p>
           <h1 className="hero-title">#local dashboard</h1>
           <p className="hero-subtitle">
-            Issues reported by the community, pulled straight from the staging API.
+            A city wide dashboard to view all the reported issues.
           </p>
         </div>
         <div className="hero-metrics">
