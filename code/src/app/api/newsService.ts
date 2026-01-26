@@ -3,7 +3,7 @@
  * Handles fetching news articles about Bengaluru
  */
 
-import { NewsApiResponse, IssueCategory } from '../models/newsArticle';
+import { NewsApiResponse, IssueCategory, NewsArticle } from '../models/newsArticle';
 
 /**
  * Fetch news articles from the backend
@@ -39,8 +39,43 @@ export async function fetchBengaluruNews(
     throw new Error(`Failed to fetch news (status ${response.status})${errorText ? `: ${errorText}` : ''}`);
   }
 
-  const data: NewsApiResponse = await response.json();
-  return data;
+  const rawData = await response.json();
+  
+  // Map snake_case API response to camelCase frontend model
+  interface RawArticle {
+    id: string;
+    title: string;
+    description: string;
+    content?: string;
+    category: IssueCategory;
+    source: { id: string | null; name: string };
+    author?: string;
+    url: string;
+    url_to_image?: string;
+    published_at: string;
+    location: 'Bengaluru';
+  }
+  const mappedArticles: NewsArticle[] = (rawData.articles as RawArticle[]).map((article: RawArticle) => ({
+    id: article.id,
+    title: article.title,
+    description: article.description,
+    content: article.content,
+    category: article.category,
+    source: article.source,
+    author: article.author,
+    url: article.url,
+    urlToImage: article.url_to_image,
+    publishedAt: article.published_at,
+    location: article.location
+  }));
+
+  return {
+    status: rawData.status,
+    totalResults: rawData.total_results,
+    page: rawData.page,
+    pageSize: rawData.page_size,
+    articles: mappedArticles
+  };
 }
 
 /**
@@ -62,7 +97,13 @@ export function getCategoryColor(category: IssueCategory): string {
  * Format date for display
  */
 export function formatNewsDate(dateString: string): string {
+  if (!dateString) return 'Date unknown';
+  
   const date = new Date(dateString);
+  
+  // Validate date
+  if (isNaN(date.getTime())) return 'Date unknown';
+  
   const now = new Date();
   const diffInHours = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60));
 

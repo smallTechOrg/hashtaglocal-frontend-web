@@ -86,12 +86,12 @@ export default function NewsFeed() {
     setSelectedCategory(category);
   };
 
-  const handleLoadMore = () => {
-    const nextPage = currentPage + 1;
-    trackClick('Load More News', EventCategory.ENGAGEMENT, { category: selectedCategory, page: nextPage });
-    setCurrentPage(nextPage);
-    loadNews(selectedCategory, nextPage);
-  };
+  // const handleLoadMore = () => {
+  //   const nextPage = currentPage + 1;
+  //   trackClick('Load More News', EventCategory.ENGAGEMENT, { category: selectedCategory, page: nextPage });
+  //   setCurrentPage(nextPage);
+  //   loadNews(selectedCategory, nextPage);
+  // };
 
   const handleOpenArticle = (article: NewsArticle) => {
     trackEvent(EventAction.NEWS_ARTICLE_VIEW, {
@@ -109,7 +109,7 @@ export default function NewsFeed() {
     setActiveArticle(null);
   };
 
-  const hasMoreArticles = newsData && newsData.articles.length < newsData.totalResults;
+  // const hasMoreArticles = newsData && newsData.articles.length < newsData.totalResults;
 
   return (
     <section className="news-feed">
@@ -165,7 +165,7 @@ export default function NewsFeed() {
             </div>
 
             {/* Load More Button */}
-            {hasMoreArticles && (
+            {/* {hasMoreArticles && (
               <div className="news-feed-load-more">
                 <button 
                   className="load-more-button"
@@ -175,7 +175,7 @@ export default function NewsFeed() {
                   {isLoading ? 'Loading...' : 'Load More'}
                 </button>
               </div>
-            )}
+            )} */}
           </>
         )}
       </div>
