@@ -67,6 +67,13 @@ export default function IssueClient({ issueId: propIssueId }: { issueId: string 
   const [issue, setIssue] = useState<Issue | null>(null);
   const [status, setStatus] = useState<"loading" | "error" | "ready">("loading");
   const [editingIssue, setEditingIssue] = useState<Issue | null>(null);
+  const [canEdit, setCanEdit] = useState(false);
+
+  useEffect(() => {
+    // Check localStorage for edit access
+    const hasEditAccess = localStorage.getItem('dev_edit_access') === 'true';
+    setCanEdit(hasEditAccess);
+  }, []);
 
   const fetchIssue = useCallback(async (signal?: AbortSignal) => {
     if (!issueId) return;
@@ -102,7 +109,9 @@ export default function IssueClient({ issueId: propIssueId }: { issueId: string 
     <main className="issue-page">
       <div className="issue-hero">
         <div>
-          <Link className="back-link" href="/dashboard">← Back to dashboard</Link>
+          <Link className="back-link" href="/">
+            ← Home
+          </Link>
           <h1>Issue #{issueId}</h1>
           {issue && (
             <div className="issue-meta">
@@ -120,9 +129,11 @@ export default function IssueClient({ issueId: propIssueId }: { issueId: string 
               </a>
             )}
             <Link className="primary-btn" href={`/issue/${issue.id}`}>Permalink</Link>
-            <button className="primary-btn" type="button" onClick={() => setEditingIssue(issue)}>
-              Edit
-            </button>
+            {canEdit && (
+              <button className="primary-btn" type="button" onClick={() => setEditingIssue(issue)}>
+                Edit
+              </button>
+            )}
           </div>
         )}
       </div>

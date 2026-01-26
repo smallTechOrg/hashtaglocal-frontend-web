@@ -1,18 +1,20 @@
 "use client";
 import Image from "next/image";
+import Link from "next/link";
 
 
 export default function Header() {
 
     return (
         <header className="relative pt-2 pl-2">
-            <Image
-                src="./logo-green.png"
-                alt="Logo"
-                width={65}
-                height={0}    
-                className="absolute left-2 top-2"
-            />
+            <Link href="/" className="absolute left-2 top-2">
+                <Image
+                    src="/logo-green.png"
+                    alt="Logo"
+                    width={65}
+                    height={0}
+                />
+            </Link>
             <div className="flex items-start gap-4 pl-18">
                 <div className="flex flex-col justify-start text-left">
                     <h1>#local</h1>
