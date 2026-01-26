@@ -1,7 +1,9 @@
 "use client";
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import "./map.css";
 import { Issue } from "../../models/issue";
+import FeaturedIssues from "./featuredIssues";
+import { LocationPin } from "./mapTypes";
 
 interface IssuesResponse {
   data?: {
@@ -12,20 +14,6 @@ interface IssuesResponse {
 const ENDPOINT = process.env.NODE_ENV === "production"
   ? "https://staging.api.smalltech.in/local/api/v1/issues"
   : "/api/issues";
-
-interface LocationPin {
-  id: string;
-  lat: number;
-  lng: number;
-  title: string;
-  description: string;
-  image: string;
-  type?: string;
-  status?: string;
-  createdAt?: string;
-  address?: string;
-  colloquialName?: string;
-}
 
 const PLACEHOLDER_IMAGE = "https://via.placeholder.com/150";
 
@@ -56,10 +44,12 @@ const getLocationLabel = (pin: LocationPin) =>
 export default function Map() {
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<google.maps.Map | null>(null);
+  const markersRef = useRef<google.maps.Marker[]>([]);
   const [isMapLoaded, setIsMapLoaded] = useState(false);
   const [selectedLocation, setSelectedLocation] = useState<LocationPin | null>(null);
   const [locations, setLocations] = useState<LocationPin[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [selectedType, setSelectedType] = useState<string>("all");
 
   useEffect(() => {
     const controller = new AbortController();
@@ -106,11 +96,30 @@ export default function Map() {
     return () => controller.abort();
   }, []);
 
+  const typeOptions = useMemo(() => {
+    const types = new Set<string>();
+    locations.forEach((location) => {
+      if (location.type) types.add(location.type);
+    });
+    return ["all", ...Array.from(types).sort()];
+  }, [locations]);
+
+  const filteredLocations = useMemo(() => {
+    if (selectedType === "all") return locations;
+    return locations.filter((location) => location.type === selectedType);
+  }, [locations, selectedType]);
+
+  useEffect(() => {
+    if (selectedLocation && !filteredLocations.some((loc) => loc.id === selectedLocation.id)) {
+      setSelectedLocation(null);
+    }
+  }, [filteredLocations, selectedLocation]);
+
   useEffect(() => {
     if (typeof window === "undefined" || isLoading) return;
 
     const initializeMap = () => {
-      if (!mapRef.current || !window.google) return;
+      if (!mapRef.current || mapInstanceRef.current) return;
 
       const map = new google.maps.Map(mapRef.current, {
         zoom: 12,
@@ -120,68 +129,68 @@ export default function Map() {
       });
 
       mapInstanceRef.current = map;
-      const bounds = new google.maps.LatLngBounds();
-
-      locations.forEach((location) => {
-        const marker = new google.maps.Marker({
-          position: { lat: location.lat, lng: location.lng },
-          map,
-          title: location.title,
-          icon: {
-            path: google.maps.SymbolPath.CIRCLE,
-            scale: 10,
-            fillColor: "#FF5733",
-            fillOpacity: 1,
-            strokeColor: "#fff",
-            strokeWeight: 2,
-          },
-        });
-
-        const position = marker.getPosition();
-        if (position) bounds.extend(position);
-
-        marker.addListener("click", () => {
-          setSelectedLocation(location);
-          if (mapInstanceRef.current) {
-            mapInstanceRef.current.panTo({ lat: location.lat, lng: location.lng });
-          }
-        });
-      });
-
-      if (locations.length > 0) {
-        map.fitBounds(bounds);
-        google.maps.event.addListenerOnce(map, "idle", () => {
-          const currentZoom = map.getZoom();
-          if (currentZoom && currentZoom < 11) map.setZoom(currentZoom + 1);
-        });
-      }
       setIsMapLoaded(true);
     };
 
     if (!window.google) {
       const script = document.createElement("script");
-      script.src = `https://maps.googleapis.com/maps/api/js?key=AIzaSyCzJVwEPi_lq4CeiuafySI8-QKGEnDK3-o`;
+      script.src = "https://maps.googleapis.com/maps/api/js?key=AIzaSyCzJVwEPi_lq4CeiuafySI8-QKGEnDK3-o";
       script.async = true;
       script.onload = initializeMap;
       document.head.appendChild(script);
     } else {
       initializeMap();
     }
-  }, [isLoading, locations]);
+  }, [isLoading]);
 
-  const latestIssues = locations.slice(0, 10);
+  useEffect(() => {
+    const map = mapInstanceRef.current;
+    if (!map) return;
+
+    markersRef.current.forEach((marker) => marker.setMap(null));
+    markersRef.current = [];
+
+    const bounds = new google.maps.LatLngBounds();
+
+    filteredLocations.forEach((location) => {
+      const marker = new google.maps.Marker({
+        position: { lat: location.lat, lng: location.lng },
+        map,
+        title: location.title,
+        icon: {
+          path: google.maps.SymbolPath.CIRCLE,
+          scale: 10,
+          fillColor: "#FF5733",
+          fillOpacity: 1,
+          strokeColor: "#fff",
+          strokeWeight: 2,
+        },
+      });
+
+      const position = marker.getPosition();
+      if (position) bounds.extend(position);
+
+      marker.addListener("click", () => {
+        setSelectedLocation(location);
+        map.panTo({ lat: location.lat, lng: location.lng });
+      });
+
+      markersRef.current.push(marker);
+    });
+
+    if (filteredLocations.length > 0) {
+      map.fitBounds(bounds);
+      google.maps.event.addListenerOnce(map, "idle", () => {
+        const currentZoom = map.getZoom();
+        if (currentZoom && currentZoom < 11) map.setZoom(currentZoom + 1);
+      });
+    }
+  }, [filteredLocations, isMapLoaded]);
+
+  const latestIssues = filteredLocations.slice(0, 10);
 
   return (
     <div className="map-layout">
-      <div className="map-wrapper">
-        {isLoading && (
-          <div className="map-loading">
-            <p>Loading issues...</p>
-          </div>
-        )}
-        <div ref={mapRef} className={`map-container ${isMapLoaded ? "map-loaded" : ""}`} />
-      </div>
-
       <aside className="map-side-panel">
         {selectedLocation ? (
           <div className="detail-card">
@@ -205,52 +214,26 @@ export default function Map() {
             </a>
           </div>
         ) : (
-          <div className="issue-home">
-            <div className="issue-home-header">
-              <div>
-                <h3 className="panel-title">Featured Issues</h3>
-                <p className="panel-subtitle">Showing the latest issues</p>
-              </div>
-            </div>
-
-            {latestIssues.length === 0 ? (
-              <p className="empty-state">No issues found yet.</p>
-            ) : (
-              <div className="issue-home-list">
-                {latestIssues.map((issue) => (
-                  <button
-                    className="issue-home-card"
-                    key={issue.id}
-                    onClick={() => setSelectedLocation(issue)}
-                  >
-                    <div className="issue-home-hero">
-                      <img
-                        src={issue.image}
-                        alt={issue.title}
-                        className="issue-home-image"
-                        loading="lazy"
-                        decoding="async"
-                      />
-                      <div className="issue-home-overlay">
-                        <div className="issue-home-top">
-                          <span />
-                          <span className="issue-home-meta">{formatTimeAgo(issue.createdAt)}</span>
-                        </div>
-                       
-                        <div className="issue-home-bottom">
-                           <p className="issue-home-title">{issue.title}</p>
-                          <p className="issue-home-location">{getLocationLabel(issue)}</p>
-                        </div>
-                      </div>
-                    </div>
-                    <p className="issue-home-description">{issue.description}</p>
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
+          <FeaturedIssues
+            latestIssues={latestIssues}
+            selectedType={selectedType}
+            typeOptions={typeOptions}
+            onTypeChange={setSelectedType}
+            onSelectIssue={setSelectedLocation}
+            formatTimeAgo={formatTimeAgo}
+            getLocationLabel={getLocationLabel}
+          />
         )}
       </aside>
+
+      <div className="map-wrapper">
+        {isLoading && (
+          <div className="map-loading">
+            <p>Loading issues...</p>
+          </div>
+        )}
+        <div ref={mapRef} className={`map-container ${isMapLoaded ? "map-loaded" : ""}`} />
+      </div>
     </div>
   );
 }
