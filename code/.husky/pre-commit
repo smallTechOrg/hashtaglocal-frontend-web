@@ -1,2 +1,15 @@
-npx lint-staged
-npm run build
+#!/bin/sh
+
+# Navigate to the code directory where package.json is located
+cd "$(git rev-parse --show-toplevel)/code" || exit 1
+
+echo "Running pre-commit checks..."
+echo "Step 1: Running linters..."
+npx lint-staged || exit 1
+
+echo "Step 2: Building the project..."
+npm run build || exit 1
+
+echo "Pre-commit checks passed!"
+exit 0
+
