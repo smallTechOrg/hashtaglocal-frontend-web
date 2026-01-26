@@ -2,6 +2,19 @@
 import React, { useState, useEffect } from "react";
 import "./dashboard.css";
 import Map from "./map";
+import { IssueType } from "../../models/issue";
+
+type IssueFilter = IssueType | "ALL";
+
+const ISSUE_FILTERS: { value: IssueFilter; label: string }[] = [
+  { value: "ALL", label: "🌐 All issues" },
+  { value: IssueType.POTHOLE, label: "🕳️ Potholes" },
+  { value: IssueType.WASTE, label: "🗑️ Waste" },
+  { value: IssueType.FOOTPATH, label: "🚶 Footpaths" },
+  { value: IssueType.POLLUTION, label: "🌫️ Pollution" },
+  { value: IssueType.HYGIENE, label: "🧼 Hygiene" },
+  { value: IssueType.SAFETY, label: "🛡️ Safety" },
+];
 
 interface IssuesResponse {
   data?: {
@@ -17,20 +30,12 @@ const ENDPOINT = process.env.NODE_ENV === "production"
   ? "https://staging.api.smalltech.in/local/api/v1/issues"
   : "/api/issues";
 
-const issueTypeEmojis: Record<string, string> = {
-  POTHOLE: "🕳️",
-  WASTE: "🗑️",
-  FOOTPATH: "🚶",
-  POLLUTION: "🏭",
-  HYGIENE: "🧼",
-  SAFETY: "⚠️",
-  OTHER: "📋",
-};
-
 export default function Dashboard() {
   const [showCityDropdown, setShowCityDropdown] = useState(false);
   const [issueCounts, setIssueCounts] = useState<Record<string, number>>({});
-  const [isLoading, setIsLoading] = useState(true);
+  const [selectedFilter, setSelectedFilter] = useState<IssueFilter>("ALL");
+
+  const normalizeType = (type?: string) => (type ? type.toUpperCase() : "OTHER");
 
   useEffect(() => {
     async function loadIssues() {
@@ -44,15 +49,13 @@ export default function Dashboard() {
         issues
           .filter((issue) => issue.status === "OPEN")
           .forEach((issue) => {
-            const type = issue.type || "OTHER";
-            counts[type] = (counts[type] || 0) + 1;
+            const normalized = normalizeType(issue.type);
+            counts[normalized] = (counts[normalized] || 0) + 1;
           });
 
         setIssueCounts(counts);
-        setIsLoading(false);
       } catch (err) {
         console.error("Failed to load issues", err);
-        setIsLoading(false);
       }
     }
 
@@ -70,7 +73,21 @@ export default function Dashboard() {
     return () => document.removeEventListener("click", handleClickOutside);
   }, [showCityDropdown]);
 
+  const handleFilterChange = (value: IssueFilter) => {
+    setSelectedFilter(value);
+  };
+
   const totalIssues = Object.values(issueCounts).reduce((sum, count) => sum + count, 0);
+  const visibleFilters = ISSUE_FILTERS.filter((filter) =>
+    filter.value === "ALL" ? true : (issueCounts[filter.value] || 0) > 0
+  );
+
+  // If the currently selected filter disappears (count drops to zero), fall back to ALL
+  useEffect(() => {
+    if (!visibleFilters.some((filter) => filter.value === selectedFilter)) {
+      setSelectedFilter("ALL");
+    }
+  }, [visibleFilters, selectedFilter]);
 
   return (
     <section className="dashboard-container">
@@ -120,31 +137,25 @@ export default function Dashboard() {
               </div>
             )}
           </div>
-          {isLoading ? (
-            <p className="mt-2 font-[200] text-walnut" style={{ textAlign: "center", marginTop: "1rem", marginBottom: "0.5rem" }}>Loading issue summary...</p>
-          ) : (
-            <p className="mt-2 font-[200] text-walnut" style={{ display: "flex", flexWrap: "wrap", gap: "0.75rem", alignItems: "center", justifyContent: "center", marginTop: "1rem", marginBottom: "0.5rem" }}>
-              <span style={{ fontWeight: "500" }}>{totalIssues} open issues</span>
-              <span style={{ color: "#ccc" }}>•</span>
-              {Object.entries(issueCounts)
-                .sort((a, b) => b[1] - a[1])
-                .map(([type, count], index, arr) => {
-                  const emoji = issueTypeEmojis[type.toUpperCase()];
-                  const displayName = type.charAt(0).toUpperCase() + type.slice(1).toLowerCase();
-                  return (
-                    <React.Fragment key={type}>
-                      <span style={{ display: "inline-flex", alignItems: "center", gap: "0.25rem" }}>
-                        {emoji || "📋"} {displayName}: {count}
-                      </span>
-                      {index < arr.length - 1 && <span style={{ color: "#ccc" }}>•</span>}
-                    </React.Fragment>
-                  );
-                })}
-            </p>
-          )}
+          <div className="dashboard-filters" role="group" aria-label="Filter issues by type">
+            {visibleFilters.map((filter) => (
+              <button
+                key={filter.value}
+                className={`dashboard-filter ${selectedFilter === filter.value ? "active" : ""}`}
+                onClick={() => handleFilterChange(filter.value)}
+              >
+                <span className="dashboard-filter-label">{filter.label}</span>
+                <span className="dashboard-filter-count">
+                  {filter.value === "ALL"
+                    ? totalIssues
+                    : issueCounts[filter.value] || 0}
+                </span>
+              </button>
+            ))}
+          </div>
         </div>
         <div className="dashboard-map-wrapper">
-          <Map />
+          <Map selectedType={selectedFilter} />
         </div>
       </div>
     </section>

@@ -4,9 +4,6 @@ import { LocationPin } from "./mapTypes";
 
 type Props = {
   latestIssues: LocationPin[];
-  selectedType: string;
-  typeOptions: string[];
-  onTypeChange: (value: string) => void;
   onSelectIssue: (issue: LocationPin) => void;
   formatTimeAgo: (date?: string) => string;
   getLocationLabel: (pin: LocationPin) => string;
@@ -14,9 +11,6 @@ type Props = {
 
 export default function FeaturedIssues({
   latestIssues,
-  selectedType,
-  typeOptions,
-  onTypeChange,
   onSelectIssue,
   formatTimeAgo,
   getLocationLabel,
@@ -27,19 +21,6 @@ export default function FeaturedIssues({
         <div>
           <h3 className="panel-title">Featured Issues</h3>
           <p className="panel-subtitle">Showing the latest issues</p>
-        </div>
-        <div className="map-filter">
-          <select
-            id="type-filter"
-            value={selectedType}
-            onChange={(event) => onTypeChange(event.target.value)}
-          >
-            {typeOptions.map((type) => (
-              <option key={type} value={type}>
-                {type === "all" ? "All types" : type}
-              </option>
-            ))}
-          </select>
         </div>
       </div>
 

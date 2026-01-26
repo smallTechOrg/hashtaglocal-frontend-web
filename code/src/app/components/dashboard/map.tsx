@@ -1,7 +1,7 @@
 "use client";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import "./map.css";
-import { Issue } from "../../models/issue";
+import { Issue, IssueType } from "../../models/issue";
 import FeaturedIssues from "./featuredIssues";
 import { LocationPin } from "./mapTypes";
 
@@ -16,6 +16,10 @@ const ENDPOINT = process.env.NODE_ENV === "production"
   : "/api/issues";
 
 const PLACEHOLDER_IMAGE = "https://via.placeholder.com/150";
+
+type MapProps = {
+  selectedType: IssueType | "ALL";
+};
 
 const formatTimeAgo = (dateString?: string) => {
   if (!dateString) return "Unknown date";
@@ -38,10 +42,12 @@ const pickMedia = (issue: Issue): string => {
   return (photo || issue.media_urls[0]).url || PLACEHOLDER_IMAGE;
 };
 
+const normalizeType = (type?: string) => (type ? type.toUpperCase() : "OTHER");
+
 const getLocationLabel = (pin: LocationPin) =>
   pin.colloquialName || pin.address || `Lat ${pin.lat.toFixed(3)}, Lng ${pin.lng.toFixed(3)}`;
 
-export default function Map() {
+export default function Map({ selectedType }: MapProps) {
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<google.maps.Map | null>(null);
   const markersRef = useRef<google.maps.Marker[]>([]);
@@ -49,7 +55,6 @@ export default function Map() {
   const [selectedLocation, setSelectedLocation] = useState<LocationPin | null>(null);
   const [locations, setLocations] = useState<LocationPin[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [selectedType, setSelectedType] = useState<string>("all");
 
   useEffect(() => {
     const controller = new AbortController();
@@ -96,17 +101,9 @@ export default function Map() {
     return () => controller.abort();
   }, []);
 
-  const typeOptions = useMemo(() => {
-    const types = new Set<string>();
-    locations.forEach((location) => {
-      if (location.type) types.add(location.type);
-    });
-    return ["all", ...Array.from(types).sort()];
-  }, [locations]);
-
   const filteredLocations = useMemo(() => {
-    if (selectedType === "all") return locations;
-    return locations.filter((location) => location.type === selectedType);
+    if (selectedType === "ALL") return locations;
+    return locations.filter((location) => normalizeType(location.type) === selectedType);
   }, [locations, selectedType]);
 
   useEffect(() => {
@@ -216,9 +213,6 @@ export default function Map() {
         ) : (
           <FeaturedIssues
             latestIssues={latestIssues}
-            selectedType={selectedType}
-            typeOptions={typeOptions}
-            onTypeChange={setSelectedType}
             onSelectIssue={setSelectedLocation}
             formatTimeAgo={formatTimeAgo}
             getLocationLabel={getLocationLabel}
