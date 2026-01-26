@@ -6,7 +6,7 @@ export default function Footer() {
         <footer>
             <span>
                 Made with ❤️ © {currentYear}{" "}
-                <Link href="https://smalltech.in" target="_blank" rel="noopener noreferrer">
+                <Link href="https://smalltech.in/?utm_source=local&utm_medium=footer&utm_campaign=launch" target="_blank" rel="noopener noreferrer">
                     smallTech
                 </Link>
                 , India
