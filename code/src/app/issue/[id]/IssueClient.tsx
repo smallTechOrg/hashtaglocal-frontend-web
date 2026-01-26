@@ -4,6 +4,10 @@ import Link from "next/link";
 import "../issue.css";
 import { Issue } from "../../models/issue";
 import EditIssueModal from "../../components/dashboard/editIssueModal";
+import { useScrollTracking, useTimeTracking } from "../../hooks/useScrollTracking";
+import { useClickTracking } from "../../hooks/useClickTracking";
+import { trackIssueView, trackIssueShare, trackError, trackExternalLink, EventCategory } from "../../utils/analytics";
+import { useAnalytics } from "../../context/AnalyticsContext";
 
 interface IssueResponse {
   data?: {
@@ -70,6 +74,12 @@ export default function IssueClient({ issueId: propIssueId }: { issueId: string 
   const [canEdit, setCanEdit] = useState(false);
   const [copied, setCopied] = useState(false);
 
+  // Analytics hooks
+  useScrollTracking();
+  useTimeTracking(`/issue/${issueId}`);
+  const trackClick = useClickTracking();
+  const { trackJourneyStep } = useAnalytics();
+
   useEffect(() => {
     // Check localStorage for edit access
     const hasEditAccess = localStorage.getItem('dev_edit_access') === 'true';
@@ -87,12 +97,15 @@ export default function IssueClient({ issueId: propIssueId }: { issueId: string 
       if (!loaded) throw new Error("Issue not found in response");
       setIssue(loaded);
       setStatus("ready");
+      trackIssueView(issueId, loaded.type);
+      trackJourneyStep('issue_viewed', { issue_id: String(issueId), issue_type: loaded.type, issue_status: loaded.status });
     } catch (err) {
       if (signal?.aborted) return;
       console.error("Failed to load issue", err);
+      trackError('api_load_error', String(err), `issue_${issueId}`);
       setStatus("error");
     }
-  }, [issueId]);
+  }, [issueId, trackJourneyStep]);
 
   useEffect(() => {
     if (!issueId) return;
@@ -110,9 +123,11 @@ export default function IssueClient({ issueId: propIssueId }: { issueId: string 
     try {
       await navigator.clipboard.writeText(window.location.href);
       setCopied(true);
+      trackIssueShare(issueId, 'copy_link');
       setTimeout(() => setCopied(false), 2000);
     } catch (err) {
       console.error('Failed to copy link:', err);
+      trackError('clipboard_error', String(err), 'copy_issue_link');
     }
   };
 
@@ -120,7 +135,7 @@ export default function IssueClient({ issueId: propIssueId }: { issueId: string 
     <main className="issue-page">
       <div className="issue-hero">
         <div>
-          <Link className="back-link" href="/">
+          <Link className="back-link" href="/" onClick={() => trackClick('Back to Home', EventCategory.NAVIGATION)}>
             ← Home
           </Link>
           <h1>Issue #{issueId}</h1>
@@ -135,7 +150,16 @@ export default function IssueClient({ issueId: propIssueId }: { issueId: string 
         {issue && (
           <div className="actions-row">
             {hasCoords && (
-              <a className="primary-btn" href={`https://maps.google.com/?q=${issue.location?.lat},${issue.location?.lng}`} target="_blank" rel="noreferrer">
+              <a 
+                className="primary-btn" 
+                href={`https://maps.google.com/?q=${issue.location?.lat},${issue.location?.lng}`} 
+                target="_blank" 
+                rel="noreferrer"
+                onClick={() => {
+                  trackExternalLink(`https://maps.google.com/?q=${issue.location?.lat},${issue.location?.lng}`, 'Open in Google Maps');
+                  trackClick('Open in Maps', EventCategory.USER_INTERACTION, { issue_id: issueId });
+                }}
+              >
                 Open in Maps
               </a>
             )}
@@ -143,7 +167,14 @@ export default function IssueClient({ issueId: propIssueId }: { issueId: string 
               {copied ? "Copied!" : "Copy Link"}
             </button>
             {canEdit && (
-              <button className="primary-btn" type="button" onClick={() => setEditingIssue(issue)}>
+              <button 
+                className="primary-btn" 
+                type="button" 
+                onClick={() => {
+                  trackClick(`Edit Issue ${issueId}`, EventCategory.ISSUE, { issue_id: issueId });
+                  setEditingIssue(issue);
+                }}
+              >
                 Edit
               </button>
             )}
@@ -160,7 +191,15 @@ export default function IssueClient({ issueId: propIssueId }: { issueId: string 
 
       {status === "ready" && issue && (
         <section className="issue-card">
-          {mediaUrl && <img src={mediaUrl} alt="Issue media" className="issue-image" />}
+          {mediaUrl && (
+            <img 
+              src={mediaUrl} 
+              alt="Issue media" 
+              className="issue-image"
+              onClick={() => trackClick('Issue Image View', EventCategory.ENGAGEMENT, { issue_id: issueId })}
+              style={{ cursor: 'pointer' }}
+            />
+          )}
           <p className="issue-description">{issue.description || "No description provided."}</p>
 
           <div className="issue-section">

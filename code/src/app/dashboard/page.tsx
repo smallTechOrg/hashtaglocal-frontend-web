@@ -4,6 +4,10 @@ import { useEffect, useMemo, useState } from "react";
 import "./dashboard.css";
 import { Issue } from "../models/issue";
 import EditIssueModal from "../components/dashboard/editIssueModal";
+import { useScrollTracking, useTimeTracking } from "../hooks/useScrollTracking";
+import { useClickTracking } from "../hooks/useClickTracking";
+import { trackIssueFilter, trackError, EventCategory } from "../utils/analytics";
+import { useAnalytics } from "../context/AnalyticsContext";
 
 interface IssuesResponse {
   data?: {
@@ -57,6 +61,12 @@ export default function DashboardPage() {
   const [itemsPerPage] = useState(30);
   const [canEdit, setCanEdit] = useState(false);
 
+  // Analytics hooks
+  useScrollTracking();
+  useTimeTracking('/dashboard');
+  const trackClick = useClickTracking();
+  const { trackJourneyStep } = useAnalytics();
+
   useEffect(() => {
     // Check localStorage for edit access
     const hasEditAccess = localStorage.getItem('dev_edit_access') === 'true';
@@ -81,6 +91,7 @@ export default function DashboardPage() {
       } catch (err) {
         if (controller.signal.aborted) return;
         console.error("Failed to load issues", err);
+        trackError('api_load_error', String(err), 'dashboard_initial_load');
         setStatus("error");
       }
     }
@@ -90,6 +101,7 @@ export default function DashboardPage() {
   }, []);
 
   const handleRefresh = async () => {
+    trackClick('Refresh Issues', EventCategory.USER_INTERACTION);
     setStatus("loading");
     try {
       const res = await fetch(ENDPOINT, { cache: "no-store" });
@@ -97,8 +109,10 @@ export default function DashboardPage() {
       const payload: IssuesResponse = await res.json();
       setIssues(payload.data?.issues || []);
       setStatus("ready");
+      trackJourneyStep('dashboard_refreshed', { issue_count: payload.data?.issues?.length || 0 });
     } catch (err) {
       console.error("Failed to refresh issues", err);
+      trackError('api_refresh_error', String(err), 'dashboard_refresh');
       setStatus("error");
     }
   };
@@ -162,6 +176,7 @@ export default function DashboardPage() {
   }, [filteredIssues, currentPage, itemsPerPage]);
 
   const handlePageChange = (page: number) => {
+    trackClick(`Pagination - Page ${page}`, EventCategory.NAVIGATION, { page, total_pages: totalPages });
     setCurrentPage(page);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
@@ -172,6 +187,7 @@ export default function DashboardPage() {
   }, [issues.length, selectedHashtag, selectedStatus, selectedType]);
 
   const handleClearFilters = () => {
+    trackClick('Clear All Filters', EventCategory.FILTER);
     setSelectedHashtag("all");
     setSelectedStatus("all");
     setSelectedType("all");
@@ -220,7 +236,10 @@ export default function DashboardPage() {
                 id="hashtag-filter"
                 className="filter-select"
                 value={selectedHashtag}
-                onChange={(e) => setSelectedHashtag(e.target.value)}
+                onChange={(e) => {
+                  setSelectedHashtag(e.target.value);
+                  trackIssueFilter('hashtag', e.target.value);
+                }}
               >
                 <option value="all">All hashtags</option>
                 {filterOptions.hashtags.map((tag) => (
@@ -235,7 +254,10 @@ export default function DashboardPage() {
                 id="status-filter"
                 className="filter-select"
                 value={selectedStatus}
-                onChange={(e) => setSelectedStatus(e.target.value)}
+                onChange={(e) => {
+                  setSelectedStatus(e.target.value);
+                  trackIssueFilter('status', e.target.value);
+                }}
               >
                 <option value="all">All statuses</option>
                 {filterOptions.statuses.map((stat) => (
@@ -250,7 +272,10 @@ export default function DashboardPage() {
                 id="type-filter"
                 className="filter-select"
                 value={selectedType}
-                onChange={(e) => setSelectedType(e.target.value)}
+                onChange={(e) => {
+                  setSelectedType(e.target.value);
+                  trackIssueFilter('type', e.target.value);
+                }}
               >
                 <option value="all">All types</option>
                 {filterOptions.types.map((type) => (
@@ -337,13 +362,23 @@ export default function DashboardPage() {
                       href={`/issue/${issue.id}`}
                       className="view-btn"
                       aria-label="View issue details"
+                      onClick={() => {
+                        trackClick(`View Issue ${issue.id}`, EventCategory.ISSUE, {
+                          issue_id: String(issue.id),
+                          issue_type: issue.type || 'unknown',
+                          issue_status: issue.status || 'unknown',
+                        });
+                      }}
                     >
                       View
                     </Link>
                     {canEdit && (
                       <button 
                         className="edit-btn"
-                        onClick={() => setEditingIssue(issue)}
+                        onClick={() => {
+                          trackClick(`Edit Issue ${issue.id}`, EventCategory.ISSUE, { issue_id: issue.id });
+                          setEditingIssue(issue);
+                        }}
                         aria-label="Edit issue"
                       >
                         Edit

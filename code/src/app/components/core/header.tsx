@@ -1,13 +1,20 @@
 "use client";
 import Image from "next/image";
 import Link from "next/link";
+import { useClickTracking } from "../../hooks/useClickTracking";
+import { EventCategory } from "../../utils/analytics";
 
 
 export default function Header() {
+    const trackClick = useClickTracking();
 
     return (
         <header className="relative pt-2 pl-2">
-            <Link href="/" className="absolute left-2 top-2">
+            <Link 
+                href="/" 
+                className="absolute left-2 top-2"
+                onClick={() => trackClick('Logo Click - Home', EventCategory.NAVIGATION)}
+            >
                 <Image
                     src="/logo-green.png"
                     alt="Logo"

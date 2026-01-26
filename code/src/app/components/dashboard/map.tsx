@@ -4,6 +4,8 @@ import "./map.css";
 import { Issue, IssueType } from "../../models/issue";
 import FeaturedIssues from "./featuredIssues";
 import { LocationPin } from "./mapTypes";
+import { trackMapMarkerClick, trackError, EventCategory } from "../../utils/analytics";
+import { useClickTracking } from "../../hooks/useClickTracking";
 
 interface IssuesResponse {
   data?: {
@@ -56,6 +58,8 @@ export default function Map({ selectedType }: MapProps) {
   const [locations, setLocations] = useState<LocationPin[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
+  const trackClick = useClickTracking();
+
   useEffect(() => {
     const controller = new AbortController();
 
@@ -93,6 +97,7 @@ export default function Map({ selectedType }: MapProps) {
       } catch (err) {
         if (controller.signal.aborted) return;
         console.error("Failed to load issues", err);
+        trackError('api_load_error', String(err), 'map_component');
         setIsLoading(false);
       }
     }
@@ -168,6 +173,7 @@ export default function Map({ selectedType }: MapProps) {
       if (position) bounds.extend(position);
 
       marker.addListener("click", () => {
+        trackMapMarkerClick(location.id, location.type);
         setSelectedLocation(location);
         map.panTo({ lat: location.lat, lng: location.lng });
       });
@@ -191,7 +197,13 @@ export default function Map({ selectedType }: MapProps) {
       <aside className="map-side-panel">
         {selectedLocation ? (
           <div className="detail-card">
-            <button className="back-button" onClick={() => setSelectedLocation(null)}>
+            <button 
+              className="back-button" 
+              onClick={() => {
+                trackClick('Back to Latest Issues', EventCategory.NAVIGATION);
+                setSelectedLocation(null);
+              }}
+            >
               ← Back to latest
             </button>
             <img
@@ -206,7 +218,17 @@ export default function Map({ selectedType }: MapProps) {
             <p className="detail-meta">📍 {selectedLocation.lat.toFixed(6)}, {selectedLocation.lng.toFixed(6)}</p>
             <p className="detail-description">{selectedLocation.description}</p>
             <p className="detail-meta">{formatTimeAgo(selectedLocation.createdAt)}</p>
-            <a className="detail-link" href={`/issue/${selectedLocation.id}`}>
+            <a 
+              className="detail-link" 
+              href={`/issue/${selectedLocation.id}`}
+              onClick={() => {
+                trackClick(`View Issue Details from Map ${selectedLocation.id}`, EventCategory.ISSUE, {
+                  issue_id: String(selectedLocation.id),
+                  issue_type: selectedLocation.type || 'unknown',
+                  source: 'map_detail_card'
+                });
+              }}
+            >
               View details
             </a>
           </div>
