@@ -3,6 +3,8 @@ import React, { useState, useEffect } from "react";
 import "./dashboard.css";
 import Map from "./map";
 import { IssueType } from "../../models/issue";
+import { useClickTracking } from "../../hooks/useClickTracking";
+import { trackIssueFilter, trackError, EventCategory } from "../../utils/analytics";
 
 type IssueFilter = IssueType | "ALL";
 
@@ -34,7 +36,7 @@ export default function Dashboard() {
   const [showCityDropdown, setShowCityDropdown] = useState(false);
   const [issueCounts, setIssueCounts] = useState<Record<string, number>>({});
   const [selectedFilter, setSelectedFilter] = useState<IssueFilter>("ALL");
-
+  const trackClick = useClickTracking();
   const normalizeType = (type?: string) => (type ? type.toUpperCase() : "OTHER");
 
   useEffect(() => {
@@ -56,6 +58,7 @@ export default function Dashboard() {
         setIssueCounts(counts);
       } catch (err) {
         console.error("Failed to load issues", err);
+        trackError('api_load_error', String(err), 'dashboard_component');
       }
     }
 
@@ -74,6 +77,7 @@ export default function Dashboard() {
   }, [showCityDropdown]);
 
   const handleFilterChange = (value: IssueFilter) => {
+    trackIssueFilter('map_filter', value);
     setSelectedFilter(value);
   };
 
@@ -97,6 +101,7 @@ export default function Dashboard() {
             <button
               onClick={(e) => {
                 e.stopPropagation();
+                trackClick('City Dropdown Toggle', EventCategory.USER_INTERACTION);
                 setShowCityDropdown(!showCityDropdown);
               }}
               style={{

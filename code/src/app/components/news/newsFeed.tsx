@@ -6,6 +6,8 @@ import { IssueCategory, NewsArticle, NewsApiResponse } from '../../models/newsAr
 import { fetchBengaluruNews, getCategoryColor, formatNewsDate } from '../../api/newsService';
 import NewsCard from './newsCard';
 import './newsFeed.css';
+import { useClickTracking } from '../../hooks/useClickTracking';
+import { trackError, trackExternalLink, EventCategory, EventAction, trackEvent } from '../../utils/analytics';
 
 type FilterCategory = IssueCategory | 'ALL';
 
@@ -26,6 +28,8 @@ export default function NewsFeed() {
   const [error, setError] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [activeArticle, setActiveArticle] = useState<NewsArticle | null>(null);
+
+  const trackClick = useClickTracking();
 
   const loadNews = async (category: FilterCategory, page: number) => {
     setIsLoading(true);
@@ -49,6 +53,7 @@ export default function NewsFeed() {
     } catch (err) {
       setError('Failed to load news. Please try again later.');
       console.error('Error fetching news:', err);
+      trackError('news_api_error', String(err), `news_feed_${category}`);
     } finally {
       setIsLoading(false);
     }
@@ -72,20 +77,35 @@ export default function NewsFeed() {
   }, [activeArticle]);
 
   const handleCategoryChange = (category: FilterCategory) => {
+    trackEvent(EventAction.FILTER_CHANGE, {
+      event_category: EventCategory.FILTER,
+      event_label: `News Category: ${category}`,
+      filter_type: 'news_category',
+      filter_value: category,
+    });
     setSelectedCategory(category);
   };
 
   const handleLoadMore = () => {
     const nextPage = currentPage + 1;
+    trackClick('Load More News', EventCategory.ENGAGEMENT, { category: selectedCategory, page: nextPage });
     setCurrentPage(nextPage);
     loadNews(selectedCategory, nextPage);
   };
 
   const handleOpenArticle = (article: NewsArticle) => {
+    trackEvent(EventAction.NEWS_ARTICLE_VIEW, {
+      event_category: EventCategory.ENGAGEMENT,
+      event_label: article.title,
+      article_title: article.title,
+      article_category: article.category,
+      article_source: article.source.name,
+    });
     setActiveArticle(article);
   };
 
   const handleCloseModal = () => {
+    trackClick('Close News Article Modal', EventCategory.USER_INTERACTION);
     setActiveArticle(null);
   };
 
@@ -218,6 +238,15 @@ export default function NewsFeed() {
                   target="_blank"
                   rel="noreferrer"
                   className="news-modal-link"
+                  onClick={() => {
+                    trackExternalLink(activeArticle.url, `News: ${activeArticle.title}`);
+                    trackEvent(EventAction.NEWS_ARTICLE_CLICK, {
+                      event_category: EventCategory.ENGAGEMENT,
+                      event_label: activeArticle.title,
+                      article_url: activeArticle.url,
+                      article_source: activeArticle.source.name,
+                    });
+                  }}
                 >
                   Open original article
                 </a>

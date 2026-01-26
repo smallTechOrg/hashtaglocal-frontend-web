@@ -4,6 +4,7 @@ import "./globals.css";
 import Header from "./components/core/header";
 import Footer from "./components/core/footer";
 import Script from "next/dist/client/script";
+import { AnalyticsProvider } from "./context/AnalyticsContext";
 
 
 const montserrat = Montserrat({
@@ -45,9 +46,11 @@ export default function RootLayout({
       <body
         className={`${montserrat.variable} antialiased min-h-screen flex flex-col`}
       >
-        <Header />
+        <AnalyticsProvider>
+          <Header />
           <main className="flex-1">{children} </main>
-        <Footer />
+          <Footer />
+        </AnalyticsProvider>
       </body>
     </html>
   );
