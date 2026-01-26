@@ -172,6 +172,14 @@ export default function IssueClient({ issueId: propIssueId }: { issueId: string 
               <p className="meta-label">Verifications</p>
               <p className="meta-value">{issue.verify_count ?? 0}</p>
             </div>
+            <div className="meta-box">
+              <p className="meta-label">📍 Coordinates</p>
+              <p className="meta-value">
+                {issue.location?.lat && issue.location?.lng 
+                  ? `${issue.location.lat.toFixed(6)}, ${issue.location.lng.toFixed(6)}` 
+                  : "N/A"}
+              </p>
+            </div>
           </div>
         </section>
       )}
