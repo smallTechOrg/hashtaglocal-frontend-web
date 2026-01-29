@@ -47,7 +47,7 @@ const transformApiData = (apiPolygon: ApiLocality, colorIndex: number): Polygon 
   return {
     id: apiPolygon.id.toString(),
     name: apiPolygon.name,
-    hashtag: `#${apiPolygon.hashtag}`,
+    hashtag: apiPolygon.hashtag,
     coordinates,
     color: getColorForPolygon(colorIndex),
   };
@@ -75,11 +75,14 @@ const PolygonsMap = ({ polygons: initialPolygons }: PolygonsMapProps) => {
         const transformedPolygons = data.map((apiPolygon, index) =>
           transformApiData(apiPolygon, index)
         );
+        // Sort alphabetically by hashtag
+        transformedPolygons.sort((a, b) => a.hashtag.localeCompare(b.hashtag));
         setPolygons(transformedPolygons);
       } catch (err) {
         console.error("Error fetching polygons:", err);
         // Fall back to sample data if API fails
-        setPolygons(initialPolygons || samplePolygons);
+        const fallback = (initialPolygons || samplePolygons).slice().sort((a, b) => a.hashtag.localeCompare(b.hashtag));
+        setPolygons(fallback);
       }
     };
 
@@ -130,6 +133,9 @@ const PolygonsMap = ({ polygons: initialPolygons }: PolygonsMapProps) => {
     const bounds = new google.maps.LatLngBounds();
 
 
+    // Create a single InfoWindow instance
+    const infoWindow = new google.maps.InfoWindow();
+
     polygons.forEach((polygon) => {
       const paths = polygon.coordinates.map((coord) => ({
         lat: coord.lat,
@@ -144,7 +150,6 @@ const PolygonsMap = ({ polygons: initialPolygons }: PolygonsMapProps) => {
         fillColor: polygon.color,
         fillOpacity: 0.3,
         map,
-        title: polygon.name,
       });
 
       // Add click listener to polygon
@@ -154,6 +159,17 @@ const PolygonsMap = ({ polygons: initialPolygons }: PolygonsMapProps) => {
         const center = getPolygonCenter(paths);
         map.panTo(center);
         map.setZoom(14);
+      });
+
+      // Show name on mouseover
+      googlePolygon.addListener("mouseover", (event) => {
+        infoWindow.setContent(`<div style='font-weight:bold;font-size:14px;'>${polygon.name}</div>`);
+        infoWindow.setPosition(event.latLng);
+        infoWindow.open(map);
+      });
+      // Hide name on mouseout
+      googlePolygon.addListener("mouseout", () => {
+        infoWindow.close();
       });
 
       // Extend bounds to include polygon
