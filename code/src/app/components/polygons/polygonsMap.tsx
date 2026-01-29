@@ -162,9 +162,9 @@ const PolygonsMap = ({ polygons: initialPolygons }: PolygonsMapProps) => {
       });
 
       // Show name on mouseover
-      googlePolygon.addListener("mouseover", (event) => {
+      googlePolygon.addListener("mouseover", (event: google.maps.MapMouseEvent) => {
         infoWindow.setContent(`<div style='font-weight:bold;font-size:14px;'>${polygon.name}</div>`);
-        infoWindow.setPosition(event.latLng);
+        infoWindow.setPosition(event.latLng!);
         infoWindow.open(map);
       });
       // Hide name on mouseout
