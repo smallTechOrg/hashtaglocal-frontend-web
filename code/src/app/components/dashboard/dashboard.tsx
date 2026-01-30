@@ -3,8 +3,8 @@ import React, { useState, useEffect } from "react";
 import "./dashboard.css";
 import Map from "./map";
 import { IssueType } from "../../models/issue";
-import { useClickTracking } from "../../hooks/useClickTracking";
-import { trackIssueFilter, trackError, EventCategory } from "../../utils/analytics";
+// import { useClickTracking } from "../../hooks/useClickTracking";
+import { trackIssueFilter, trackError } from "../../utils/analytics";
 
 type IssueFilter = IssueType | "ALL";
 
@@ -29,21 +29,28 @@ interface IssuesResponse {
   };
 }
 
-const ENDPOINT = process.env.NODE_ENV === "production"
-  ? "https://staging.api.smalltech.in/local/api/v1/issues"
-  : "/api/issues";
+
+const CITY_OPTIONS = [
+  { label: "#bengaluru", value: "%23bengaluru" },
+  { label: "#nashik", value: "%23nashik" },
+  { label: "#sikar", value: "%23sikar" },
+];
+
+
 
 export default function Dashboard() {
   const [showCityDropdown, setShowCityDropdown] = useState(false);
+  const [selectedCity, setSelectedCity] = useState(CITY_OPTIONS[0].value);
   const [issueCounts, setIssueCounts] = useState<Record<string, number>>({});
   const [selectedFilter, setSelectedFilter] = useState<IssueFilter>("ALL");
-  const trackClick = useClickTracking();
+  // const trackClick = useClickTracking();
   const normalizeType = (type?: string) => (type ? type.toUpperCase() : "OTHER");
 
   useEffect(() => {
     async function loadIssues() {
       try {
-        const res = await fetch(ENDPOINT, { cache: "no-store" });
+        const endpoint = `https://staging.api.smalltech.in/local/api/v1/issues?locality=${selectedCity}`;
+        const res = await fetch(endpoint, { cache: "no-store" });
         if (!res.ok) throw new Error(`Request failed with ${res.status}`);
         const payload: IssuesResponse = await res.json();
         const issues = payload.data?.issues || [];
@@ -64,7 +71,7 @@ export default function Dashboard() {
     }
 
     loadIssues();
-  }, []);
+  }, [selectedCity]);
 
   useEffect(() => {
     if (!showCityDropdown) return;
@@ -98,52 +105,16 @@ export default function Dashboard() {
     <section className="dashboard-container">
       <div className="dashboard-content">
         <div className="dashboard-header">
-          <div style={{ position: "relative", display: "inline-block" }}>
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                trackClick('City Dropdown Toggle', EventCategory.USER_INTERACTION);
-                setShowCityDropdown(!showCityDropdown);
-              }}
-              style={{
-                background: "none",
-                border: "none",
-                fontSize: "inherit",
-                fontWeight: "inherit",
-                cursor: "pointer",
-                padding: 0,
-                display: "flex",
-                alignItems: "center",
-                gap: "0.5rem",
-                marginBottom: "1rem",
-              }}
-            >
-              <h1 style={{ margin: 0 }} className="text-walnut">#bengaluru</h1>
-              <span style={{ fontSize: "0.8em" }}>▼</span>
-            </button>
-            {showCityDropdown && (
-              <div
-                style={{
-                  position: "absolute",
-                  top: "100%",
-                  left: 0,
-                  marginTop: "0.5rem",
-                  padding: "0.375rem 0.625rem",
-                  background: "white",
-                  border: "1px solid #ddd",
-                  borderRadius: "0.25rem",
-                  boxShadow: "0 2px 8px rgba(0, 0, 0, 0.1)",
-                  whiteSpace: "nowrap",
-                  zIndex: 10,
-                  fontSize: "0.8125rem",
-                }}
-              >
-                <p style={{ margin: 0, color: "#666" }}>
-                  🚀 Other cities coming soon
-                </p>
-              </div>
-            )}
-          </div>
+          <select
+            id="city-select"
+            value={selectedCity}
+            onChange={e => setSelectedCity(e.target.value)}
+            className="text-walnut font-[500] text-[18px] sm:text-[22px] md:text-[26px] lg:text-2xl mb-3 mt-1"
+          >
+            {CITY_OPTIONS.map(opt => (
+              <option key={opt.value} value={opt.value}>{opt.label}</option>
+            ))}
+          </select>
           <div className="dashboard-filters" role="group" aria-label="Filter issues by type">
             {visibleFilters.map((filter) => (
               <button
@@ -162,7 +133,7 @@ export default function Dashboard() {
           </div>
         </div>
         <div className="dashboard-map-wrapper">
-          <Map selectedType={selectedFilter} />
+          <Map selectedType={selectedFilter} selectedCity={selectedCity} />
         </div>
       </div>
     </section>

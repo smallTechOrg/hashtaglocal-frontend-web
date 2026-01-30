@@ -5,6 +5,7 @@ import { Issue, IssueType } from "../../models/issue";
 import FeaturedIssues from "./featuredIssues";
 import { LocationPin } from "./mapTypes";
 import { trackMapMarkerClick, trackError, EventCategory } from "../../utils/analytics";
+import Image from "next/image";
 import { useClickTracking } from "../../hooks/useClickTracking";
 
 interface IssuesResponse {
@@ -13,14 +14,13 @@ interface IssuesResponse {
   };
 }
 
-const ENDPOINT = process.env.NODE_ENV === "production"
-  ? "https://staging.api.smalltech.in/local/api/v1/issues"
-  : "/api/issues";
+
 
 const PLACEHOLDER_IMAGE = "https://via.placeholder.com/150";
 
 type MapProps = {
   selectedType: IssueType | "ALL";
+  selectedCity: string;
 };
 
 const formatTimeAgo = (dateString?: string) => {
@@ -49,7 +49,7 @@ const normalizeType = (type?: string) => (type ? type.toUpperCase() : "OTHER");
 const getLocationLabel = (pin: LocationPin) =>
   pin.colloquialName || pin.address || `Lat ${pin.lat.toFixed(3)}, Lng ${pin.lng.toFixed(3)}`;
 
-export default function Map({ selectedType }: MapProps) {
+export default function Map({ selectedType, selectedCity }: MapProps) {
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<google.maps.Map | null>(null);
   const markersRef = useRef<google.maps.Marker[]>([]);
@@ -65,7 +65,8 @@ export default function Map({ selectedType }: MapProps) {
 
     async function loadIssues() {
       try {
-        const res = await fetch(ENDPOINT, { signal: controller.signal, cache: "no-store" });
+        const endpoint = `https://staging.api.smalltech.in/local/api/v1/issues?locality=${selectedCity}`;
+        const res = await fetch(endpoint, { signal: controller.signal, cache: "no-store" });
         if (!res.ok) throw new Error(`Request failed with ${res.status}`);
         const payload: IssuesResponse = await res.json();
         const issues = payload.data?.issues || [];
@@ -104,7 +105,7 @@ export default function Map({ selectedType }: MapProps) {
 
     loadIssues();
     return () => controller.abort();
-  }, []);
+  }, [selectedCity]);
 
   const filteredLocations = useMemo(() => {
     if (selectedType === "ALL") return locations;
@@ -215,10 +216,13 @@ export default function Map({ selectedType }: MapProps) {
             >
               ← Back to latest
             </button>
-            <img
+            <Image
               src={selectedLocation.image}
               alt={selectedLocation.title}
               className="detail-image"
+              width={300}
+              height={200}
+              style={{ objectFit: "cover" }}
             />
             <div className="detail-pill-row">
               {selectedLocation.type && <span className="issue-pill">{selectedLocation.type}</span>}
