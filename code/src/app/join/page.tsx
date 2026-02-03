@@ -1,51 +1,28 @@
 "use client";
-import React, { useEffect } from "react";
+import React, { useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import { useScrollTracking, useTimeTracking } from "../hooks/useScrollTracking";
-import { trackEvent, EventCategory } from "../utils/analytics";
 import { useAnalytics } from "../context/AnalyticsContext";
-
-declare global {
-  interface Window {
-    redirectToThankYou?: () => void;
-  }
-}
 
 export default function Join() {
   // Analytics hooks
   useScrollTracking();
   useTimeTracking('/join');
   const { trackJourneyStep } = useAnalytics();
+  const [isSubmitted, setIsSubmitted] = useState(false);
+  const loadCountRef = useRef(0);
 
   useEffect(() => {
     // Track join page visit
     trackJourneyStep('join_page_visited');
-
-    // Define the redirect function globally
-    window.redirectToThankYou = function() {
-      trackEvent('form_submission', {
-        event_category: EventCategory.ENGAGEMENT,
-        event_label: 'Join Movement Form Submitted',
-        form_type: 'typeform',
-        form_id: 'OI3uc4p3'
-      });
-      trackJourneyStep('join_form_submitted');
-      window.location.href = "/";
-    };
-
-    // Load Typeform embed script
-    const script = document.createElement('script');
-    script.src = "//embed.typeform.com/next/embed.js";
-    script.async = true;
-    document.body.appendChild(script);
-
-    // Cleanup
-    return () => {
-      delete window.redirectToThankYou;
-      if (document.body.contains(script)) {
-        document.body.removeChild(script);
-      }
-    };
   }, [trackJourneyStep]);
+
+  const handleFormLoad = () => {
+    loadCountRef.current += 1;
+    if (loadCountRef.current > 1 && !isSubmitted) {
+      setIsSubmitted(true);
+    }
+  };
 
   return (
     <div style={{ 
@@ -65,11 +42,36 @@ export default function Join() {
       }}>
         Join The Movement
       </h1>
-      <div 
-        data-tf-widget="OI3uc4p3" 
-        data-tf-on-submit="redirectToThankYou"
-        style={{ width: "100%", maxWidth: "800px", height: "auto", minHeight: "clamp(400px, 70vh, 550px)" }}
-      ></div>
+      <iframe
+        src="https://docs.google.com/forms/d/e/1FAIpQLSdDjs6xd3nyzJKWtF3DEk1uQPnqVlpfYv8Ibnp8gZbRV5RV0Q/viewform?embedded=true"
+        title="Join The Movement"
+        style={{
+          width: "100%",
+          maxWidth: "800px",
+          height: isSubmitted ? "clamp(260px, 40vh, 420px)" : "clamp(500px, 75vh, 900px)",
+          border: 0,
+        }}
+        loading="lazy"
+        referrerPolicy="no-referrer-when-downgrade"
+        onLoad={handleFormLoad}
+      />
+      <Link
+        href="/"
+        style={{
+          marginTop: "1rem",
+          textDecoration: "none",
+          color: "#111827",
+          border: "1px solid #e5e7eb",
+          padding: "0.5rem 1rem",
+          borderRadius: "999px",
+          fontSize: "0.95rem",
+          fontWeight: 500,
+          background: "#ffffff",
+        }}
+        aria-label="Back to Home"
+      >
+        Back to Home
+      </Link>
     </div>
   );
 }
