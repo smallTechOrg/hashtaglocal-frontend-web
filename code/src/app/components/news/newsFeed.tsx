@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { IssueCategory, NewsArticle, NewsApiResponse } from '../../models/newsArticle';
-import { fetchBengaluruNews, getCategoryColor, formatNewsDate } from '../../api/newsService';
+import { fetchCityNews, getCategoryColor, formatNewsDate } from '../../api/newsService';
 import NewsCard from './newsCard';
 import './newsFeed.css';
 import { useClickTracking } from '../../hooks/useClickTracking';
@@ -21,7 +21,11 @@ const CATEGORIES: { value: FilterCategory; label: string }[] = [
   { value: 'SAFETY', label: '🛡️ Safety' }
 ];
 
-export default function NewsFeed() {
+interface NewsFeedProps {
+  selectedCity: string;
+}
+
+export default function NewsFeed({ selectedCity }: NewsFeedProps) {
   const [selectedCategory, setSelectedCategory] = useState<FilterCategory>('ALL');
   const [newsData, setNewsData] = useState<NewsApiResponse | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -31,12 +35,12 @@ export default function NewsFeed() {
 
   const trackClick = useClickTracking();
 
-  const loadNews = async (category: FilterCategory, page: number) => {
+  const loadNews = async (category: FilterCategory, page: number, city: string) => {
     setIsLoading(true);
     setError(null);
     
     try {
-      const data = await fetchBengaluruNews(category, page, 6);
+      const data = await fetchCityNews(city, category, page, 6);
       
       if (page === 1) {
         setNewsData(data);
@@ -53,7 +57,7 @@ export default function NewsFeed() {
     } catch (err) {
       setError('Failed to load news. Please try again later.');
       console.error('Error fetching news:', err);
-      trackError('news_api_error', String(err), `news_feed_${category}`);
+      trackError('news_api_error', String(err), `news_feed_${category}_${city}`);
     } finally {
       setIsLoading(false);
     }
@@ -61,8 +65,10 @@ export default function NewsFeed() {
 
   useEffect(() => {
     setCurrentPage(1);
-    loadNews(selectedCategory, 1);
-  }, [selectedCategory]);
+    setNewsData(null);
+    setActiveArticle(null);
+    loadNews(selectedCategory, 1, selectedCity);
+  }, [selectedCategory, selectedCity]);
 
   useEffect(() => {
     if (activeArticle) {

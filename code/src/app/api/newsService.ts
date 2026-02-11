@@ -1,6 +1,6 @@
 /**
  * News Service
- * Handles fetching news articles about Bengaluru
+ * Handles fetching news articles for a selected city
  */
 
 import { NewsApiResponse, IssueCategory, NewsArticle } from '../models/newsArticle';
@@ -13,7 +13,8 @@ import { NewsApiResponse, IssueCategory, NewsArticle } from '../models/newsArtic
  * @param pageSize - Number of articles per page (default: 10)
  * @returns Promise with news articles
  */
-export async function fetchBengaluruNews(
+export async function fetchCityNews(
+  cityHashtag: string,
   category: IssueCategory | 'ALL' = 'ALL',
   page: number = 1,
   pageSize: number = 10
@@ -25,7 +26,11 @@ export async function fetchBengaluruNews(
     params.set('category', category);
   }
 
-  const response = await fetch(`https://staging.api.smalltech.in/local/api/news/%23bengaluru?${params.toString()}`, {
+  const normalizedCity = cityHashtag.startsWith('%23')
+    ? cityHashtag
+    : encodeURIComponent(cityHashtag.startsWith('#') ? cityHashtag : `#${cityHashtag}`);
+
+  const response = await fetch(`https://staging.api.smalltech.in/local/api/news/${normalizedCity}?${params.toString()}`, {
     method: 'GET',
     headers: {
       'Content-Type': 'application/json'
@@ -53,7 +58,7 @@ export async function fetchBengaluruNews(
     url: string;
     url_to_image?: string;
     published_at: string;
-    location: 'Bengaluru';
+    location: string;
   }
   const mappedArticles: NewsArticle[] = (rawData.articles as RawArticle[]).map((article: RawArticle) => ({
     id: article.id,
