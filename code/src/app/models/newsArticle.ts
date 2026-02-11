@@ -21,7 +21,7 @@ export interface NewsArticle {
   url: string;
   urlToImage?: string;
   publishedAt: string;
-  location: 'Bengaluru';
+  location: string;
 }
 
 export interface NewsApiResponse {

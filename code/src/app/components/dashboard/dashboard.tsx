@@ -3,6 +3,7 @@ import React, { useState, useEffect } from "react";
 import "./dashboard.css";
 import Map from "./map";
 import { IssueType } from "../../models/issue";
+import { CITY_OPTIONS } from "../../constants/cityOptions";
 // import { useClickTracking } from "../../hooks/useClickTracking";
 import { trackIssueFilter, trackError } from "../../utils/analytics";
 
@@ -30,19 +31,12 @@ interface IssuesResponse {
 }
 
 
-const CITY_OPTIONS = [
-  { label: "#bengaluru", value: "%23bengaluru" },
-  { label: "#nashik", value: "%23nashik" },
-  { label: "#mumbai", value: "%23mumbai" },
-  { label: "#sikar", value: "%23sikar" },
-  { label: "#ajmer", value: "%23ajmer" },
-];
+interface DashboardProps {
+  selectedCity: string;
+  onCityChange: (city: string) => void;
+}
 
-
-
-export default function Dashboard() {
-  const [showCityDropdown, setShowCityDropdown] = useState(false);
-  const [selectedCity, setSelectedCity] = useState(CITY_OPTIONS[0].value);
+export default function Dashboard({ selectedCity, onCityChange }: DashboardProps) {
   const [issueCounts, setIssueCounts] = useState<Record<string, number>>({});
   const [selectedFilter, setSelectedFilter] = useState<IssueFilter>("ALL");
   // const trackClick = useClickTracking();
@@ -75,17 +69,6 @@ export default function Dashboard() {
     loadIssues();
   }, [selectedCity]);
 
-  useEffect(() => {
-    if (!showCityDropdown) return;
-
-    const handleClickOutside = () => {
-      setShowCityDropdown(false);
-    };
-
-    document.addEventListener("click", handleClickOutside);
-    return () => document.removeEventListener("click", handleClickOutside);
-  }, [showCityDropdown]);
-
   const handleFilterChange = (value: IssueFilter) => {
     trackIssueFilter('map_filter', value);
     setSelectedFilter(value);
@@ -110,7 +93,7 @@ export default function Dashboard() {
           <select
             id="city-select"
             value={selectedCity}
-            onChange={e => setSelectedCity(e.target.value)}
+            onChange={e => onCityChange(e.target.value)}
             className="text-walnut font-[500] text-[18px] sm:text-[22px] md:text-[26px] lg:text-2xl mb-3 mt-1"
           >
             {CITY_OPTIONS.map(opt => (
