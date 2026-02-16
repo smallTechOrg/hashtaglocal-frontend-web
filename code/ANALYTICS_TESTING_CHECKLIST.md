@@ -62,16 +62,6 @@ Use this checklist to verify all analytics are working correctly.
 - [ ] Click "Edit" (if available) - should see `click` event
 - [ ] Check GA shows all issue interactions
 
-## 📰 News Feed
-
-- [ ] Click news category filter - should see `filter_change` event
-- [ ] Click on news card - should see `news_article_view` event
-- [ ] Modal should open
-- [ ] Click "Open original article" - should see `news_article_click` event
-- [ ] Click "Close" or X - should see `click` event
-- [ ] Click "Load More" - should see `click` event
-- [ ] Check GA shows all news interactions
-
 ## 🚀 Navigation & Forms
 
 - [ ] Click logo in header - should see `click` event
@@ -101,7 +91,6 @@ Use this checklist to verify all analytics are working correctly.
   2. Filter issues
   3. View an issue
   4. Share issue
-  5. Read news
   6. Click join button
 - [ ] Check GA for journey_step events
 - [ ] Verify sequence is logical
@@ -122,8 +111,6 @@ Use this checklist to verify all analytics are working correctly.
   - [ ] issue_view
   - [ ] issue_filter
   - [ ] map_marker_click
-  - [ ] news_article_view
-  - [ ] news_article_click
   - [ ] time_on_page
   - [ ] journey_step
 

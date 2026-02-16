@@ -23,13 +23,6 @@ A comprehensive analytics tracking system has been set up for your #local applic
 - ✅ Pagination clicks
 - ✅ Edit button clicks
 
-#### 📰 News Feed
-- ✅ Category filter changes
-- ✅ Article modal opens
-- ✅ External article clicks
-- ✅ Load more clicks
-- ✅ Modal close actions
-
 #### 🔍 Issue Details
 - ✅ Issue page views (with ID and type)
 - ✅ Share/copy link actions
@@ -129,8 +122,6 @@ All tracking is automatic. Just:
 | `issue_filter` | Filter changes |
 | `issue_share` | Share/copy actions |
 | `map_marker_click` | Map marker interactions |
-| `news_article_view` | News modal opens |
-| `news_article_click` | External news clicks |
 | `filter_change` | Any filter modification |
 | `api_error` | API failures |
 | `journey_step` | User journey milestones |
@@ -158,7 +149,6 @@ All tracking is automatic. Just:
 - Which filters are most used?
 - How many issues are viewed?
 - What's the share rate?
-- Are users clicking news articles?
 
 ### User Journey
 - What's the typical user path?
@@ -191,7 +181,6 @@ The analytics are live and working! Recommended actions:
 After a few days of traffic, you'll be able to answer:
 
 - "What's our most popular issue category?"
-- "Do users read full news articles?"
 - "What's the typical user journey?"
 - "Which filters drive the most engagement?"
 - "Where are users experiencing errors?"

@@ -1,7 +1,6 @@
 "use client";
 import Dashboard from "../components/dashboard/dashboard";
 import Invite from "../components/invite/invite";
-import NewsFeed from "../components/news/newsFeed";
 import { useScrollTracking, useTimeTracking } from "../hooks/useScrollTracking";
 import { useState } from "react";
 import { CITY_OPTIONS } from "../constants/cityOptions";
@@ -15,7 +14,6 @@ export default function Static() {
     return (
         <div>
             <Dashboard selectedCity={selectedCity} onCityChange={setSelectedCity} />
-            <NewsFeed selectedCity={selectedCity} />
             <Invite />
         </div>
     )

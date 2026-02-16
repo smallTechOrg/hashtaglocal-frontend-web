@@ -9,7 +9,6 @@ We've implemented a complete analytics tracking system that monitors:
 - Page views and navigation
 - Issue-related actions
 - Map interactions
-- News article engagement
 - User journey tracking
 - Error tracking
 - Performance metrics
@@ -33,7 +32,7 @@ Events are organized into the following categories:
 - `user_interaction` - General user interactions (clicks, hovers)
 - `navigation` - Page navigation and routing
 - `issue` - Issue-related actions (view, edit, share, filter)
-- `filter` - Filter changes (hashtags, status, type, news categories)
+- `filter` - Filter changes (hashtags, status, type)
 - `engagement` - User engagement (scroll depth, time on page, external links)
 - `error` - API and application errors
 - `performance` - Performance metrics
@@ -63,14 +62,6 @@ Events are organized into the following categories:
 - Issue detail card views
 - Back to latest issues
 - Map zoom/pan interactions
-
-#### News Feed
-- Category filter changes
-- News article views (modal open)
-- News article clicks (external link)
-- Load more clicks
-- Modal close
-- API errors
 
 #### General Navigation
 - Header logo clicks
@@ -107,7 +98,6 @@ The analytics system is integrated into:
 - Dashboard page - Full tracking of filters, pagination, and issue interactions
 - Issue detail page - View tracking, share actions, map links
 - Map component - Marker clicks, filter changes
-- News feed - Article views, clicks, category filters
 - Header/Footer - Navigation tracking
 - Join page - Form submission tracking
 

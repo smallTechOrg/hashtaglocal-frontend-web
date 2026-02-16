@@ -32,12 +32,6 @@ All analytics are automatically tracked! No additional setup needed - the system
 - Detail card views
 - Navigation
 
-### ✅ News Feed
-- Article opens
-- External link clicks
-- Category filters
-- Load more clicks
-
 ### ✅ Navigation
 - Header/footer links
 - Join form submissions
@@ -55,8 +49,6 @@ All analytics are automatically tracked! No additional setup needed - the system
 | `issue_filter` | filter | Filter change |
 | `issue_share` | issue | Copy link action |
 | `map_marker_click` | user_interaction | Map marker click |
-| `news_article_view` | engagement | News modal open |
-| `news_article_click` | engagement | External news link |
 | `filter_change` | filter | Any filter change |
 | `api_error` | error | API failures |
 | `journey_step` | navigation | User journey milestones |

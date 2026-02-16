@@ -43,10 +43,6 @@ export enum EventAction {
   TIME_ON_PAGE = 'time_on_page',
   EXTERNAL_LINK_CLICK = 'external_link_click',
   
-  // News
-  NEWS_ARTICLE_CLICK = 'news_article_click',
-  NEWS_ARTICLE_VIEW = 'news_article_view',
-  
   // Invite
   INVITE_OPEN = 'invite_open',
   
@@ -175,17 +171,6 @@ export function trackMapMarkerClick(issueId: string | number, issueType?: string
     event_label: `Marker ${issueId}`,
     issue_id: issueId,
     issue_type: issueType,
-  });
-}
-
-/**
- * Track news interactions
- */
-export function trackNewsArticleClick(articleTitle: string, articleUrl: string): void {
-  trackEvent(EventAction.NEWS_ARTICLE_CLICK, {
-    event_category: EventCategory.ENGAGEMENT,
-    event_label: articleTitle,
-    article_url: articleUrl,
   });
 }
 
