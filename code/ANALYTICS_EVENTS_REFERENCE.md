@@ -17,9 +17,6 @@ This is a complete list of all events tracked in the application.
 | Event | Category | Label Format | Parameters | Triggered When |
 |-------|----------|--------------|------------|----------------|
 | `scroll_depth` | engagement | "25%", "50%", "75%", "90%", "100%" | `value` (depth %) | Scroll threshold reached |
-| `time_on_page` | engagement | Page path | `duration_seconds` | Leaving page |
-| `news_article_view` | engagement | Article title | `article_title`, `article_category`, `article_source` | News modal opened |
-| `news_article_click` | engagement | Article title | `article_url`, `article_source` | External news link clicked |
 | `external_link_click` | engagement | Link text or URL | `external_url` | External link clicked |
 
 ### 🗺️ Issue Events
@@ -48,7 +45,6 @@ This is a complete list of all events tracked in the application.
 | `click` | user_interaction | "City Dropdown Toggle" | - | City selector clicked |
 | `click` | user_interaction | "Pagination - Page {n}" | `page`, `total_pages` | Pagination clicked |
 | `click` | user_interaction | "Refresh Issues" | - | Refresh button clicked |
-| `click` | user_interaction | "Load More News" | `category`, `page` | Load more clicked |
 | `click` | user_interaction | "Join The Movement" | `source` | Join button clicked |
 | `click` | user_interaction | "Open in Maps" | `issue_id` | Google Maps link clicked |
 | `click` | user_interaction | "Issue Image View" | `issue_id` | Issue image clicked |
@@ -61,7 +57,6 @@ This is a complete list of all events tracked in the application.
 | `issue_filter` | filter | "status: {value}" | `filter_type: 'status'`, `filter_value` | Status filter changed |
 | `issue_filter` | filter | "type: {value}" | `filter_type: 'type'`, `filter_value` | Type filter changed |
 | `issue_filter` | filter | "map_filter: {value}" | `filter_type: 'map_filter'`, `filter_value` | Map filter changed |
-| `filter_change` | filter | "News Category: {value}" | `filter_type: 'news_category'`, `filter_value` | News category changed |
 | `click` | filter | "Clear All Filters" | - | Clear filters clicked |
 
 ### ⚠️ Error Events
@@ -105,14 +100,8 @@ All events include:
 - `issue_status` - Issue status (OPEN, CLOSED, etc.)
 
 #### Filter Events
-- `filter_type` - Type of filter (hashtag, status, type, news_category)
+- `filter_type` - Type of filter (hashtag, status, type)
 - `filter_value` - Selected filter value
-
-#### News Events
-- `article_title` - News article title
-- `article_url` - News article URL
-- `article_category` - News category
-- `article_source` - News source name
 
 #### Error Events
 - `error_message` - Error message text
@@ -134,7 +123,7 @@ General user interactions like clicks, hovers, button presses
 Page views, route changes, journey steps
 
 ### engagement (23 events)
-Scroll depth, time on page, article views, external links
+Scroll depth, time on page, external links
 
 ### issue (12 events)
 Issue views, edits, shares, filters
@@ -184,11 +173,6 @@ Example journey for a user who views an issue:
 2. Scroll depth > 50%
 3. Issue views
 4. Issue shares
-
-### News Engagement
-- Primary dimension: `article_title`
-- Metrics: Views, Clicks
-- Filter: Event name = news_article_view OR news_article_click
 
 ---
 
