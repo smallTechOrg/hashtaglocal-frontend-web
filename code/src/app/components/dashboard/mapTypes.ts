@@ -5,6 +5,7 @@ export interface LocationPin {
   title: string;
   description: string;
   image: string;
+  imageThumbnail?: string;
   type?: string;
   status?: string;
   createdAt?: string;

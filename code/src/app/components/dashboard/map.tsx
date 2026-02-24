@@ -5,7 +5,7 @@ import { Issue, IssueType } from "../../models/issue";
 import FeaturedIssues from "./featuredIssues";
 import { LocationPin } from "./mapTypes";
 import { trackMapMarkerClick, trackError, EventCategory } from "../../utils/analytics";
-import Image from "next/image";
+import ProgressiveImage from "../ProgressiveImage";
 import { useClickTracking } from "../../hooks/useClickTracking";
 
 interface IssuesResponse {
@@ -38,10 +38,11 @@ const formatTimeAgo = (dateString?: string) => {
   return `${days}d ago`;
 };
 
-const pickMedia = (issue: Issue): string => {
-  if (!issue.media_urls || issue.media_urls.length === 0) return PLACEHOLDER_IMAGE;
+const pickMedia = (issue: Issue): { url: string; thumbnail?: string } => {
+  if (!issue.media_urls || issue.media_urls.length === 0) return { url: PLACEHOLDER_IMAGE };
   const photo = issue.media_urls.find((item) => item.type === "photo" && item.url);
-  return (photo || issue.media_urls[0]).url || PLACEHOLDER_IMAGE;
+  const item = photo || issue.media_urls[0];
+  return { url: item.url || PLACEHOLDER_IMAGE, thumbnail: item.url_thumbnail };
 };
 
 const normalizeType = (type?: string) => (type ? type.toUpperCase() : "OTHER");
@@ -79,19 +80,23 @@ export default function Map({ selectedType, selectedCity }: MapProps) {
             const bTime = b.created_at ? new Date(b.created_at).getTime() : 0;
             return bTime - aTime;
           })
-          .map((issue) => ({
-            id: issue.id.toString(),
-            lat: issue.location!.lat!,
-            lng: issue.location!.lng!,
-            title: issue.type || "Issue",
-            description: issue.description || "No description available",
-            image: pickMedia(issue),
-            type: issue.type,
-            status: issue.status,
-            createdAt: issue.created_at,
-            address: issue.location?.address,
-            colloquialName: issue.location?.colloquial_name,
-          }));
+          .map((issue) => {
+            const { url: imageUrl, thumbnail: imageThumbnail } = pickMedia(issue);
+            return {
+              id: issue.id.toString(),
+              lat: issue.location!.lat!,
+              lng: issue.location!.lng!,
+              title: issue.type || "Issue",
+              description: issue.description || "No description available",
+              image: imageUrl,
+              imageThumbnail,
+              type: issue.type,
+              status: issue.status,
+              createdAt: issue.created_at,
+              address: issue.location?.address,
+              colloquialName: issue.location?.colloquial_name,
+            };
+          });
 
         setLocations(pins);
         setIsLoading(false);
@@ -216,13 +221,11 @@ export default function Map({ selectedType, selectedCity }: MapProps) {
             >
               ← Back to latest
             </button>
-            <Image
+            <ProgressiveImage
               src={selectedLocation.image}
+              thumbnail={selectedLocation.imageThumbnail}
               alt={selectedLocation.title}
               className="detail-image"
-              width={300}
-              height={200}
-              style={{ objectFit: "cover" }}
             />
             <div className="detail-pill-row">
               {selectedLocation.type && <span className="issue-pill">{selectedLocation.type}</span>}

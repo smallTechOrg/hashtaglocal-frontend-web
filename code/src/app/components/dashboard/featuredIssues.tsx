@@ -1,6 +1,7 @@
 import React from "react";
 import "./map.css";
 import { LocationPin } from "./mapTypes";
+import ProgressiveImage from "../ProgressiveImage";
 
 type Props = {
   latestIssues: LocationPin[];
@@ -35,8 +36,9 @@ export default function FeaturedIssues({
               onClick={() => onSelectIssue(issue)}
             >
               <div className="issue-home-hero">
-                <img
+                <ProgressiveImage
                   src={issue.image}
+                  thumbnail={issue.imageThumbnail}
                   alt={issue.title}
                   className="issue-home-image"
                   loading="lazy"
