@@ -42,11 +42,19 @@ export interface Issue {
   description?: string;
   created_at?: string;
   media_urls?: Array<{
+    location?: object;
     type?: string;
     url?: string;
+    url_thumbnail?: string;
+    description?: string;
+    username?: string;
+    created_at?: string;
   }>;
   vote_count?: number;
   verify_count?: number;
   status?: string;
   rank?: number;
+  viewer_context?: {
+    upvoted?: boolean;
+  };
 }
