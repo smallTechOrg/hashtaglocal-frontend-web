@@ -4,6 +4,7 @@ import "./dashboard.css";
 import Map from "./map";
 import { IssueType } from "../../models/issue";
 import { CITY_OPTIONS } from "../../constants/cityOptions";
+import { API_PATHS } from "../../constants/api";
 // import { useClickTracking } from "../../hooks/useClickTracking";
 import { trackIssueFilter, trackError } from "../../utils/analytics";
 
@@ -45,7 +46,7 @@ export default function Dashboard({ selectedCity, onCityChange }: DashboardProps
   useEffect(() => {
     async function loadIssues() {
       try {
-        const endpoint = `https://staging.api.smalltech.in/local/api/v1/issues?locality=${selectedCity}`;
+        const endpoint = `${API_PATHS.issues}?locality=${selectedCity}`;
         const res = await fetch(endpoint, { cache: "no-store" });
         if (!res.ok) throw new Error(`Request failed with ${res.status}`);
         const payload: IssuesResponse = await res.json();

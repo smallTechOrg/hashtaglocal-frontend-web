@@ -9,6 +9,7 @@ import { useScrollTracking, useTimeTracking } from "../../hooks/useScrollTrackin
 import { useClickTracking } from "../../hooks/useClickTracking";
 import { trackIssueView, trackIssueShare, trackError, trackExternalLink, EventCategory } from "../../utils/analytics";
 import { useAnalytics } from "../../context/AnalyticsContext";
+import { BASE_URL } from "../../constants/api";
 
 interface IssueResponse {
   data?: {
@@ -18,7 +19,7 @@ interface IssueResponse {
 }
 
 const API_BASE = process.env.NODE_ENV === "production"
-  ? "https://staging.api.smalltech.in/local/api/v1"
+  ? `${BASE_URL}/api/v1`
   : "/api";
 
 function pickMedia(issue?: Issue): { url?: string; thumbnail?: string } {
