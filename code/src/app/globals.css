@@ -52,7 +52,7 @@
 
 @layer base {
   :root {
-    --background: var(--colour-vanilla-cream);
+    --background: #ffffff;
     --foreground: var(--color-ink-black);
   }
 
