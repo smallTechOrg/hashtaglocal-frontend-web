@@ -1,6 +1,11 @@
 @import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+@custom-variant dark (&:is(.dark *));
 
 @theme inline {
+  /* ── Main site palette ── */
   --color-green: #256d1b;
   --color-walnut: #5b3000;
   --color-ink-black: #001219;
@@ -12,11 +17,42 @@
   --color-rusty-spice: #bb3e03;
   --color-oxidized-iron: #ae2012;
   --colour-vanilla-cream: #F3EACE;
+
+  /* ── shadcn theme bridges (maps CSS vars → Tailwind utilities) ── */
+  /* These are inert on the main site because the CSS vars they    */
+  /* reference (--card, --muted, etc.) are only defined inside     */
+  /* .ops-portal.  On the main site only --background/--foreground */
+  /* are set, via the :root block below.                           */
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --radius-2xl: calc(var(--radius) + 8px);
+  --radius-3xl: calc(var(--radius) + 12px);
+  --radius-4xl: calc(var(--radius) + 16px);
 }
 
 @layer base {
   :root {
-    --background: var(--color-vanilla-cream);
+    --background: var(--colour-vanilla-cream);
     --foreground: var(--color-ink-black);
   }
 
