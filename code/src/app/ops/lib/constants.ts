@@ -1,7 +1,7 @@
 import { BASE_URL } from "../../constants/api";
 
 export const GOOGLE_CLIENT_ID =
-  "870371939888-o448r3h3bqgvlgehh78q9o3dhqcpocdn.apps.googleusercontent.com";
+  "870371939888-dtnniua1oc41pd9mlnluo16mjbfhb83r.apps.googleusercontent.com";
 
 /** Where Google sends the user after they consent. */
 export const GOOGLE_REDIRECT_URI =
