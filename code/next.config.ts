@@ -1,4 +1,5 @@
 import type { NextConfig } from "next";
+import { API_PATHS } from "./src/app/constants/api";
 
 const isProduction = process.env.NODE_ENV === "production";
 
@@ -10,11 +11,11 @@ const nextConfig: NextConfig = {
       return [
         {
           source: "/api/issues",
-          destination: "https://staging.api.smalltech.in/local/api/v1/issues",
+          destination: API_PATHS.issues,
         },
         {
           source: "/api/issue/:id",
-          destination: "https://staging.api.smalltech.in/local/api/v1/issue/:id",
+          destination: API_PATHS.issue(":id"),
         },
       ];
     },

@@ -3,6 +3,7 @@ import React, { useEffect, useRef, useState } from "react";
 import "./polygons.css";
 import { Polygon, PolygonCoordinate } from "../../models/polygon";
 import { samplePolygons } from "../../utils/polygonSampleData";
+import { API_PATHS } from "../../constants/api";
 
 interface PolygonsMapProps {
   polygons?: Polygon[];
@@ -61,7 +62,7 @@ const PolygonsMap = ({ polygons: initialPolygons }: PolygonsMapProps) => {
   const [isLoading, setIsLoading] = useState(true);
   const [selectedPolygon, setSelectedPolygon] = useState<Polygon | null>(null);
   const [polygons, setPolygons] = useState<Polygon[]>(initialPolygons || []);
-  const ENDPOINT = "https://staging.api.smalltech.in/local/api/localities/polygons";
+  const ENDPOINT = API_PATHS.polygons;
 
   // Fetch polygons from API
   useEffect(() => {

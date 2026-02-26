@@ -7,6 +7,7 @@ import { LocationPin } from "./mapTypes";
 import { trackMapMarkerClick, trackError, EventCategory } from "../../utils/analytics";
 import ProgressiveImage from "../ProgressiveImage";
 import { useClickTracking } from "../../hooks/useClickTracking";
+import { API_PATHS } from "../../constants/api";
 
 interface IssuesResponse {
   data?: {
@@ -66,7 +67,7 @@ export default function Map({ selectedType, selectedCity }: MapProps) {
 
     async function loadIssues() {
       try {
-        const endpoint = `https://staging.api.smalltech.in/local/api/v1/issues?locality=${selectedCity}`;
+        const endpoint = `${API_PATHS.issues}?locality=${selectedCity}`;
         const res = await fetch(endpoint, { signal: controller.signal, cache: "no-store" });
         if (!res.ok) throw new Error(`Request failed with ${res.status}`);
         const payload: IssuesResponse = await res.json();
