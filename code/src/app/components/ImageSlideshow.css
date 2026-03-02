@@ -1,0 +1,82 @@
+/* ──────────────────────────────────────────────
+   ImageSlideshow
+   ────────────────────────────────────────────── */
+
+.slideshow-root {
+  position: relative;
+  display: block;
+  /* The wrapper takes the height of its image child */
+}
+
+/* The image inside the slideshow uses the caller's imageClassName for sizing/shape.
+   We stack .slideshow-slide-img on top to make display: block predictable. */
+.slideshow-slide-img {
+  display: block;
+}
+
+/* ── Previous / Next buttons ── */
+.slideshow-btn {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 10;
+  background: rgba(0, 0, 0, 0.45);
+  color: #ffffff;
+  border: none;
+  border-radius: 50%;
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 20px;
+  line-height: 1;
+  padding: 0;
+  transition: background 0.2s ease;
+  /* don't shrink on small containers */
+  flex-shrink: 0;
+}
+
+.slideshow-btn:hover {
+  background: rgba(0, 0, 0, 0.68);
+}
+
+.slideshow-prev {
+  left: 8px;
+}
+
+.slideshow-next {
+  right: 8px;
+}
+
+/* ── Dot indicators ── */
+.slideshow-dots {
+  position: absolute;
+  bottom: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 6px;
+  z-index: 10;
+}
+
+.slideshow-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.5);
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  transition: background 0.2s ease, transform 0.2s ease;
+}
+
+.slideshow-dot.active {
+  background: #ffffff;
+  transform: scale(1.3);
+}
+
+.slideshow-dot:hover:not(.active) {
+  background: rgba(255, 255, 255, 0.8);
+}

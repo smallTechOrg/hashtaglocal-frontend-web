@@ -3,7 +3,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import "../issue.css";
 import { Issue } from "../../models/issue";
-import ProgressiveImage from "../../components/ProgressiveImage";
+import ImageSlideshow from "../../components/ImageSlideshow";
 import EditIssueModal from "../../components/dashboard/editIssueModal";
 import { useScrollTracking, useTimeTracking } from "../../hooks/useScrollTracking";
 import { useClickTracking } from "../../hooks/useClickTracking";
@@ -22,11 +22,11 @@ const API_BASE = process.env.NODE_ENV === "production"
   ? `${BASE_URL}/api/v1`
   : "/api";
 
-function pickMedia(issue?: Issue): { url?: string; thumbnail?: string } {
-  if (!issue?.media_urls || issue.media_urls.length === 0) return {};
-  const photo = issue.media_urls.find((item) => item.type === "photo" && item.url);
-  const item = photo || issue.media_urls[0];
-  return { url: item.url, thumbnail: item.url_thumbnail };
+function allMediaImages(issue?: Issue): Array<{ url: string; thumbnail?: string }> {
+  if (!issue?.media_urls || issue.media_urls.length === 0) return [];
+  return issue.media_urls
+    .filter((m) => m.url)
+    .map((m) => ({ url: m.url!, thumbnail: m.url_thumbnail }));
 }
 
 function formatTimeAgo(dateString?: string): string {
@@ -117,7 +117,7 @@ export default function IssueClient({ issueId: propIssueId }: { issueId: string 
     return () => controller.abort();
   }, [fetchIssue, issueId]);
 
-  const { url: mediaUrl, thumbnail: mediaThumbnail } = useMemo(() => pickMedia(issue || undefined), [issue]);
+  const mediaImages = useMemo(() => allMediaImages(issue || undefined), [issue]);
   const hashtags = issue?.location?.locality?.hashtags || [];
   const locationLabel = issue?.location?.colloquial_name || issue?.location?.address || "Unknown location";
   const hasCoords = issue?.location?.lat != null && issue?.location?.lng != null;
@@ -194,12 +194,11 @@ export default function IssueClient({ issueId: propIssueId }: { issueId: string 
 
       {status === "ready" && issue && (
         <section className="issue-card">
-          {mediaUrl && (
-            <ProgressiveImage
-              src={mediaUrl}
-              thumbnail={mediaThumbnail}
+          {mediaImages.length > 0 && (
+            <ImageSlideshow
+              images={mediaImages}
               alt="Issue media"
-              className="issue-image"
+              imageClassName="issue-image"
               onClick={() => trackClick('Issue Image View', EventCategory.ENGAGEMENT, { issue_id: issueId })}
               style={{ cursor: 'pointer' }}
             />
