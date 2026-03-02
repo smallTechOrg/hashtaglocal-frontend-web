@@ -3,7 +3,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import "./dashboard.css";
 import { Issue } from "../models/issue";
-import ProgressiveImage from "../components/ProgressiveImage";
+import ImageSlideshow from "../components/ImageSlideshow";
 import EditIssueModal from "../components/dashboard/editIssueModal";
 import { useScrollTracking, useTimeTracking } from "../hooks/useScrollTracking";
 import { useClickTracking } from "../hooks/useClickTracking";
@@ -21,11 +21,11 @@ const ENDPOINT = process.env.NODE_ENV === "production"
   ? API_PATHS.issues
   : "/api/issues";
 
-function pickMedia(issue: Issue): { url?: string; thumbnail?: string } {
-  if (!issue.media_urls || issue.media_urls.length === 0) return {};
-  const photo = issue.media_urls.find((item) => item.type === "photo" && item.url);
-  const item = photo || issue.media_urls[0];
-  return { url: item.url, thumbnail: item.url_thumbnail };
+function allMediaImages(issue: Issue): Array<{ url: string; thumbnail?: string }> {
+  if (!issue.media_urls || issue.media_urls.length === 0) return [];
+  return issue.media_urls
+    .filter((m) => m.url)
+    .map((m) => ({ url: m.url!, thumbnail: m.url_thumbnail }));
 }
 
 function formatTimeAgo(dateString?: string): string {
@@ -313,19 +313,18 @@ export default function DashboardPage() {
         <>
           <div className="issues-grid">
             {paginatedIssues.map((issue) => {
-              const { url: mediaUrl, thumbnail: mediaThumbnail } = pickMedia(issue);
+              const mediaImages = allMediaImages(issue);
               const hashtags = issue.location?.locality?.hashtags || [];
               const locationLabel =
                 issue.location?.colloquial_name || issue.location?.address || "Unknown location";
               return (
                 <article className="issue-card" key={issue.id}>
                   <div className="issue-media">
-                    {mediaUrl ? (
-                      <ProgressiveImage
-                        src={mediaUrl}
-                        thumbnail={mediaThumbnail}
+                    {mediaImages.length > 0 ? (
+                      <ImageSlideshow
+                        images={mediaImages}
                         alt="Issue media"
-                        className="issue-media__img"
+                        imageClassName="issue-media__img"
                         loading="lazy"
                         decoding="async"
                       />

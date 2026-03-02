@@ -1,7 +1,7 @@
 import React from "react";
 import "./map.css";
 import { LocationPin } from "./mapTypes";
-import ProgressiveImage from "../ProgressiveImage";
+import ImageSlideshow from "../ImageSlideshow";
 
 type Props = {
   latestIssues: LocationPin[];
@@ -30,17 +30,25 @@ export default function FeaturedIssues({
       ) : (
         <div className="issue-home-list">
           {latestIssues.map((issue) => (
-            <button
+            <div
               className="issue-home-card"
               key={issue.id}
+              role="button"
+              tabIndex={0}
               onClick={() => onSelectIssue(issue)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") onSelectIssue(issue);
+              }}
             >
               <div className="issue-home-hero">
-                <ProgressiveImage
-                  src={issue.image}
-                  thumbnail={issue.imageThumbnail}
+                <ImageSlideshow
+                  images={
+                    issue.images && issue.images.length > 0
+                      ? issue.images
+                      : [{ url: issue.image, thumbnail: issue.imageThumbnail }]
+                  }
                   alt={issue.title}
-                  className="issue-home-image"
+                  imageClassName="issue-home-image"
                   loading="lazy"
                   decoding="async"
                 />
@@ -57,7 +65,7 @@ export default function FeaturedIssues({
                 </div>
               </div>
               <p className="issue-home-description">{issue.description}</p>
-            </button>
+            </div>
           ))}
         </div>
       )}

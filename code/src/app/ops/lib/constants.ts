@@ -33,4 +33,7 @@ export const ADMIN_API = {
 
   /** Fetch user summary for admin review */
   userSummary: (userId: number) => `${BASE_URL}/admin/user/${userId}/summary`,
+
+  /** List recently approved/rejected actions (newest first) */
+  recentActions: `${BASE_URL}/admin/issue-action/history`,
 };

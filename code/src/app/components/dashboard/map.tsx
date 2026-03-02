@@ -5,7 +5,7 @@ import { Issue, IssueType } from "../../models/issue";
 import FeaturedIssues from "./featuredIssues";
 import { LocationPin } from "./mapTypes";
 import { trackMapMarkerClick, trackError, EventCategory } from "../../utils/analytics";
-import ProgressiveImage from "../ProgressiveImage";
+import ImageSlideshow from "../ImageSlideshow";
 import { useClickTracking } from "../../hooks/useClickTracking";
 import { API_PATHS } from "../../constants/api";
 
@@ -83,6 +83,9 @@ export default function Map({ selectedType, selectedCity }: MapProps) {
           })
           .map((issue) => {
             const { url: imageUrl, thumbnail: imageThumbnail } = pickMedia(issue);
+            const images = (issue.media_urls || [])
+              .filter((m) => m.url)
+              .map((m) => ({ url: m.url!, thumbnail: m.url_thumbnail }));
             return {
               id: issue.id.toString(),
               lat: issue.location!.lat!,
@@ -91,6 +94,7 @@ export default function Map({ selectedType, selectedCity }: MapProps) {
               description: issue.description || "No description available",
               image: imageUrl,
               imageThumbnail,
+              images: images.length > 0 ? images : undefined,
               type: issue.type,
               status: issue.status,
               createdAt: issue.created_at,
@@ -222,11 +226,14 @@ export default function Map({ selectedType, selectedCity }: MapProps) {
             >
               ← Back to latest
             </button>
-            <ProgressiveImage
-              src={selectedLocation.image}
-              thumbnail={selectedLocation.imageThumbnail}
+            <ImageSlideshow
+              images={
+                selectedLocation.images && selectedLocation.images.length > 0
+                  ? selectedLocation.images
+                  : [{ url: selectedLocation.image, thumbnail: selectedLocation.imageThumbnail }]
+              }
               alt={selectedLocation.title}
-              className="detail-image"
+              imageClassName="detail-image"
             />
             <div className="detail-pill-row">
               {selectedLocation.type && <span className="issue-pill">{selectedLocation.type}</span>}
