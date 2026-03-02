@@ -1,3 +1,16 @@
+/** A recently reviewed (approved or rejected) action */
+export interface ReviewedAction {
+  action_id: number;
+  issue_id: number;
+  submitted_by_user_id: number;
+  submitted_by_username: string;
+  action: "REPORT" | "VERIFY" | "RESOLVE";
+  approval_status: "APPROVED" | "REJECTED";
+  created_at: string;
+  approved_at: string | null;
+  approved_by_username: string | null;
+}
+
 /** Mirrors IssueActionAdminResponseData from the backend */
 export interface PendingAction {
   action_id: number;
