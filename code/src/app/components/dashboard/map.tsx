@@ -5,6 +5,7 @@ import { Issue, IssueType } from "../../models/issue";
 import FeaturedIssues from "./featuredIssues";
 import { LocationPin } from "./mapTypes";
 import { trackMapMarkerClick, trackError, EventCategory } from "../../utils/analytics";
+import { toIssueSlug } from "../../../utils/issueSlug";
 import ImageSlideshow from "../ImageSlideshow";
 import { useClickTracking } from "../../hooks/useClickTracking";
 import { API_PATHS } from "../../constants/api";
@@ -100,6 +101,7 @@ export default function Map({ selectedType, selectedCity }: MapProps) {
               createdAt: issue.created_at,
               address: issue.location?.address,
               colloquialName: issue.location?.colloquial_name,
+              hashtags: issue.location?.locality?.hashtags,
             };
           });
 
@@ -244,7 +246,7 @@ export default function Map({ selectedType, selectedCity }: MapProps) {
             <p className="detail-meta">{formatTimeAgo(selectedLocation.createdAt)}</p>
             <a 
               className="detail-link" 
-              href={`/issue/${selectedLocation.id}`}
+              href={`/issue/${toIssueSlug(selectedLocation.id, selectedLocation.type, selectedLocation.hashtags, selectedLocation.colloquialName || selectedLocation.address)}`}
               onClick={() => {
                 trackClick(`View Issue Details from Map ${selectedLocation.id}`, EventCategory.ISSUE, {
                   issue_id: String(selectedLocation.id),

@@ -10,6 +10,7 @@ import { useClickTracking } from "../../hooks/useClickTracking";
 import { trackIssueView, trackIssueShare, trackError, trackExternalLink, EventCategory } from "../../utils/analytics";
 import { useAnalytics } from "../../context/AnalyticsContext";
 import { BASE_URL } from "../../constants/api";
+import { extractIssueId } from "../../../utils/issueSlug";
 
 interface IssueResponse {
   data?: {
@@ -93,7 +94,8 @@ export default function IssueClient({ issueId: propIssueId }: { issueId: string 
     if (!issueId) return;
     setStatus("loading");
     try {
-      const res = await fetch(`${API_BASE}/issue/${issueId}`, { signal, cache: "no-store" });
+      const numericId = extractIssueId(issueId);
+      const res = await fetch(`${API_BASE}/issue/${numericId}`, { signal, cache: "no-store" });
       if (!res.ok) throw new Error(`Request failed with ${res.status}`);
       const payload: IssueResponse = await res.json();
       const loaded = payload.data?.issue || payload.issue || (payload as unknown as Issue);

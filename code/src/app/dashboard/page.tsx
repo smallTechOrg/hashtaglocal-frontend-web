@@ -8,6 +8,7 @@ import EditIssueModal from "../components/dashboard/editIssueModal";
 import { useScrollTracking, useTimeTracking } from "../hooks/useScrollTracking";
 import { useClickTracking } from "../hooks/useClickTracking";
 import { trackIssueFilter, trackError, EventCategory } from "../utils/analytics";
+import { toIssueSlug } from "../../utils/issueSlug";
 import { useAnalytics } from "../context/AnalyticsContext";
 import { API_PATHS } from "../constants/api";
 
@@ -362,7 +363,7 @@ export default function DashboardPage() {
 
                   <footer className="issue-card__footer">
                     <Link
-                      href={`/issue/${issue.id}`}
+                      href={`/issue/${toIssueSlug(issue.id, issue.type, issue.location?.locality?.hashtags, issue.location?.colloquial_name || issue.location?.address)}`}
                       className="view-btn"
                       aria-label="View issue details"
                       onClick={() => {

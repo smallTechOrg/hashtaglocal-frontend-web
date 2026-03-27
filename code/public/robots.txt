@@ -1,0 +1,10 @@
+User-agent: *
+Allow: /
+Disallow: /ops/
+Disallow: /ops
+Disallow: /dashboard
+Disallow: /polygons
+Disallow: /api/
+Disallow: /auth
+
+Sitemap: https://local.smalltech.in/sitemap.xml
