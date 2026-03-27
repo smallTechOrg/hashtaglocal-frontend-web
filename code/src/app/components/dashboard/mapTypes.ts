@@ -13,4 +13,5 @@ export interface LocationPin {
   createdAt?: string;
   address?: string;
   colloquialName?: string;
+  hashtags?: string[];
 }

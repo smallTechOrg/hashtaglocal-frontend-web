@@ -11,4 +11,3 @@ export default async function IssueDetailPage({ params }: { params: Promise<{ id
   const { id } = await params;
   return <IssueClient issueId={id} />;
 }
-
