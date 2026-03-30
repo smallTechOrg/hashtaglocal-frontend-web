@@ -36,4 +36,7 @@ export const ADMIN_API = {
 
   /** List recently approved/rejected actions (newest first) */
   recentActions: `${BASE_URL}/admin/issue-action/history`,
+
+  /** Report issue to government complaint portal */
+  reportComplaint: `${BASE_URL}/api/v1/report_complaint`,
 };

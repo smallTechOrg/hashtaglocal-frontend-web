@@ -68,6 +68,42 @@ export interface UserSummary {
   };
 }
 
+export interface GovPortalReportFormValues {
+  source: "GOV_PORTAL_ISSUE";
+  type: "REPORT_ISSUE";
+  portal: string;
+  category: string;
+  subCategory: string;
+  description: string;
+  mediaUrl: string;
+  latitude: string;
+  longitude: string;
+  username: string;
+  password: string;
+}
+
+export interface ReportComplaintPayload {
+  source: "GOV_PORTAL_ISSUE" | "GOV_ISSUE_PORTAL";
+  context: {
+    portal: string;
+    action: {
+      type: "REPORT_ISSUE";
+      data: {
+        category: string;
+        sub_category: string;
+        description: string;
+        media_url: string;
+        latitude: string;
+        longitude: string;
+      };
+    };
+    auth: {
+      username: string;
+      password: string;
+    };
+  };
+}
+
 /** State transition info shown to admin */
 export interface TransitionInfo {
   action: string;

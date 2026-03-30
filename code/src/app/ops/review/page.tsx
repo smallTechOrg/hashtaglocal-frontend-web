@@ -3,7 +3,13 @@
 import { useEffect, useState, useCallback } from "react";
 import { adminFetch } from "../lib/api";
 import { ADMIN_API } from "../lib/constants";
-import { PendingAction, AdminIssueDetail, UserSummary } from "../lib/types";
+import {
+  PendingAction,
+  AdminIssueDetail,
+  UserSummary,
+  GovPortalReportFormValues,
+  ReportComplaintPayload,
+} from "../lib/types";
 import ReviewCard from "../components/ReviewCard";
 import { Loader2, PartyPopper, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -13,6 +19,7 @@ export default function ReviewPage() {
   const [actions, setActions] = useState<PendingAction[]>([]);
   const [loading, setLoading] = useState(true);
   const [processing, setProcessing] = useState(false);
+  const [reportingGovPortal, setReportingGovPortal] = useState(false);
   const [currentIndex, setCurrentIndex] = useState(0);
 
   // Cache of fetched issue details keyed by issueId
@@ -237,6 +244,68 @@ export default function ReviewPage() {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [processing, currentAction, handleApprove, handleReject, handlePrev, handleNext]);
 
+  const currentIssue = currentAction ? issueCache[currentAction.issue_id] ?? null : null;
+  const currentUserSummary = currentAction
+    ? userSummaryCache[currentAction.submitted_by_user_id] ?? null
+    : null;
+
+  const handleReportGovPortal = useCallback(
+    async (values: GovPortalReportFormValues) => {
+      if (!currentIssue) {
+        toast.error("Issue details are not loaded yet");
+        return;
+      }
+
+      const payload: ReportComplaintPayload = {
+        source: values.source,
+        context: {
+          portal: values.portal,
+          action: {
+            type: values.type,
+            data: {
+              category: values.category,
+              sub_category: values.subCategory,
+              description: values.description,
+              media_url: values.mediaUrl,
+              latitude: values.latitude,
+              longitude: values.longitude,
+            },
+          },
+          auth: {
+            username: values.username,
+            password: values.password,
+          },
+        },
+      };
+
+      setReportingGovPortal(true);
+      try {
+        const res = await adminFetch(ADMIN_API.reportComplaint, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(payload),
+        });
+
+        if (!res.ok) {
+          const text = await res.text();
+          toast.error(`Report failed: ${text || res.status}`);
+          return;
+        }
+
+        toast.success(`Issue #${currentIssue.id} reported on gov portal`, {
+          duration: 2000,
+        });
+      } catch (err) {
+        toast.error(`Report failed: ${err}`);
+      } finally {
+        setReportingGovPortal(false);
+      }
+    },
+    [currentIssue],
+  );
+
   // Loading state
   if (loading) {
     return (
@@ -260,10 +329,6 @@ export default function ReviewPage() {
       </div>
     );
   }
-
-  const currentIssue = issueCache[currentAction.issue_id] ?? null;
-  const currentUserSummary =
-    userSummaryCache[currentAction.submitted_by_user_id] ?? null;
 
   return (
     <div className="px-4 py-6 max-w-lg mx-auto">
@@ -296,6 +361,8 @@ export default function ReviewPage() {
         userSummary={currentUserSummary}
         onApprove={handleApprove}
         onReject={handleReject}
+        onReportGovPortal={handleReportGovPortal}
+        reportingGovPortal={reportingGovPortal}
         processing={processing}
       />
 
