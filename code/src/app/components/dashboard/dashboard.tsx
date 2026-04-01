@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from "react";
 import "./dashboard.css";
 import Map from "./map";
+import StoryOfIssues from "./StoryOfIssues";
 import { IssueType } from "../../models/issue";
 import { CITY_OPTIONS } from "../../constants/cityOptions";
 import { API_PATHS } from "../../constants/api";
@@ -118,6 +119,7 @@ export default function Dashboard({ selectedCity, onCityChange }: DashboardProps
             ))}
           </div>
         </div>
+        <StoryOfIssues selectedCity={selectedCity} />
         <div className="dashboard-map-wrapper">
           <Map selectedType={selectedFilter} selectedCity={selectedCity} />
         </div>
