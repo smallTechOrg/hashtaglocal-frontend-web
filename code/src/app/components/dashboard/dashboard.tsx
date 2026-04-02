@@ -102,7 +102,9 @@ export default function Dashboard({ selectedCity, onCityChange }: DashboardProps
               <option key={opt.value} value={opt.value}>{opt.label}</option>
             ))}
           </select>
-          <div className="dashboard-filters" role="group" aria-label="Filter issues by type">
+        </div>
+        <StoryOfIssues selectedCity={selectedCity} />
+        <div className="dashboard-filters" role="group" aria-label="Filter issues by type">
             {visibleFilters.map((filter) => (
               <button
                 key={filter.value}
@@ -118,8 +120,6 @@ export default function Dashboard({ selectedCity, onCityChange }: DashboardProps
               </button>
             ))}
           </div>
-        </div>
-        <StoryOfIssues selectedCity={selectedCity} />
         <div className="dashboard-map-wrapper">
           <Map selectedType={selectedFilter} selectedCity={selectedCity} />
         </div>

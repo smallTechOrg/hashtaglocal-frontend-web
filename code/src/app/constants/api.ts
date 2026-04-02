@@ -6,7 +6,7 @@ const API_ROOT = `${BASE_URL}/api`;
 export const API_PATHS = {
   issues: `${API_V1_BASE}/issues`,
   issue: (id: number | string) => `${API_V1_BASE}/issue/${id}`,
-  issueStories: (locality: string, limit: number = 5) =>
-    `${API_V1_BASE}/issues/stories?locality=${locality}&limit=${limit}`,
+  issueStories: (locality: string) =>
+    `${API_V1_BASE}/issues/stories?locality=${locality}`,
   polygons: `${API_ROOT}/localities/polygons`,
 };

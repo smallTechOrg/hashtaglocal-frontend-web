@@ -9,7 +9,8 @@ export interface TimelineEvent {
 export interface IssueStory {
   issue: Issue;
   timeline: TimelineEvent[];
-  resolution_days: number;
+  resolution_days: number | null;
+  days_since_reported: number;
 }
 
 export interface IssueStoriesResponse {

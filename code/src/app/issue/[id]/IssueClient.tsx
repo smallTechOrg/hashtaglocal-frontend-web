@@ -7,7 +7,7 @@ import ImageSlideshow from "../../components/ImageSlideshow";
 import EditIssueModal from "../../components/dashboard/editIssueModal";
 import { useScrollTracking, useTimeTracking } from "../../hooks/useScrollTracking";
 import { useClickTracking } from "../../hooks/useClickTracking";
-import { trackIssueView, trackIssueShare, trackError, trackExternalLink, EventCategory } from "../../utils/analytics";
+import { trackIssueView, trackError, trackExternalLink, EventCategory } from "../../utils/analytics";
 import { useAnalytics } from "../../context/AnalyticsContext";
 import { BASE_URL } from "../../constants/api";
 import { extractIssueId } from "../../../utils/issueSlug";
@@ -48,24 +48,45 @@ function formatTimeAgo(dateString?: string): string {
   return `${diffInYears} year${diffInYears === 1 ? "" : "s"} ago`;
 }
 
+function formatDate(dateString?: string): string {
+  if (!dateString) return "";
+  return new Date(dateString).toLocaleDateString("en-IN", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
+}
+
+function daysBetween(from?: string, to?: string): number | null {
+  if (!from) return null;
+  const start = new Date(from);
+  const end = to ? new Date(to) : new Date();
+  return Math.max(1, Math.floor((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)));
+}
+
+const TYPE_META: Record<string, { emoji: string; color: string }> = {
+  POTHOLE:   { emoji: "🕳️", color: "#bb3e03" },
+  WASTE:     { emoji: "🗑️", color: "#ca6702" },
+  FOOTPATH:  { emoji: "🚶", color: "#005f73" },
+  POLLUTION: { emoji: "🌫️", color: "#0a9396" },
+  HYGIENE:   { emoji: "🧼", color: "#256d1b" },
+  SAFETY:    { emoji: "🛡️", color: "#ae2012" },
+  OTHER:     { emoji: "📌", color: "#5b3000" },
+};
+
 export default function IssueClient({ issueId: propIssueId }: { issueId: string }) {
-  // For static hosting: extract ID from URL path if not in props
   const [issueId, setIssueId] = useState<string>(propIssueId);
   
   useEffect(() => {
-    // If we have a prop ID that's not 'index', use it
     if (propIssueId && propIssueId !== 'index') {
       setIssueId(propIssueId);
       return;
     }
-    
-    // Otherwise, try to extract from URL path (for static hosting)
     const path = window.location.pathname;
     const match = path.match(/\/issue\/([^/?]+)/);
     if (match && match[1] !== 'index') {
       setIssueId(match[1]);
     } else {
-      // Fallback to query param
       const params = new URLSearchParams(window.location.search);
       const queryId = params.get('id');
       if (queryId) setIssueId(queryId);
@@ -76,16 +97,13 @@ export default function IssueClient({ issueId: propIssueId }: { issueId: string 
   const [status, setStatus] = useState<"loading" | "error" | "ready">("loading");
   const [editingIssue, setEditingIssue] = useState<Issue | null>(null);
   const [canEdit, setCanEdit] = useState(false);
-  const [copied, setCopied] = useState(false);
 
-  // Analytics hooks
   useScrollTracking();
   useTimeTracking(`/issue/${issueId}`);
   const trackClick = useClickTracking();
   const { trackJourneyStep } = useAnalytics();
 
   useEffect(() => {
-    // Check localStorage for edit access
     const hasEditAccess = localStorage.getItem('dev_edit_access') === 'true';
     setCanEdit(hasEditAccess);
   }, []);
@@ -122,126 +140,300 @@ export default function IssueClient({ issueId: propIssueId }: { issueId: string 
   const mediaImages = useMemo(() => allMediaImages(issue || undefined), [issue]);
   const hashtags = issue?.location?.locality?.hashtags || [];
   const locationLabel = issue?.location?.colloquial_name || issue?.location?.address || "Unknown location";
-  const hasCoords = issue?.location?.lat != null && issue?.location?.lng != null;
-
-  const copyLink = async () => {
-    try {
-      await navigator.clipboard.writeText(window.location.href);
-      setCopied(true);
-      trackIssueShare(issueId, 'copy_link');
-      setTimeout(() => setCopied(false), 2000);
-    } catch (err) {
-      console.error('Failed to copy link:', err);
-      trackError('clipboard_error', String(err), 'copy_issue_link');
-    }
-  };
+  const isResolved = issue?.status === "RESOLVED";
+  const typeMeta = TYPE_META[(issue?.type || "OTHER").toUpperCase()] || TYPE_META.OTHER;
+  const portal = issue?.gov_portal_data?.[0];
+  const daysActive = daysBetween(issue?.created_at);
 
   return (
-    <main className="issue-page">
-      <div className="issue-hero">
-        <div>
-          <Link className="back-link" href="/" onClick={() => trackClick('Back to Home', EventCategory.NAVIGATION)}>
-            ← Home
-          </Link>
-          <h1>Issue #{issueId}</h1>
-          {issue && (
-            <div className="issue-meta">
-              {issue.type && <span className="issue-pill pill-type">{issue.type}</span>}
-              {issue.status && <span className="issue-pill pill-status">{issue.status}</span>}
-              <span className="time-meta">Reported {formatTimeAgo(issue.created_at)}</span>
-            </div>
-          )}
-        </div>
-        {issue && (
-          <div className="actions-row">
-            {hasCoords && (
-              <a 
-                className="primary-btn" 
-                href={`https://maps.google.com/?q=${issue.location?.lat},${issue.location?.lng}`} 
-                target="_blank" 
-                rel="noreferrer"
-                onClick={() => {
-                  trackExternalLink(`https://maps.google.com/?q=${issue.location?.lat},${issue.location?.lng}`, 'Open in Google Maps');
-                  trackClick('Open in Maps', EventCategory.USER_INTERACTION, { issue_id: issueId });
-                }}
-              >
-                Open in Maps
-              </a>
-            )}
-            <button className="primary-btn" type="button" onClick={copyLink}>
-              {copied ? "Copied!" : "Copy Link"}
-            </button>
-            {canEdit && (
-              <button 
-                className="primary-btn" 
-                type="button" 
-                onClick={() => {
-                  trackClick(`Edit Issue ${issueId}`, EventCategory.ISSUE, { issue_id: issueId });
-                  setEditingIssue(issue);
-                }}
-              >
-                Edit
-              </button>
-            )}
-          </div>
+    <main className="story-page">
+      {/* Top nav */}
+      <nav className="story-nav">
+        <Link className="story-back" href="/" onClick={() => trackClick('Back to Home', EventCategory.NAVIGATION)}>
+          ← Back
+        </Link>
+        {canEdit && issue && (
+          <button
+            className="story-edit-btn"
+            type="button"
+            onClick={() => {
+              trackClick(`Edit Issue ${issueId}`, EventCategory.ISSUE, { issue_id: issueId });
+              setEditingIssue(issue);
+            }}
+          >
+            Edit
+          </button>
         )}
-      </div>
+      </nav>
 
-      {status === "loading" && <div className="status-card">Loading issue…</div>}
+      {status === "loading" && (
+        <div className="story-loading">
+          <div className="story-loading-shimmer" />
+          <div className="story-loading-shimmer story-loading-short" />
+        </div>
+      )}
+
       {status === "error" && (
-        <div className="status-card status-error">
-          We could not load this issue. Please try again.
+        <div className="story-error">
+          <p>😔 We could not load this issue. Please try again.</p>
         </div>
       )}
 
       {status === "ready" && issue && (
-        <section className="issue-card">
-          {mediaImages.length > 0 && (
-            <ImageSlideshow
-              images={mediaImages}
-              alt="Issue media"
-              imageClassName="issue-image"
-              onClick={() => trackClick('Issue Image View', EventCategory.ENGAGEMENT, { issue_id: issueId })}
-              style={{ cursor: 'pointer' }}
-            />
-          )}
-          <p className="issue-description">{issue.description || "No description provided."}</p>
-
-          <div className="issue-section">
-            <p className="section-title">Location</p>
-            <p className="meta-value">{locationLabel}</p>
+        <>
+          {/* Hero Image */}
+          <div className="story-hero">
+            {mediaImages.length > 0 ? (
+              <ImageSlideshow
+                images={mediaImages}
+                alt={issue.description?.slice(0, 60) || "Issue photo"}
+                imageClassName="story-hero-img"
+                autoPlayMs={5000}
+              />
+            ) : (
+              <div className="story-hero-placeholder">
+                <span className="story-hero-emoji">{typeMeta.emoji}</span>
+              </div>
+            )}
+            <div className="story-hero-overlay">
+              <span className="story-badge" style={{ backgroundColor: typeMeta.color }}>
+                {typeMeta.emoji} {issue.type}
+              </span>
+              <span className={`story-badge ${isResolved ? "story-badge-resolved" : "story-badge-open"}`}>
+                {isResolved ? "✅ Resolved" : "🔴 Open"}
+              </span>
+            </div>
           </div>
 
-          <div className="issue-section">
-            <p className="section-title">Tags</p>
-            <div className="chip-row">
-              {hashtags.length > 0 ? hashtags.map((tag) => (
-                <span key={tag} className="chip">#{tag}</span>
-              )) : (
-                <span className="chip">#untagged</span>
+          {/* Story Body */}
+          <div className="story-body">
+            {/* Header */}
+            <div className="story-header-card">
+              <h1 className="story-title">{locationLabel}</h1>
+              {issue.location?.address && issue.location.address !== locationLabel && (
+                <p className="story-subtitle">{issue.location.address}</p>
+              )}
+              <p className="story-description">{issue.description || "No description provided."}</p>
+              <div className="story-meta-row">
+                {issue.user?.username && (
+                  <span className="story-meta-item">👤 {issue.user.username.split("@")[0]}</span>
+                )}
+                <span className="story-meta-item">📅 {formatDate(issue.created_at)}</span>
+                <span className="story-meta-item">⏱️ {formatTimeAgo(issue.created_at)}</span>
+              </div>
+              {hashtags.length > 0 && (
+                <div className="story-tags">
+                  {hashtags.map(tag => (
+                    <span key={tag} className="story-tag">#{tag.startsWith('#') ? tag.slice(1) : tag}</span>
+                  ))}
+                </div>
               )}
             </div>
-          </div>
 
-          <div className="metadata-grid">
-            <div className="meta-box">
-              <p className="meta-label">Status</p>
-              <p className="meta-value">{issue.status || "Unknown"}</p>
+            {/* Stats strip */}
+            <div className="story-stats">
+              <div className="story-stat">
+                <span className="story-stat-value">{daysActive || "—"}</span>
+                <span className="story-stat-label">{isResolved ? "days to resolve" : "days active"}</span>
+              </div>
+              {(issue.verify_count || 0) > 0 && (
+                <div className="story-stat">
+                  <span className="story-stat-value">{issue.verify_count}</span>
+                  <span className="story-stat-label">verification{(issue.verify_count || 0) > 1 ? "s" : ""}</span>
+                </div>
+              )}
+              {(issue.vote_count || 0) > 0 && (
+                <div className="story-stat">
+                  <span className="story-stat-value">{issue.vote_count}</span>
+                  <span className="story-stat-label">vote{(issue.vote_count || 0) > 1 ? "s" : ""}</span>
+                </div>
+              )}
+              {mediaImages.length > 0 && (
+                <div className="story-stat">
+                  <span className="story-stat-value">{mediaImages.length}</span>
+                  <span className="story-stat-label">photo{mediaImages.length > 1 ? "s" : ""}</span>
+                </div>
+              )}
             </div>
-            <div className="meta-box">
-              <p className="meta-label">Type</p>
-              <p className="meta-value">{issue.type || "Unknown"}</p>
+
+            {/* Timeline */}
+            <div className="story-section">
+              <h2 className="story-section-title">📖 Issue Journey</h2>
+              <div className="story-timeline">
+                {/* Reported */}
+                <div className="story-tl-item story-tl-done">
+                  <div className="story-tl-icon">📢</div>
+                  <div className="story-tl-line" />
+                  <div className="story-tl-body">
+                    <p className="story-tl-title">Reported</p>
+                    <p className="story-tl-date">{formatDate(issue.created_at)}</p>
+                    {issue.user?.username && (
+                      <p className="story-tl-detail">Reported by {issue.user.username.split("@")[0]}</p>
+                    )}
+                    {issue.description && (
+                      <p className="story-tl-quote">&ldquo;{issue.description}&rdquo;</p>
+                    )}
+                  </div>
+                </div>
+
+                {/* Verified */}
+                <div className={`story-tl-item ${(issue.verify_count || 0) > 0 ? "story-tl-done" : "story-tl-pending"}`}>
+                  <div className="story-tl-icon">✅</div>
+                  <div className="story-tl-line" />
+                  <div className="story-tl-body">
+                    <p className="story-tl-title">Community Verification</p>
+                    {(issue.verify_count || 0) > 0 ? (
+                      <p className="story-tl-detail">
+                        {issue.verify_count} resident{(issue.verify_count || 0) > 1 ? "s" : ""} confirmed this issue exists
+                      </p>
+                    ) : (
+                      <p className="story-tl-detail story-tl-pending-text">Awaiting community verification</p>
+                    )}
+                  </div>
+                </div>
+
+                {/* Gov Portal */}
+                <div className={`story-tl-item ${portal ? "story-tl-done" : "story-tl-pending"}`}>
+                  <div className="story-tl-icon">🏛️</div>
+                  <div className="story-tl-line" />
+                  <div className="story-tl-body">
+                    <p className="story-tl-title">Government Portal</p>
+                    {portal ? (
+                      <div className="story-portal-card">
+                        <div className="story-portal-header">
+                          <span className="story-portal-name">{portal.portal_name || "Government Portal"}</span>
+                          <span className={`story-portal-status ${
+                            portal.status?.toLowerCase().includes("closed") || portal.status?.toLowerCase().includes("resolved")
+                              ? "story-portal-status-closed"
+                              : "story-portal-status-open"
+                          }`}>
+                            {portal.status || "Submitted"}
+                          </span>
+                        </div>
+                        <div className="story-portal-grid">
+                          {portal.tracking_id && (
+                            <div className="story-portal-field">
+                              <span className="story-portal-label">Tracking ID</span>
+                              <span className="story-portal-value">{portal.tracking_id}</span>
+                            </div>
+                          )}
+                          {portal.created_at && (
+                            <div className="story-portal-field">
+                              <span className="story-portal-label">Submitted</span>
+                              <span className="story-portal-value">{formatDate(portal.created_at)}</span>
+                            </div>
+                          )}
+                          {portal.updated_at && (
+                            <div className="story-portal-field">
+                              <span className="story-portal-label">Last Updated</span>
+                              <span className="story-portal-value">{formatDate(portal.updated_at)}</span>
+                            </div>
+                          )}
+                          {portal.created_at && portal.updated_at && (
+                            <div className="story-portal-field">
+                              <span className="story-portal-label">Response Time</span>
+                              <span className="story-portal-value">{daysBetween(portal.created_at, portal.updated_at)} days</span>
+                            </div>
+                          )}
+                        </div>
+                        {portal.meta_data && Object.keys(portal.meta_data).length > 0 && (
+                          <div className="story-portal-meta">
+                            <p className="story-portal-meta-title">Government Response Details</p>
+                            <div className="story-portal-meta-grid">
+                              {Object.entries(portal.meta_data).map(([key, value]) => (
+                                <div key={key} className="story-portal-meta-item">
+                                  <span className="story-portal-label">{key.replace(/_/g, " ")}</span>
+                                  <span className="story-portal-value">{String(value)}</span>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                        {portal.portal_track_link && (
+                          <a
+                            href={portal.portal_track_link}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="story-portal-link"
+                            onClick={() => trackExternalLink(portal.portal_track_link!, `Track on ${portal.portal_name}`)}
+                          >
+                            Track on {portal.portal_name || "portal"} ↗
+                          </a>
+                        )}
+                      </div>
+                    ) : (
+                      <p className="story-tl-detail story-tl-pending-text">Not yet submitted to government portal</p>
+                    )}
+                  </div>
+                </div>
+
+                {/* Resolved */}
+                <div className={`story-tl-item ${isResolved ? "story-tl-done story-tl-final" : "story-tl-pending"}`}>
+                  <div className="story-tl-icon">{isResolved ? "🎉" : "⏳"}</div>
+                  <div className="story-tl-body">
+                    <p className="story-tl-title">{isResolved ? "Resolved!" : "Resolution Pending"}</p>
+                    {isResolved ? (
+                      <p className="story-tl-detail">This issue has been resolved. Thank you to everyone who helped!</p>
+                    ) : (
+                      <p className="story-tl-detail story-tl-pending-text">This issue is still being worked on</p>
+                    )}
+                  </div>
+                </div>
+              </div>
             </div>
-            <div className="meta-box">
-              <p className="meta-label">📍 Coordinates</p>
-              <p className="meta-value">
-                {issue.location?.lat && issue.location?.lng 
-                  ? `${issue.location.lat.toFixed(6)}, ${issue.location.lng.toFixed(6)}` 
-                  : "N/A"}
-              </p>
+
+            {/* Location & Details */}
+            <div className="story-section">
+              <h2 className="story-section-title">📍 Location Details</h2>
+              <div className="story-detail-grid">
+                <div className="story-detail-card">
+                  <span className="story-detail-label">Area</span>
+                  <span className="story-detail-value">{locationLabel}</span>
+                </div>
+                {issue.location?.address && issue.location.address !== locationLabel && (
+                  <div className="story-detail-card">
+                    <span className="story-detail-label">Full Address</span>
+                    <span className="story-detail-value">{issue.location.address}</span>
+                  </div>
+                )}
+                {issue.location?.lat && issue.location?.lng && (
+                  <div className="story-detail-card">
+                    <span className="story-detail-label">Coordinates</span>
+                    <span className="story-detail-value">
+                      {issue.location.lat.toFixed(6)}, {issue.location.lng.toFixed(6)}
+                    </span>
+                  </div>
+                )}
+                <div className="story-detail-card">
+                  <span className="story-detail-label">Issue Type</span>
+                  <span className="story-detail-value" style={{ color: typeMeta.color }}>
+                    {typeMeta.emoji} {issue.type}
+                  </span>
+                </div>
+                <div className="story-detail-card">
+                  <span className="story-detail-label">Status</span>
+                  <span className="story-detail-value">{issue.status}</span>
+                </div>
+              </div>
             </div>
+
+            {/* Media gallery for multiple photos */}
+            {mediaImages.length > 1 && (
+              <div className="story-section">
+                <h2 className="story-section-title">📷 Evidence ({mediaImages.length} photos)</h2>
+                <div className="story-gallery">
+                  {issue.media_urls?.filter(m => m.url).map((m, idx) => (
+                    <div key={idx} className="story-gallery-item">
+                      <img src={m.url_thumbnail || m.url} alt={`Evidence ${idx + 1}`} className="story-gallery-img" loading="lazy" />
+                      {m.username && <p className="story-gallery-caption">📸 {m.username.split("@")[0]}</p>}
+                      {m.created_at && <p className="story-gallery-date">{formatDate(m.created_at)}</p>}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
-        </section>
+        </>
       )}
 
       {editingIssue && (

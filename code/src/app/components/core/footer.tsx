@@ -5,11 +5,10 @@ export default function Footer() {
     return (
         <footer>
             <span>
-                Made with ❤️ © {currentYear}{" "}
                 <Link href="https://smalltech.in/?utm_source=local&utm_medium=footer&utm_campaign=launch" target="_blank" rel="noopener noreferrer">
-                    smallTech
+                    &nbsp; a smallTech enterprise
                 </Link>
-                , India
+                &nbsp; © {currentYear}{" "} 
             </span>
         </footer>
     );

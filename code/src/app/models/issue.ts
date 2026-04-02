@@ -57,4 +57,13 @@ export interface Issue {
   viewer_context?: {
     upvoted?: boolean;
   };
+  gov_portal_data?: Array<{
+    tracking_id?: string;
+    status?: string;
+    portal_name?: string;
+    portal_track_link?: string;
+    meta_data?: Record<string, unknown>;
+    created_at?: string;
+    updated_at?: string;
+  }>;
 }
