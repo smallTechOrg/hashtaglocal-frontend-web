@@ -12,14 +12,14 @@ export default function Invite() {
     <section className="invite-container">
       <div className="invite-content">
         <h3 className="font-[500] mb-2">
-          Tired of complaining? Start Contributing.
+          Android & iOS apps launching soon!
         </h3>
         <Link href="/join">
           <button 
             className="invite-button"
-            onClick={() => trackClick('Join The Movement', EventCategory.ENGAGEMENT, { source: 'invite_section' })}
+            onClick={() => trackClick('Get An Invite', EventCategory.ENGAGEMENT, { source: 'invite_section' })}
           >
-            Join The Movement
+            Get An Invite
           </button>
         </Link>
       </div>

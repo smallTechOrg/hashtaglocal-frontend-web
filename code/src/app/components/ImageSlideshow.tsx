@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import ProgressiveImage from "./ProgressiveImage";
 import "./ImageSlideshow.css";
 
@@ -17,6 +17,8 @@ interface ImageSlideshowProps {
   onClick?: () => void;
   loading?: "lazy" | "eager";
   decoding?: "async" | "auto" | "sync";
+  /** Auto-advance interval in ms. 0 or undefined = no auto-play */
+  autoPlayMs?: number;
 }
 
 export default function ImageSlideshow({
@@ -27,8 +29,24 @@ export default function ImageSlideshow({
   onClick,
   loading = "lazy",
   decoding = "async",
+  autoPlayMs,
 }: ImageSlideshowProps) {
   const [current, setCurrent] = useState(0);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const resetAutoPlay = useCallback(() => {
+    if (timerRef.current) clearInterval(timerRef.current);
+    if (autoPlayMs && images.length > 1) {
+      timerRef.current = setInterval(() => {
+        setCurrent((c) => (c + 1) % images.length);
+      }, autoPlayMs);
+    }
+  }, [autoPlayMs, images.length]);
+
+  useEffect(() => {
+    resetAutoPlay();
+    return () => { if (timerRef.current) clearInterval(timerRef.current); };
+  }, [resetAutoPlay]);
 
   if (!images || images.length === 0) return null;
 
@@ -52,30 +70,42 @@ export default function ImageSlideshow({
     e.stopPropagation();
     e.preventDefault();
     setCurrent((c) => (c - 1 + images.length) % images.length);
+    resetAutoPlay();
   };
 
   const next = (e: React.MouseEvent) => {
     e.stopPropagation();
     e.preventDefault();
     setCurrent((c) => (c + 1) % images.length);
+    resetAutoPlay();
   };
 
   const goTo = (i: number, e: React.MouseEvent) => {
     e.stopPropagation();
     e.preventDefault();
     setCurrent(i);
+    resetAutoPlay();
   };
 
   return (
     <div className="slideshow-root" style={style} onClick={onClick}>
-      <ProgressiveImage
-        src={images[current].url}
-        thumbnail={images[current].thumbnail}
-        alt={`${alt} (${current + 1}/${images.length})`}
-        className={`slideshow-slide-img ${imageClassName || ""}`}
-        loading={loading}
-        decoding={decoding}
-      />
+      <div className="slideshow-track">
+        {images.map((img, i) => (
+          <div
+            key={i}
+            className={`slideshow-slide${i === current ? " slideshow-slide--active" : ""}`}
+          >
+            <ProgressiveImage
+              src={img.url}
+              thumbnail={img.thumbnail}
+              alt={`${alt} (${i + 1}/${images.length})`}
+              className={`slideshow-slide-img ${imageClassName || ""}`}
+              loading={i === 0 ? loading : "lazy"}
+              decoding={decoding}
+            />
+          </div>
+        ))}
+      </div>
       <button
         className="slideshow-btn slideshow-prev"
         onClick={prev}
