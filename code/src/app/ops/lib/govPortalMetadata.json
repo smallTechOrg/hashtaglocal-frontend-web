@@ -1,0 +1,295 @@
+{
+  "bangalore": {
+    "portals": ["SMARTONEBLR"],
+    "categories": [
+      "CORONA COVID19",
+      "Road Maintenance(Engg)",
+      "Solid Waste (Garbage) Related",
+      "Sanitation",
+      "Electrical",
+      "Health Dept",
+      "Revenue Department",
+      "veterinary",
+      "Forest",
+      "Town Planning",
+      "Parks and Play grounds",
+      "Lakes",
+      "Welfare Schemes",
+      "Estate",
+      "Advertisement",
+      "Markets",
+      "Education",
+      "Storm  Water Drain(SWD)",
+      "Optical Fiber Cables (OFC)",
+      "Others",
+      "Major Roads",
+      "Plastic",
+      "Projects Central",
+      "Road Infrastructure",
+      "BBMP Election Branch",
+      "Information Technology",
+      "Call Center",
+      "Indira Canteen",
+      "Water Crisis",
+      "Traffic Engineer Cell (TEC)",
+      "Property Tax services",
+      "E khata / Khata services"
+    ],
+    "subcategories": {
+      "CORONA COVID19": [
+        "Overcharging ",
+        "Stockout",
+        "Some other person affected from COVID",
+        "Government regulations not being followed ",
+        "Others"
+      ],
+      "Road Maintenance(Engg)": [
+        "Potholes",
+        "Footpath ",
+        "footpath encroachment ",
+        "Debris Removal \\/ Construction Material",
+        "Road cutting",
+        "water stagnation",
+        "Road side drains",
+        "Overhanging cables",
+        "water leakage on road",
+        "UnAuthorised Constructions"
+      ],
+      "Solid Waste (Garbage) Related": [
+        "Burning of Garbage in Open Space",
+        "Public dustbins not cleaned",
+        "Garbage dump",
+        "Garbage vehicle not arrived",
+        "Sweeping not done",
+        "Dead animal(s)",
+        "Segregation of waste is not done",
+        "Garbage nuisance while transporting",
+        "Garbage dumping in vacant sites",
+        "Complaint against SW collector\\/ SWM official for violation of SWM Rules",
+        "Garbage transfer not as per norms & area not kept clean"
+      ],
+      "Sanitation": [
+        "No electricity in public toilet(s)",
+        "No water supply in public toilet(s)",
+        "Public toilet(s) blockage",
+        "Public toilet(s) cleaning",
+        "Urination in Public\\/Open Defecation"
+      ],
+      "Electrical": [
+        " Street Light Not Working",
+        "\\tPark Lights Not Working",
+        "Street Lights Switched On During Day Time",
+        "Open Electrical Junction Box",
+        "Earthing Issue relate to Electric Poles\\/Panel Boards",
+        "Requirement For New Street Lights"
+      ],
+      "Health Dept": [
+        "Increase in mosquito density",
+        "Spraying",
+        "Fogging",
+        "Delay in issue of Trade licence ",
+        "Air\\/Noise pollution ",
+        "Unhygienic premises in Hotel etc ",
+        "Non availability of drugs",
+        "Non availability of vaccines",
+        "Unavailability of staff",
+        "Unhygienic  premises in hospital",
+        "Birth & Death Registration",
+        "Zonal Violation of the Building ",
+        "Indira Canteen ",
+        "Dengue positive"
+      ],
+      "Revenue Department": [
+        "Khata Services (Registration, Transfer, Bifurcation and Amalgamation)",
+        "Discrepancy In Khata Certificate and Khata Extract",
+        "Unable to Generate the receipt after property tax payment.",
+        "Unable to generate the property tax challan",
+        "Others (JC)"
+      ],
+      "veterinary": [
+        "Animal birth control\\/neutering of stray dogs",
+        "Anti Rabies Vaccination of stray dogs",
+        "Stray\\/Rabid dog bite",
+        "Stray cattle related complaints",
+        "Stray pig related complaints",
+        "Stray dog related complaints",
+        "Pet dog licence",
+        "Mutton\\/Chicken\\/fish stall Unhygienic maintenance",
+        "Request for ABC",
+        "Animal Surgery gone wrong ",
+        "Animal died post surgery",
+        "Animal caught disease post surgery",
+        "Request for ARV",
+        "Vaccination gone wrong ",
+        "Animal died post vaccination",
+        "Animal Cruelty\\/Ill-Treated \\/ Abused ",
+        "Animal Cruelty\\/Relocated ",
+        "Feeder Harassment by Association \\/ Gated Community",
+        "Feeder Harassment  by Individual \\/ Mob but no association",
+        "Illegal pet shop \\/ Animal cruelty \\/ license check",
+        "Illegal meat shop \\/ Animal cruelty \\/ license check",
+        "Dog bite pet dog",
+        "Animal Death Need cremartion support ",
+        "Animal Death Need to file FIR",
+        "Dog, cat Poor conditions \\/ Breeding license validation ",
+        "Fatally injured - Needs immediate attention",
+        "Animal Rescue - Not well - Requires attention",
+        "Awareness session \\/ Request for a session ",
+        "Collect the food available to feed dogs",
+        "Street dog Adaptation process details",
+        "shifting of the street dogs to other places",
+        "Street dogs attacking-pet Dogs",
+        "Aged street dogs please take action",
+        "Need NGO's location and details ",
+        "Request for New feeder Points "
+      ],
+      "Forest": [
+        " obstructions Branches \\/ Trees.",
+        "Removal of dead\\/fallen trees",
+        "Issues related Snakes\\/Birds\\/Monkeys "
+      ],
+      "Town Planning": [
+        "Delay in issuing building permit",
+        "Noise during Building Construction ",
+        "Construction not done as per approved plan (Building Bye Law Violations)",
+        "UnAuthorised Building Constructions"
+      ],
+      "Parks and Play grounds": [
+        "Issues Related to Parks\\/Medians\\/Circles\\/Island.",
+        " Gym\\/Children Play equipment in the parks",
+        "Environmental protection",
+        "Play Grounds",
+        "Inspection not done "
+      ],
+      "Lakes": [
+        "Lake fencing damaged",
+        "Sewage inflow to lake",
+        "Lake not maintained properly",
+        "Dumping of construction & Demolition waste in to lake",
+        "Lake water misused",
+        "Insufficient lake security personnel",
+        "Dumping of garbage into lake",
+        "Lake gates are not opened as per the prescribed timing",
+        "Dying of fishes in lake",
+        "Lake being encroached",
+        "Inspection not done ",
+        "Unauthorised entry of Public during Nights"
+      ],
+      "Welfare Schemes": [
+        "Issues Regarding SC\\/ST Schemes.",
+        "Schemes Related to Physically Abled Person",
+        " Senior  Citizen",
+        " Women Welfare Program",
+        "Onti Mane",
+        "Schemes Related to BCM Program ",
+        "Schemes Related to Transgenders Programs"
+      ],
+      "Estate": [
+        "Encroachment",
+        "BBMP  Properties Lease issues",
+        "Violation of rules by property Leasers",
+        "Payment\\/Rent issues"
+      ],
+      "Advertisement": [
+        "Flex and banners",
+        "Unsafe Hoardings"
+      ],
+      "Markets": [
+        "Garbage In Market Premises",
+        "Trade License ",
+        "Rent Payment",
+        "Payment Issues",
+        "Illegal Parking",
+        "Encroachment ",
+        "Violation of rules by Shop rent \\/ Leaser "
+      ],
+      "Education": [
+        "Infrastructure related Issues.",
+        "Academic Issues.",
+        "Examination Related Issues",
+        "Sports and co- Curricular Activities",
+        "Parent-Teachers Meeting"
+      ],
+      "Storm  Water Drain(SWD)": [
+        "Garbage thrown in storm water drain  ",
+        "Sewerage water left in SWD",
+        "Maintenance of SWD"
+      ],
+      "Optical Fiber Cables (OFC)": [
+        "Without permission digging of road  "
+      ],
+      "Others": [
+        "Others"
+      ],
+      "Major Roads": [],
+      "Plastic": [
+        "Use of banned single use plastic"
+      ],
+      "Projects Central": [
+        "Potholes",
+        "Drainage blockage",
+        "Street light issues",
+        "Stagnation of water on road\\/ Water logging ",
+        "Road furnitures"
+      ],
+      "Road Infrastructure": [
+        "Road Infrastructure"
+      ],
+      "BBMP Election Branch": [
+        "Epic Details Corrections",
+        "Electoral Roll Objections"
+      ],
+      "Information Technology": [
+        "App Related Issues",
+        "Others(Technical or Software Issues)"
+      ],
+      "Call Center": [
+        "Call center Issues",
+        "others"
+      ],
+      "Indira Canteen": [
+        "Food Quality ",
+        "Cleanliness",
+        "Water quality",
+        "Cleanliness of Canteen \\/Food Area",
+        "Staff Related",
+        "Billing related",
+        "Others",
+        " Food Quantity",
+        "Cleanliness of Utensils"
+      ],
+      "Water Crisis": [
+        "Water related issue "
+      ],
+      "Traffic Engineer Cell (TEC)": [
+        "TEC "
+      ],
+      "Property Tax services": [
+        "Unable to generate receipt after property tax payment",
+        "unable to generate property tax challan",
+        "Property tax refund \\/ adjustment",
+        "Property tax owner name not updated",
+        "Issues in property tax portal",
+        "Other property tax issues",
+        "Request for property tax exemption"
+      ],
+      "E khata / Khata services": [
+        "Ekhata missing in online",
+        "ekhata approval pending with ARO ",
+        "Khata \\/ Ekhata mutation \\/ transfer",
+        "Ekhata - name correction",
+        "Ekhata Area Correction",
+        "Ekhata Other corrections",
+        "Ekhata in previous owner name",
+        "new Khata \\/ Ekhata registration \\/ creation",
+        "eKhata - name Mismatch",
+        "eKhata amalgamation",
+        "Do not issue ekhata",
+        "Other Khata \\/ ekhata issues",
+        "Technical Issue In Ekhata",
+        "E-Khata Non-Technical Issues",
+        "Other (JC)"
+      ]
+    }
+  }
+}

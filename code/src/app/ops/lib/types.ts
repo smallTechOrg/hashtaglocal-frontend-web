@@ -82,6 +82,8 @@ export interface GovPortalReportFormValues {
   password: string;
 }
 
+export type GovPortalDecision = "YES" | "NO";
+
 export interface ReportComplaintPayload {
   source: "GOV_PORTAL_ISSUE" | "GOV_ISSUE_PORTAL";
   context: {
@@ -101,6 +103,12 @@ export interface ReportComplaintPayload {
       username: string;
       password: string;
     };
+  };
+}
+
+export interface ReportComplaintResponse {
+  data?: {
+    tracking_id?: number;
   };
 }
 

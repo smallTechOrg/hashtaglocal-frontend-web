@@ -8,18 +8,27 @@ import {
   AdminIssueDetail,
   UserSummary,
   GovPortalReportFormValues,
+  GovPortalDecision,
   ReportComplaintPayload,
+  ReportComplaintResponse,
 } from "../lib/types";
 import ReviewCard from "../components/ReviewCard";
 import { Loader2, PartyPopper, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import { getGovPortalMetadataForHashtags } from "../lib/govPortalMetadata";
 
 export default function ReviewPage() {
   const [actions, setActions] = useState<PendingAction[]>([]);
   const [loading, setLoading] = useState(true);
   const [processing, setProcessing] = useState(false);
   const [reportingGovPortal, setReportingGovPortal] = useState(false);
+  const [govPortalDecision, setGovPortalDecision] = useState<
+    GovPortalDecision | null
+  >(null);
+  const [govPortalTrackingId, setGovPortalTrackingId] = useState<number | null>(
+    null,
+  );
   const [currentIndex, setCurrentIndex] = useState(0);
 
   // Cache of fetched issue details keyed by issueId
@@ -147,74 +156,6 @@ export default function ReviewPage() {
     }
   }, [currentIndex, actions, issueCache, userSummaryCache]);
 
-  // Approve handler
-  const handleApprove = useCallback(
-    async (actionId: number) => {
-      setProcessing(true);
-      try {
-        const res = await adminFetch(ADMIN_API.approveAction(actionId), {
-          method: "PUT",
-        });
-        if (!res.ok) {
-          const text = await res.text();
-          toast.error(`Approve failed: ${text}`);
-          return;
-        }
-        toast.success("Approved", { duration: 1500 });
-
-        // Invalidate issue cache for this action's issue (status may have changed)
-        if (currentAction) {
-          setIssueCache((prev) => {
-            const copy = { ...prev };
-            delete copy[currentAction.issue_id];
-            return copy;
-          });
-        }
-
-        // Move to next card
-        setCurrentIndex((prev) => prev + 1);
-      } catch (err) {
-        toast.error(`Error: ${err}`);
-      } finally {
-        setProcessing(false);
-      }
-    },
-    [currentAction],
-  );
-
-  // Reject handler
-  const handleReject = useCallback(
-    async (actionId: number) => {
-      setProcessing(true);
-      try {
-        const res = await adminFetch(ADMIN_API.rejectAction(actionId), {
-          method: "PUT",
-        });
-        if (!res.ok) {
-          const text = await res.text();
-          toast.error(`Reject failed: ${text}`);
-          return;
-        }
-        toast.success("Rejected", { duration: 1500 });
-
-        if (currentAction) {
-          setIssueCache((prev) => {
-            const copy = { ...prev };
-            delete copy[currentAction.issue_id];
-            return copy;
-          });
-        }
-
-        setCurrentIndex((prev) => prev + 1);
-      } catch (err) {
-        toast.error(`Error: ${err}`);
-      } finally {
-        setProcessing(false);
-      }
-    },
-    [currentAction],
-  );
-
   // Navigate without acting
   const handlePrev = useCallback(() => {
     setCurrentIndex((prev) => Math.max(0, prev - 1));
@@ -224,30 +165,22 @@ export default function ReviewPage() {
     setCurrentIndex((prev) => Math.min(actions.length - 1, prev + 1));
   }, [actions.length]);
 
-  // Keyboard shortcuts: ←/→ navigate, ↑ approve, ↓ reject
-  useEffect(() => {
-    function handleKeyDown(e: KeyboardEvent) {
-      if (processing || !currentAction) return;
-      if (e.key === "ArrowUp") {
-        e.preventDefault();
-        handleApprove(currentAction.action_id);
-      } else if (e.key === "ArrowDown") {
-        e.preventDefault();
-        handleReject(currentAction.action_id);
-      } else if (e.key === "ArrowLeft") {
-        handlePrev();
-      } else if (e.key === "ArrowRight") {
-        handleNext();
-      }
-    }
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [processing, currentAction, handleApprove, handleReject, handlePrev, handleNext]);
-
   const currentIssue = currentAction ? issueCache[currentAction.issue_id] ?? null : null;
   const currentUserSummary = currentAction
     ? userSummaryCache[currentAction.submitted_by_user_id] ?? null
     : null;
+  const { localityKey: govPortalLocalityKey, metadata: govPortalMetadata } =
+    getGovPortalMetadataForHashtags(currentIssue?.location?.locality?.hashtags);
+  const requiresGovPortalDecision = Boolean(govPortalMetadata);
+  const canModerateCurrentAction =
+    !requiresGovPortalDecision ||
+    govPortalDecision === "NO" ||
+    govPortalTrackingId !== null;
+
+  useEffect(() => {
+    setGovPortalDecision(null);
+    setGovPortalTrackingId(null);
+  }, [currentAction?.action_id]);
 
   const handleReportGovPortal = useCallback(
     async (values: GovPortalReportFormValues) => {
@@ -279,12 +212,16 @@ export default function ReviewPage() {
       };
 
       setReportingGovPortal(true);
+      setGovPortalTrackingId(null);
+      const controller = new AbortController();
+      const timeoutId = window.setTimeout(() => controller.abort(), 300000);
       try {
         const res = await adminFetch(ADMIN_API.reportComplaint, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
           },
+          signal: controller.signal,
           body: JSON.stringify(payload),
         });
 
@@ -294,17 +231,135 @@ export default function ReviewPage() {
           return;
         }
 
-        toast.success(`Issue #${currentIssue.id} reported on gov portal`, {
+        const json = (await res.json()) as ReportComplaintResponse;
+        const trackingId = json.data?.tracking_id;
+        if (typeof trackingId !== "number") {
+          toast.error("Report succeeded but tracking ID was missing");
+          return;
+        }
+
+        setGovPortalTrackingId(trackingId);
+        toast.success(`Issue #${currentIssue.id} reported. Tracking ID: ${trackingId}`, {
           duration: 2000,
         });
       } catch (err) {
+        if (err instanceof Error && err.name === "AbortError") {
+          toast.error(
+            "Gov portal request timed out after 300 seconds. Check on the gov portal and retry if needed.",
+            { duration: 5000 },
+          );
+          return;
+        }
         toast.error(`Report failed: ${err}`);
       } finally {
+        window.clearTimeout(timeoutId);
         setReportingGovPortal(false);
       }
     },
     [currentIssue],
   );
+
+  const handleApprove = useCallback(
+    async (actionId: number) => {
+      if (!canModerateCurrentAction) {
+        toast.error(
+          requiresGovPortalDecision && govPortalDecision === "YES"
+            ? "Submit the gov portal report and wait for a tracking ID before approving."
+            : "Choose Yes or No for gov portal reporting before approving.",
+        );
+        return;
+      }
+
+      setProcessing(true);
+      try {
+        const res = await adminFetch(ADMIN_API.approveAction(actionId), {
+          method: "PUT",
+        });
+        if (!res.ok) {
+          const text = await res.text();
+          toast.error(`Approve failed: ${text}`);
+          return;
+        }
+        toast.success("Approved", { duration: 1500 });
+
+        if (currentAction) {
+          setIssueCache((prev) => {
+            const copy = { ...prev };
+            delete copy[currentAction.issue_id];
+            return copy;
+          });
+        }
+
+        setCurrentIndex((prev) => prev + 1);
+      } catch (err) {
+        toast.error(`Error: ${err}`);
+      } finally {
+        setProcessing(false);
+      }
+    },
+    [canModerateCurrentAction, currentAction, govPortalDecision, requiresGovPortalDecision],
+  );
+
+  const handleReject = useCallback(
+    async (actionId: number) => {
+      if (!canModerateCurrentAction) {
+        toast.error(
+          requiresGovPortalDecision && govPortalDecision === "YES"
+            ? "Submit the gov portal report and wait for a tracking ID before rejecting."
+            : "Choose Yes or No for gov portal reporting before rejecting.",
+        );
+        return;
+      }
+
+      setProcessing(true);
+      try {
+        const res = await adminFetch(ADMIN_API.rejectAction(actionId), {
+          method: "PUT",
+        });
+        if (!res.ok) {
+          const text = await res.text();
+          toast.error(`Reject failed: ${text}`);
+          return;
+        }
+        toast.success("Rejected", { duration: 1500 });
+
+        if (currentAction) {
+          setIssueCache((prev) => {
+            const copy = { ...prev };
+            delete copy[currentAction.issue_id];
+            return copy;
+          });
+        }
+
+        setCurrentIndex((prev) => prev + 1);
+      } catch (err) {
+        toast.error(`Error: ${err}`);
+      } finally {
+        setProcessing(false);
+      }
+    },
+    [canModerateCurrentAction, currentAction, govPortalDecision, requiresGovPortalDecision],
+  );
+
+  // Keyboard shortcuts: ←/→ navigate, ↑ approve, ↓ reject
+  useEffect(() => {
+    function handleKeyDown(e: KeyboardEvent) {
+      if (processing || !currentAction) return;
+      if (e.key === "ArrowUp") {
+        e.preventDefault();
+        handleApprove(currentAction.action_id);
+      } else if (e.key === "ArrowDown") {
+        e.preventDefault();
+        handleReject(currentAction.action_id);
+      } else if (e.key === "ArrowLeft") {
+        handlePrev();
+      } else if (e.key === "ArrowRight") {
+        handleNext();
+      }
+    }
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [processing, currentAction, handleApprove, handleReject, handlePrev, handleNext]);
 
   // Loading state
   if (loading) {
@@ -363,6 +418,12 @@ export default function ReviewPage() {
         onReject={handleReject}
         onReportGovPortal={handleReportGovPortal}
         reportingGovPortal={reportingGovPortal}
+        govPortalLocalityKey={govPortalLocalityKey}
+        govPortalMetadata={govPortalMetadata}
+        govPortalDecision={govPortalDecision}
+        govPortalTrackingId={govPortalTrackingId}
+        onGovPortalDecisionChange={setGovPortalDecision}
+        canModerateAction={canModerateCurrentAction}
         processing={processing}
       />
 
