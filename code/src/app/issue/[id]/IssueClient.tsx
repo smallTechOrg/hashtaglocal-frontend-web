@@ -224,7 +224,7 @@ export default function IssueClient({ issueId: propIssueId }: { issueId: string 
               {hashtags.length > 0 && (
                 <div className="story-tags">
                   {hashtags.map(tag => (
-                    <span key={tag} className="story-tag">#{tag}</span>
+                    <span key={tag} className="story-tag">#{tag.startsWith('#') ? tag.slice(1) : tag}</span>
                   ))}
                 </div>
               )}

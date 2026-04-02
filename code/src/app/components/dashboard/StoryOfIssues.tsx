@@ -193,7 +193,7 @@ function StoryCard({ story }: { story: IssueStory }) {
                   <div className="flex gap-1 mt-1">
                     {hashtags.map(tag => (
                       <span key={tag} className="text-[10px] font-medium text-teal-700 bg-teal-50 px-1.5 py-0.5 rounded">
-                        #{tag}
+                        #{tag.startsWith('#') ? tag.slice(1) : tag}
                       </span>
                     ))}
                   </div>
