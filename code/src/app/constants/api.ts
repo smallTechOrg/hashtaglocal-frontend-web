@@ -1,4 +1,4 @@
-export const BASE_URL = "https://staging.api.smalltech.in/localstaging";
+export const BASE_URL = "https://staging.api.smalltech.in/local";
 
 const API_V1_BASE = `${BASE_URL}/api/v1`;
 const API_ROOT = `${BASE_URL}/api`;
