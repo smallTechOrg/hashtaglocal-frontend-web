@@ -38,5 +38,6 @@ export const ADMIN_API = {
   recentActions: `${BASE_URL}/admin/issue-action/history`,
 
   /** Report issue to government complaint portal */
-  reportComplaint: `${BASE_URL}/api/v1/portal/REPORT_ISSUE`,
+  reportComplaint: (issueId: number) =>
+    `${BASE_URL}/api/v1/portal/REPORT_ISSUE?issue_id=${encodeURIComponent(String(issueId))}`,
 };

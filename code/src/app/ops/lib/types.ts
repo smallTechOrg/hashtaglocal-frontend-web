@@ -69,7 +69,7 @@ export interface UserSummary {
 }
 
 export interface GovPortalReportFormValues {
-  source: "GOV_PORTAL_ISSUE";
+  source: "GOV_ISSUE_PORTAL";
   type: "REPORT_ISSUE";
   portal: string;
   category: string;
@@ -85,7 +85,7 @@ export interface GovPortalReportFormValues {
 export type GovPortalDecision = "YES" | "NO";
 
 export interface ReportComplaintPayload {
-  source: "GOV_PORTAL_ISSUE" | "GOV_ISSUE_PORTAL";
+  source: "GOV_ISSUE_PORTAL" | "GOV_ISSUE_PORTAL";
   context: {
     portal: string;
     action: {

@@ -153,7 +153,7 @@ export default function ReviewCard({
   const [showGovPortalForm, setShowGovPortalForm] = useState(false);
   const metadata = govPortalMetadata;
   const [govFormValues, setGovFormValues] = useState<GovPortalReportFormValues>({
-    source: "GOV_PORTAL_ISSUE",
+    source: "GOV_ISSUE_PORTAL",
     type: "REPORT_ISSUE",
     portal: metadata?.portals[0] ?? "",
     category: metadata?.categories[0] ?? "",
@@ -170,7 +170,7 @@ export default function ReviewCard({
     const defaultCategory = metadata?.categories[0] ?? "";
     const defaultSubCategory = metadata?.subcategories[defaultCategory]?.[0] ?? "";
     setGovFormValues({
-      source: "GOV_PORTAL_ISSUE",
+      source: "GOV_ISSUE_PORTAL",
       type: "REPORT_ISSUE",
       portal: metadata?.portals[0] ?? "",
       category: defaultCategory,

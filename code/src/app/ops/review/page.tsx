@@ -216,7 +216,7 @@ export default function ReviewPage() {
       const controller = new AbortController();
       const timeoutId = window.setTimeout(() => controller.abort(), 300000);
       try {
-        const res = await adminFetch(ADMIN_API.reportComplaint, {
+        const res = await adminFetch(ADMIN_API.reportComplaint(currentIssue.id), {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
