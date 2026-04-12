@@ -8,7 +8,7 @@
     "start": "next start",
     "lint": "next lint",
     "deploy": "gh-pages -d out",
-    "prepare": "husky && git config core.hooksPath code/.husky"
+    "prepare": "husky && git config core.hooksPath code/.husky || echo 'Skipping husky setup (CI/no git repository)'"
   },
   "dependencies": {
     "class-variance-authority": "^0.7.1",
