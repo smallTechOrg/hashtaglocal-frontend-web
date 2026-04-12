@@ -74,8 +74,8 @@ jobs:
       - name: Deploy Staging to Vercel 🚀
         id: deploy
         run: |
-          echo "url=$(vercel deploy --yes \
-            --token=${{ secrets.VERCEL_TOKEN }})" >> $GITHUB_OUTPUT
+          echo "url=$(vercel deploy --prod \
+            --token=${{ vars.VERCEL_TOKEN }})" >> $GITHUB_OUTPUT
         working-directory: ./code
       - name: Alias to Staging Domain 🔗
         run: vercel alias set ${{ steps.deploy.outputs.url }} ${{ vars.STAGING_DOMAIN }} --token=${{ vars.VERCEL_TOKEN }}
