@@ -10,6 +10,20 @@ Open [http://localhost:3000](http://localhost:3000) with your browser to see the
 
 You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
 
+## Environment Variables
+
+Create `code/.env.local` from `code/.env.example` for local development.
+
+Required variables:
+
+- `NEXT_PUBLIC_BASE_URL`
+- `NEXT_PUBLIC_GOOGLE_CLIENT_ID`
+
+For CI/CD, set the same variable names in GitHub Environments:
+
+- `staging` environment variables for `staging` branch deploys
+- `production` environment variables for `main` branch builds
+
 ## Project Structure Breakdown
 
 Inside the `code/` folder, you'll find the actual application source files and config files:

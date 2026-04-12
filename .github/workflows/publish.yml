@@ -28,6 +28,12 @@ jobs:
       - name: Setup Node.js ⚙️ - Cache dependencies ⚡ - Install dependencies 🔧
         uses: ./.github/workflows/setup-node
 
+      - name: Create .env.production file 🗒️
+        run: |
+          echo "NEXT_PUBLIC_BASE_URL=${NEXT_PUBLIC_BASE_URL}" > .env.production
+          echo "NEXT_PUBLIC_GOOGLE_CLIENT_ID=${NEXT_PUBLIC_GOOGLE_CLIENT_ID}" >> .env.production
+        working-directory: ./code
+
       - name: Setup Pages ⚙️
         uses: actions/configure-pages@v4
         with:
@@ -64,6 +70,8 @@ jobs:
     env:
       VERCEL_ORG_ID: ${{ vars.VERCEL_ORG_ID }}
       VERCEL_PROJECT_ID: ${{ vars.VERCEL_PROJECT_ID }}
+      NEXT_PUBLIC_BASE_URL: ${{ vars.NEXT_PUBLIC_BASE_URL }}
+      NEXT_PUBLIC_GOOGLE_CLIENT_ID: ${{ vars.NEXT_PUBLIC_GOOGLE_CLIENT_ID }}
     steps:
       - name: Checkout 🛎️
         uses: actions/checkout@v4
@@ -74,7 +82,9 @@ jobs:
       - name: Deploy Staging to Vercel 🚀
         id: deploy
         run: |
-          echo "url=$(vercel deploy --prod \
+          echo "url=$(vercel deploy --prod --yes \
+            --build-env NEXT_PUBLIC_BASE_URL=${NEXT_PUBLIC_BASE_URL} \
+            --build-env NEXT_PUBLIC_GOOGLE_CLIENT_ID=${NEXT_PUBLIC_GOOGLE_CLIENT_ID} \
             --token=${{ vars.VERCEL_TOKEN }})" >> $GITHUB_OUTPUT
         working-directory: ./code
       - name: Alias to Staging Domain 🔗

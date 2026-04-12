@@ -1,4 +1,14 @@
-export const BASE_URL = "https://staging.api.smalltech.in/local";
+function requireEnv(name: string): string {
+  const value = process.env[name];
+
+  if (!value) {
+    throw new Error(`Missing required environment variable: ${name}`);
+  }
+
+  return value;
+}
+
+export const BASE_URL = requireEnv("NEXT_PUBLIC_BASE_URL").replace(/\/$/, "");
 
 const API_V1_BASE = `${BASE_URL}/api/v1`;
 const API_ROOT = `${BASE_URL}/api`;
