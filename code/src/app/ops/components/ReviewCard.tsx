@@ -18,9 +18,12 @@ import {
   AdminIssueDetail,
   UserSummary,
   TransitionInfo,
+  GovPortalReportFormValues,
+  GovPortalDecision,
   getTransitionInfo,
 } from "../lib/types";
 import { useState, useRef, useCallback, useEffect } from "react";
+import { GovPortalLocalityMetadata } from "../lib/govPortalMetadata";
 
 interface ReviewCardProps {
   action: PendingAction;
@@ -29,6 +32,14 @@ interface ReviewCardProps {
   userSummary: UserSummary | null;
   onApprove: (actionId: number) => void;
   onReject: (actionId: number) => void;
+  onReportGovPortal: (values: GovPortalReportFormValues) => void;
+  reportingGovPortal: boolean;
+  govPortalLocalityKey?: string;
+  govPortalMetadata?: GovPortalLocalityMetadata;
+  govPortalDecision: GovPortalDecision | null;
+  govPortalTrackingId: number | null;
+  onGovPortalDecisionChange: (decision: GovPortalDecision | null) => void;
+  canModerateAction: boolean;
   processing: boolean;
 }
 
@@ -65,6 +76,14 @@ export default function ReviewCard({
   userSummary,
   onApprove,
   onReject,
+  onReportGovPortal,
+  reportingGovPortal,
+  govPortalLocalityKey,
+  govPortalMetadata,
+  govPortalDecision,
+  govPortalTrackingId,
+  onGovPortalDecisionChange,
+  canModerateAction,
   processing,
 }: ReviewCardProps) {
   const transition: TransitionInfo = getTransitionInfo(
@@ -78,10 +97,14 @@ export default function ReviewCard({
   const [swiping, setSwiping] = useState(false);
   const touchStartX = useRef(0);
 
-  const onTouchStart = useCallback((e: React.TouchEvent) => {
-    touchStartX.current = e.touches[0].clientX;
-    setSwiping(true);
-  }, []);
+  const onTouchStart = useCallback(
+    (e: React.TouchEvent) => {
+      if (processing || !canModerateAction) return;
+      touchStartX.current = e.touches[0].clientX;
+      setSwiping(true);
+    },
+    [processing, canModerateAction],
+  );
 
   const onTouchMove = useCallback(
     (e: React.TouchEvent) => {
@@ -95,13 +118,20 @@ export default function ReviewCard({
   const onTouchEnd = useCallback(() => {
     setSwiping(false);
     const THRESHOLD = 100;
-    if (swipeX > THRESHOLD && !processing) {
+    if (swipeX > THRESHOLD && !processing && canModerateAction) {
       onApprove(action.action_id);
-    } else if (swipeX < -THRESHOLD && !processing) {
+    } else if (swipeX < -THRESHOLD && !processing && canModerateAction) {
       onReject(action.action_id);
     }
     setSwipeX(0);
-  }, [swipeX, processing, onApprove, onReject, action.action_id]);
+  }, [
+    swipeX,
+    processing,
+    canModerateAction,
+    onApprove,
+    onReject,
+    action.action_id,
+  ]);
 
   // Swipe color indicator
   const swipeBg =
@@ -119,6 +149,87 @@ export default function ReviewCard({
   useEffect(() => {
     setSelectedPhoto(0);
   }, [issue?.id]);
+
+  const [showGovPortalForm, setShowGovPortalForm] = useState(false);
+  const metadata = govPortalMetadata;
+  const [govFormValues, setGovFormValues] = useState<GovPortalReportFormValues>({
+    source: "GOV_ISSUE_PORTAL",
+    type: "REPORT_ISSUE",
+    portal: metadata?.portals[0] ?? "",
+    category: metadata?.categories[0] ?? "",
+    subCategory: metadata?.subcategories[metadata?.categories[0] ?? ""]?.[0] ?? "",
+    description: issue?.description ?? "",
+    mediaUrl: issue?.media_urls?.[0]?.url ?? "",
+    latitude: issue?.location?.lat?.toString() ?? "",
+    longitude: issue?.location?.lng?.toString() ?? "",
+    username: "",
+    password: "",
+  });
+
+  useEffect(() => {
+    const defaultCategory = metadata?.categories[0] ?? "";
+    const defaultSubCategory = metadata?.subcategories[defaultCategory]?.[0] ?? "";
+    setGovFormValues({
+      source: "GOV_ISSUE_PORTAL",
+      type: "REPORT_ISSUE",
+      portal: metadata?.portals[0] ?? "",
+      category: defaultCategory,
+      subCategory: defaultSubCategory,
+      description: issue?.description ?? "",
+      mediaUrl: issue?.media_urls?.[0]?.url ?? "",
+      latitude: issue?.location?.lat?.toString() ?? "",
+      longitude: issue?.location?.lng?.toString() ?? "",
+      username: "",
+      password: "",
+    });
+    setShowGovPortalForm(govPortalDecision === "YES");
+  }, [
+    issue?.id,
+    issue?.description,
+    issue?.media_urls,
+    issue?.location,
+    metadata,
+    govPortalDecision,
+  ]);
+
+  const subCategoryOptions =
+    metadata?.subcategories[govFormValues.category] ??
+    metadata?.subcategories[metadata?.categories[0] ?? ""] ??
+    [];
+
+  const handleGovFormChange = (
+    field: keyof GovPortalReportFormValues,
+    value: string,
+  ) => {
+    setGovFormValues((prev) => {
+      if (field === "category") {
+        const nextSubcategories = metadata?.subcategories[value] ?? [];
+        return {
+          ...prev,
+          category: value,
+          subCategory: nextSubcategories[0] ?? "",
+        };
+      }
+      return { ...prev, [field]: value };
+    });
+  };
+
+  const handleGovPortalSubmit = () => {
+    if (!govFormValues.portal || !govFormValues.category || !govFormValues.subCategory) {
+      return;
+    }
+    if (!govFormValues.username || !govFormValues.password) {
+      return;
+    }
+    onReportGovPortal(govFormValues);
+  };
+
+  const moderationBlockedMessage =
+    metadata && !canModerateAction
+      ? govPortalDecision === "YES"
+        ? "Submit the gov portal report and wait for the tracking ID before approving or rejecting."
+        : "Choose Yes or No for gov portal reporting before approving or rejecting."
+      : null;
 
   return (
     <div
@@ -337,7 +448,7 @@ export default function ReviewCard({
         <Button
           variant="ghost"
           onClick={() => onReject(action.action_id)}
-          disabled={processing}
+          disabled={processing || !canModerateAction}
           className="rounded-none h-14 text-red-400 hover:bg-red-500/10 hover:text-red-300 text-base font-medium"
         >
           {processing ? (
@@ -352,7 +463,7 @@ export default function ReviewCard({
         <Button
           variant="ghost"
           onClick={() => onApprove(action.action_id)}
-          disabled={processing}
+          disabled={processing || !canModerateAction}
           className="rounded-none h-14 text-emerald-400 hover:bg-emerald-500/10 hover:text-emerald-300 text-base font-medium border-l border-zinc-800"
         >
           {processing ? (
@@ -365,6 +476,223 @@ export default function ReviewCard({
           )}
         </Button>
       </div>
+
+      {moderationBlockedMessage && (
+        <div className="border-t border-zinc-800 px-4 py-2 text-xs text-amber-400 bg-amber-500/5">
+          {moderationBlockedMessage}
+        </div>
+      )}
+
+      {/* Gov portal reporting */}
+      {metadata && (
+        <div className="border-t border-zinc-800 px-4 py-3 bg-zinc-900/60">
+        <div className="flex items-center justify-between gap-2">
+          <div>
+            <p className="text-sm font-medium text-zinc-200">Report issue on gov portal?</p>
+            <p className="text-xs text-zinc-500 capitalize">Locality: {govPortalLocalityKey}</p>
+          </div>
+          <div className="flex gap-2">
+            <Button
+              variant={govPortalDecision === "YES" ? "default" : "outline"}
+              size="sm"
+              onClick={() => {
+                onGovPortalDecisionChange("YES");
+                setShowGovPortalForm(true);
+              }}
+              className={
+                govPortalDecision === "YES"
+                  ? "bg-sky-600 text-white hover:bg-sky-500"
+                  : "border-zinc-700 text-zinc-300 hover:bg-zinc-800"
+              }
+            >
+              Yes
+            </Button>
+            <Button
+              variant={govPortalDecision === "NO" ? "default" : "outline"}
+              size="sm"
+              onClick={() => {
+                onGovPortalDecisionChange("NO");
+                setShowGovPortalForm(false);
+              }}
+              className={
+                govPortalDecision === "NO"
+                  ? "bg-zinc-700 text-white hover:bg-zinc-600"
+                  : "border-zinc-700 text-zinc-300 hover:bg-zinc-800"
+              }
+            >
+              No
+            </Button>
+          </div>
+        </div>
+
+        {govPortalDecision === null && (
+          <p className="mt-3 text-xs text-amber-400">
+            Choosing Yes or No is required before approving or rejecting.
+          </p>
+        )}
+
+        {showGovPortalForm && govPortalDecision === "YES" && (
+          <div className="mt-3 space-y-2.5">
+            <p className="text-xs text-zinc-500">
+              Submit this report and wait for the tracking ID response. The request can take up to 300 seconds.
+            </p>
+
+            {govPortalTrackingId !== null && (
+              <div className="rounded-md border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-xs text-emerald-300">
+                Gov portal report submitted successfully. Tracking ID: {govPortalTrackingId}
+              </div>
+            )}
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              <label className="text-xs text-zinc-400">
+                Source (fixed)
+                <input
+                  value={govFormValues.source}
+                  disabled
+                  className="mt-1 w-full rounded-md border border-zinc-700 bg-zinc-800 px-2 py-1.5 text-zinc-300"
+                />
+              </label>
+              <label className="text-xs text-zinc-400">
+                Type (fixed)
+                <input
+                  value={govFormValues.type}
+                  disabled
+                  className="mt-1 w-full rounded-md border border-zinc-700 bg-zinc-800 px-2 py-1.5 text-zinc-300"
+                />
+              </label>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+              <label className="text-xs text-zinc-400">
+                Portal
+                <select
+                  value={govFormValues.portal}
+                  onChange={(e) => handleGovFormChange("portal", e.target.value)}
+                  className="mt-1 w-full rounded-md border border-zinc-700 bg-zinc-800 px-2 py-1.5 text-zinc-200"
+                >
+                  {metadata.portals.map((portal) => (
+                    <option key={portal} value={portal}>
+                      {portal}
+                    </option>
+                  ))}
+                </select>
+              </label>
+
+              <label className="text-xs text-zinc-400">
+                Category
+                <select
+                  value={govFormValues.category}
+                  onChange={(e) => handleGovFormChange("category", e.target.value)}
+                  className="mt-1 w-full rounded-md border border-zinc-700 bg-zinc-800 px-2 py-1.5 text-zinc-200"
+                >
+                  {metadata.categories.map((category) => (
+                    <option key={category} value={category}>
+                      {category}
+                    </option>
+                  ))}
+                </select>
+              </label>
+
+              <label className="text-xs text-zinc-400">
+                Sub-category
+                <select
+                  value={govFormValues.subCategory}
+                  onChange={(e) => handleGovFormChange("subCategory", e.target.value)}
+                  className="mt-1 w-full rounded-md border border-zinc-700 bg-zinc-800 px-2 py-1.5 text-zinc-200"
+                >
+                  {subCategoryOptions.map((subCategory) => (
+                    <option key={subCategory} value={subCategory}>
+                      {subCategory}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            </div>
+
+            <label className="block text-xs text-zinc-400">
+              Description (editable)
+              <textarea
+                value={govFormValues.description}
+                onChange={(e) => handleGovFormChange("description", e.target.value)}
+                rows={3}
+                className="mt-1 w-full rounded-md border border-zinc-700 bg-zinc-800 px-2 py-1.5 text-zinc-200"
+              />
+            </label>
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+              <label className="text-xs text-zinc-400 sm:col-span-2">
+                Media URL
+                <input
+                  value={govFormValues.mediaUrl}
+                  onChange={(e) => handleGovFormChange("mediaUrl", e.target.value)}
+                  className="mt-1 w-full rounded-md border border-zinc-700 bg-zinc-800 px-2 py-1.5 text-zinc-200"
+                />
+              </label>
+              <label className="text-xs text-zinc-400">
+                Latitude
+                <input
+                  value={govFormValues.latitude}
+                  onChange={(e) => handleGovFormChange("latitude", e.target.value)}
+                  className="mt-1 w-full rounded-md border border-zinc-700 bg-zinc-800 px-2 py-1.5 text-zinc-200"
+                />
+              </label>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              <label className="text-xs text-zinc-400">
+                Longitude
+                <input
+                  value={govFormValues.longitude}
+                  onChange={(e) => handleGovFormChange("longitude", e.target.value)}
+                  className="mt-1 w-full rounded-md border border-zinc-700 bg-zinc-800 px-2 py-1.5 text-zinc-200"
+                />
+              </label>
+              <label className="text-xs text-zinc-400">
+                Username
+                <input
+                  value={govFormValues.username}
+                  onChange={(e) => handleGovFormChange("username", e.target.value)}
+                  placeholder="Required"
+                  className="mt-1 w-full rounded-md border border-zinc-700 bg-zinc-800 px-2 py-1.5 text-zinc-200"
+                />
+              </label>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 items-end">
+              <label className="text-xs text-zinc-400">
+                Password
+                <input
+                  type="password"
+                  value={govFormValues.password}
+                  onChange={(e) => handleGovFormChange("password", e.target.value)}
+                  placeholder="Required"
+                  className="mt-1 w-full rounded-md border border-zinc-700 bg-zinc-800 px-2 py-1.5 text-zinc-200"
+                />
+              </label>
+
+              <Button
+                onClick={handleGovPortalSubmit}
+                disabled={
+                  reportingGovPortal ||
+                  govPortalTrackingId !== null ||
+                  !govFormValues.username ||
+                  !govFormValues.password
+                }
+                className="h-9 bg-sky-600 hover:bg-sky-500 text-white"
+              >
+                {reportingGovPortal ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : govPortalTrackingId !== null ? (
+                  "Reported"
+                ) : (
+                  "Submit to portal"
+                )}
+              </Button>
+            </div>
+          </div>
+        )}
+        </div>
+      )}
 
       {/* Swipe hint (mobile) */}
       <div className="px-4 py-2 text-center text-[10px] text-zinc-600 sm:hidden">
