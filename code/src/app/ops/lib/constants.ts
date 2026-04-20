@@ -1,7 +1,6 @@
 import { BASE_URL } from "../../constants/api";
 
-export const GOOGLE_CLIENT_ID =
-  "870371939888-dtnniua1oc41pd9mlnluo16mjbfhb83r.apps.googleusercontent.com";
+export const GOOGLE_CLIENT_ID = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID ?? "";
 
 /** Where Google sends the user after they consent. */
 export const GOOGLE_REDIRECT_URI =

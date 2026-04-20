@@ -1,4 +1,4 @@
-export const BASE_URL = "https://staging.api.smalltech.in/local";
+export const BASE_URL = (process.env.NEXT_PUBLIC_BASE_URL ?? "").replace(/\/$/, "");
 
 const API_V1_BASE = `${BASE_URL}/api/v1`;
 const API_ROOT = `${BASE_URL}/api`;
