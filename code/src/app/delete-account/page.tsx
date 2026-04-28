@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import DeleteAccountClient from "./DeleteAccountClient";
 
 export const metadata: Metadata = {
   title: "Delete Account | #local by smallTech",
@@ -25,46 +26,32 @@ export default function DeleteAccountPage() {
       <h2 style={{ fontSize: "1.25rem", fontWeight: "700", marginBottom: "0.75rem" }}>
         How to Request Account Deletion
       </h2>
-      <ol style={{ paddingLeft: "1.5rem", marginBottom: "2rem", lineHeight: "2" }}>
+      <ol style={{ paddingLeft: "1.5rem", marginBottom: "1.5rem", lineHeight: "2" }}>
         <li>
-          Open your email app and compose a new email to{" "}
+          Open any email app (Gmail, Outlook, Yahoo Mail, etc.) or go to{" "}
           <a
-            href="mailto:contact@smalltech.in?subject=Deletion%20of%20the%20account"
+            href="https://mail.google.com/mail/?view=cm&to=contact@smalltech.in&su=Deletion%20of%20the%20account"
+            target="_blank"
+            rel="noopener noreferrer"
             style={{ color: "#16a34a", fontWeight: "600", textDecoration: "underline" }}
           >
-            contact@smalltech.in
+            Gmail on the web
           </a>
           .
         </li>
         <li>
-          Use the subject line exactly as:{" "}
-          <strong>Deletion of the account</strong>
+          Send the email to <strong>contact@smalltech.in</strong> with the subject{" "}
+          <strong>Deletion of the account</strong>.
         </li>
         <li>
-          In the body of the email, include the <strong>Google account email address</strong> (Gmail) that
-          you used to sign in to the <strong>#local</strong> app.
+          In the body, include the <strong>Google account email address</strong> (Gmail) you used to sign
+          in to the <strong>#local</strong> app.
         </li>
-        <li>Send the email and wait for a confirmation reply from our team.</li>
+        <li>Wait for a confirmation reply from our team.</li>
       </ol>
 
-      {/* Quick-send button */}
-      <div style={{ marginBottom: "2.5rem" }}>
-        <a
-          href="mailto:contact@smalltech.in?subject=Deletion%20of%20the%20account"
-          style={{
-            display: "inline-block",
-            backgroundColor: "#16a34a",
-            color: "#fff",
-            fontWeight: "700",
-            padding: "0.75rem 1.75rem",
-            borderRadius: "8px",
-            textDecoration: "none",
-            fontSize: "1rem",
-          }}
-        >
-          Send Deletion Request Email
-        </a>
-      </div>
+      {/* Interactive copy + action panel — client component */}
+      <DeleteAccountClient />
 
       {/* Data details */}
       <h2 style={{ fontSize: "1.25rem", fontWeight: "700", marginBottom: "0.75rem" }}>
