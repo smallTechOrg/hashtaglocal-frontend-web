@@ -69,4 +69,5 @@
   @import "./components/core/footer.css";
   @import "./components/core/header.css";
   @import "./components/typography.css";
+  @import "./components/report-issue/reportIssue.css";
 }

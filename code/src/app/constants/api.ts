@@ -9,4 +9,7 @@ export const API_PATHS = {
   issueStories: (locality: string) =>
     `${API_V1_BASE}/issues/stories?locality=${locality}`,
   polygons: `${API_ROOT}/localities/polygons`,
+  reportIssue: `${API_V1_BASE}/issue`,
+  mediaUploadUrl: (contentType: string) =>
+    `${API_V1_BASE}/media/upload-url?content_type=${encodeURIComponent(contentType)}`,
 };

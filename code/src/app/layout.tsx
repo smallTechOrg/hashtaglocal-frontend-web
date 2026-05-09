@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Montserrat } from "next/font/google";
 import "./globals.css";
-import { ConditionalHeader, ConditionalFooter } from "./components/core/ConditionalChrome";
+import { ConditionalHeader, ConditionalFooter, ConditionalReportButton } from "./components/core/ConditionalChrome";
 import Script from "next/script";
 import { AnalyticsProvider } from "./context/AnalyticsContext";
 // SEO IMPROVEMENT: Import structured data generation functions for JSON-LD schema markup
@@ -131,6 +131,7 @@ export default function RootLayout({
           <ConditionalHeader />
           <main className="flex-1">{children} </main>
           <ConditionalFooter />
+          <ConditionalReportButton />
         </AnalyticsProvider>
       </body>
     </html>
