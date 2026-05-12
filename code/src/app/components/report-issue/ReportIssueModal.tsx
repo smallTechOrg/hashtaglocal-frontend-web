@@ -317,7 +317,6 @@ export default function ReportIssueModal({ onClose }: ReportIssueModalProps) {
           {/* Unauthenticated */}
           {step === "unauthenticated" && (
             <div className="ri-center-state">
-              <AlertCircle size={44} className="ri-icon-orange" />
               <p className="ri-state-title">Sign in to report</p>
               <p className="ri-state-desc">
                 Sign in with Google to submit an issue report to your community.
@@ -339,9 +338,9 @@ export default function ReportIssueModal({ onClose }: ReportIssueModalProps) {
           {step === "requesting-perms" && (
             <div className="ri-center-state">
               <Loader2 className="ri-icon-spin ri-icon-green" size={32} />
-              <p className="ri-state-title">Requesting access…</p>
+              <p className="ri-state-title">Looking for access…</p>
               <p className="ri-state-desc">
-                Please allow camera and location access when prompted.
+                Please allow camera and location access.
               </p>
             </div>
           )}
@@ -448,7 +447,7 @@ export default function ReportIssueModal({ onClose }: ReportIssueModalProps) {
                 {/* Description */}
                 <div className="ri-field">
                   <label className="ri-label">
-                    Description <span className="ri-optional">(optional)</span>
+                    Description
                   </label>
                   <textarea
                     value={description}
