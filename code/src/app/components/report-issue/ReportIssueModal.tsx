@@ -63,10 +63,15 @@ export default function ReportIssueModal({ onClose }: ReportIssueModalProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
 
-  // Check auth on mount
+  // Check auth on mount — directly kick off permissions if already signed in
   useEffect(() => {
     const token = getAccessToken();
-    setStep(token ? "requesting-perms" : "unauthenticated");
+    if (token) {
+      requestPermissions();
+    } else {
+      setStep("unauthenticated");
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const stopStream = useCallback(() => {
@@ -98,7 +103,7 @@ export default function ReportIssueModal({ onClose }: ReportIssueModalProps) {
     }
   }
 
-  async function requestPermissions() {
+  const requestPermissions = useCallback(async () => {
     setStep("requesting-perms");
 
     let stream: MediaStream;
@@ -129,7 +134,8 @@ export default function ReportIssueModal({ onClose }: ReportIssueModalProps) {
     streamRef.current = stream;
     setLocation(position);
     setStep("form");
-  }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [facingMode]);
 
   // Attach stream to video element when entering the form step
   useEffect(() => {
@@ -138,13 +144,7 @@ export default function ReportIssueModal({ onClose }: ReportIssueModalProps) {
     }
   }, [step]);
 
-  // Trigger permission request when step becomes requesting-perms
-  useEffect(() => {
-    if (step === "requesting-perms") {
-      requestPermissions();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+
 
   async function switchCamera() {
     const newFacing = facingMode === "environment" ? "user" : "environment";
@@ -215,8 +215,8 @@ export default function ReportIssueModal({ onClose }: ReportIssueModalProps) {
       if (!uploadUrlRes.ok) throw new Error("Failed to get upload URL");
 
       const uploadUrlData = await uploadUrlRes.json();
-      const { signedUrl, path } = uploadUrlData.data.mediaUrl as {
-        signedUrl: string;
+      const { signed_url: signedUrl, path } = uploadUrlData.data.media_url as {
+        signed_url: string;
         path: string;
       };
 
@@ -317,7 +317,6 @@ export default function ReportIssueModal({ onClose }: ReportIssueModalProps) {
           {/* Unauthenticated */}
           {step === "unauthenticated" && (
             <div className="ri-center-state">
-              <AlertCircle size={44} className="ri-icon-orange" />
               <p className="ri-state-title">Sign in to report</p>
               <p className="ri-state-desc">
                 Sign in with Google to submit an issue report to your community.
@@ -339,9 +338,9 @@ export default function ReportIssueModal({ onClose }: ReportIssueModalProps) {
           {step === "requesting-perms" && (
             <div className="ri-center-state">
               <Loader2 className="ri-icon-spin ri-icon-green" size={32} />
-              <p className="ri-state-title">Requesting access…</p>
+              <p className="ri-state-title">Looking for access…</p>
               <p className="ri-state-desc">
-                Please allow camera and location access when prompted.
+                Please allow camera and location access.
               </p>
             </div>
           )}
@@ -448,7 +447,7 @@ export default function ReportIssueModal({ onClose }: ReportIssueModalProps) {
                 {/* Description */}
                 <div className="ri-field">
                   <label className="ri-label">
-                    Description <span className="ri-optional">(optional)</span>
+                    Description
                   </label>
                   <textarea
                     value={description}
