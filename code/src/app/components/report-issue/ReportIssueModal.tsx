@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import {
   X,
   Camera,
@@ -51,6 +52,7 @@ interface ReportIssueModalProps {
 }
 
 export default function ReportIssueModal({ onClose }: ReportIssueModalProps) {
+  const router = useRouter();
   const [step, setStep] = useState<Step>("checking-auth");
   const [issueType, setIssueType] = useState<IssueType>("POTHOLE");
   const [description, setDescription] = useState("");
@@ -59,6 +61,7 @@ export default function ReportIssueModal({ onClose }: ReportIssueModalProps) {
   const [location, setLocation] = useState<GeolocationPosition | null>(null);
   const [facingMode, setFacingMode] = useState<"environment" | "user">("environment");
   const [errorMsg, setErrorMsg] = useState("");
+  const [submitStage, setSubmitStage] = useState<0 | 1 | 2 | 3>(0);
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -205,6 +208,7 @@ export default function ReportIssueModal({ onClose }: ReportIssueModalProps) {
       return;
     }
 
+    setSubmitStage(1);
     setStep("submitting");
 
     try {
@@ -220,6 +224,8 @@ export default function ReportIssueModal({ onClose }: ReportIssueModalProps) {
         path: string;
       };
 
+      setSubmitStage(2);
+
       // Step 2: Upload image to Cloud Storage (no auth header on signed URL PUT)
       const uploadRes = await fetch(signedUrl, {
         method: "PUT",
@@ -227,6 +233,8 @@ export default function ReportIssueModal({ onClose }: ReportIssueModalProps) {
         headers: { "Content-Type": "image/jpeg" },
       });
       if (!uploadRes.ok) throw new Error("Failed to upload photo");
+
+      setSubmitStage(3);
 
       // Step 3: Submit the issue
       const { latitude, longitude, accuracy } = location.coords;
@@ -263,7 +271,15 @@ export default function ReportIssueModal({ onClose }: ReportIssueModalProps) {
 
       if (!issueRes.ok) throw new Error("Failed to submit issue");
 
-      setStep("success");
+      const issueData = await issueRes.json();
+      const newIssueId: number | undefined = issueData?.data?.issue_id;
+
+      stopStream();
+      if (capturedPreviewUrl) URL.revokeObjectURL(capturedPreviewUrl);
+      onClose();
+      if (newIssueId) {
+        router.push(`/issue/${newIssueId}?new=1`);
+      }
     } catch (err: unknown) {
       setErrorMsg(
         err instanceof Error ? err.message : "Something went wrong. Please try again.",
@@ -476,7 +492,25 @@ export default function ReportIssueModal({ onClose }: ReportIssueModalProps) {
           {step === "submitting" && (
             <div className="ri-center-state">
               <Loader2 className="ri-icon-spin ri-icon-green" size={32} />
-              <p className="ri-state-title">Submitting your report…</p>
+              <p className="ri-state-title">
+                {submitStage === 1 && "Preparing upload…"}
+                {submitStage === 2 && "Uploading photo…"}
+                {submitStage === 3 && "Submitting report…"}
+              </p>
+              <div className="ri-progress-steps">
+                <div className={`ri-progress-step${submitStage > 1 ? " done" : submitStage === 1 ? " active" : ""}`}>
+                  <span className="ri-progress-dot" />
+                  Prepare
+                </div>
+                <div className={`ri-progress-step${submitStage > 2 ? " done" : submitStage === 2 ? " active" : ""}`}>
+                  <span className="ri-progress-dot" />
+                  Upload photo
+                </div>
+                <div className={`ri-progress-step${submitStage > 3 ? " done" : submitStage === 3 ? " active" : ""}`}>
+                  <span className="ri-progress-dot" />
+                  Submit
+                </div>
+              </div>
             </div>
           )}
 
