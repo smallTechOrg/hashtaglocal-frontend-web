@@ -1,5 +1,5 @@
 "use client";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useSearchParams, useRouter } from "next/navigation";
 import "../issue.css";
@@ -32,9 +32,17 @@ function allMediaImages(issue?: Issue): Array<{ url: string; thumbnail?: string 
     .map((m) => ({ url: m.url!, thumbnail: m.url_thumbnail }));
 }
 
+// API returns bare ISO strings without timezone (e.g. "2026-05-13T06:20:00").
+// Without a suffix the browser treats them as local time; append Z so they're
+// always parsed as UTC and converted to the user's local timezone.
+function parseDate(dateString: string): Date {
+  if (/[Z+\-]\d*$/.test(dateString)) return new Date(dateString);
+  return new Date(dateString + "Z");
+}
+
 function formatTimeAgo(dateString?: string): string {
   if (!dateString) return "Unknown date";
-  const date = new Date(dateString);
+  const date = parseDate(dateString);
   const now = new Date();
   const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
   const diffInMinutes = Math.floor(diffInSeconds / 60);
@@ -52,7 +60,7 @@ function formatTimeAgo(dateString?: string): string {
 
 function formatDate(dateString?: string): string {
   if (!dateString) return "";
-  return new Date(dateString).toLocaleDateString("en-IN", {
+  return parseDate(dateString).toLocaleDateString("en-IN", {
     day: "numeric",
     month: "short",
     year: "numeric",
@@ -81,7 +89,6 @@ export default function IssueClient({ issueId: propIssueId }: { issueId: string 
   const searchParams = useSearchParams();
   const router = useRouter();
   const isNewReport = searchParams.get("new") === "1";
-  const bannerMountTime = useRef<number>(isNewReport ? Date.now() : 0);
   const [showNewBanner, setShowNewBanner] = useState(isNewReport);
 
   // Silently remove ?new=1 from the URL so refresh doesn't re-show the banner
@@ -155,15 +162,7 @@ export default function IssueClient({ issueId: propIssueId }: { issueId: string 
     return () => controller.abort();
   }, [fetchIssue, issueId]);
 
-  // Hide new-report banner after minimum 5 s, but never before the issue finishes loading
-  useEffect(() => {
-    if (!showNewBanner) return;
-    if (status !== "ready") return;
-    const elapsed = Date.now() - bannerMountTime.current;
-    const remaining = Math.max(0, 5000 - elapsed);
-    const timer = setTimeout(() => setShowNewBanner(false), remaining);
-    return () => clearTimeout(timer);
-  }, [showNewBanner, status]);
+  // Banner stays visible for the entire session — user closes it themselves (no auto-hide)
 
   const mediaImages = useMemo(() => allMediaImages(issue || undefined), [issue]);
   const hashtags = issue?.location?.locality?.hashtags || [];
