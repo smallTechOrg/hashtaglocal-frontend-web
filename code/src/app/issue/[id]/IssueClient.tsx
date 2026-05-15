@@ -6,6 +6,7 @@ import "../issue.css";
 import { Issue } from "../../models/issue";
 import ImageSlideshow from "../../components/ImageSlideshow";
 import EditIssueModal from "../../components/dashboard/editIssueModal";
+import UpdateIssueModal from "../../components/report-issue/UpdateIssueModal";
 import { useScrollTracking, useTimeTracking } from "../../hooks/useScrollTracking";
 import { useClickTracking } from "../../hooks/useClickTracking";
 import { trackIssueView, trackError, trackExternalLink, EventCategory } from "../../utils/analytics";
@@ -99,6 +100,17 @@ export default function IssueClient({ issueId: propIssueId }: { issueId: string 
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Auto-open update modal when returning from Google sign-in (?update=1)
+  useEffect(() => {
+    if (searchParams.get("update") === "1") {
+      // Consume the pending flag so ReportIssueButton won't also fire
+      sessionStorage.removeItem("report_issue_pending");
+      setShowUpdateModal(true);
+      router.replace(window.location.pathname, { scroll: false });
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   
   useEffect(() => {
     if (propIssueId && propIssueId !== 'index') {
@@ -119,6 +131,7 @@ export default function IssueClient({ issueId: propIssueId }: { issueId: string 
   const [issue, setIssue] = useState<Issue | null>(null);
   const [status, setStatus] = useState<"loading" | "error" | "ready">("loading");
   const [editingIssue, setEditingIssue] = useState<Issue | null>(null);
+  const [showUpdateModal, setShowUpdateModal] = useState(false);
   const [canEdit, setCanEdit] = useState(false);
 
   useScrollTracking();
@@ -294,6 +307,19 @@ export default function IssueClient({ issueId: propIssueId }: { issueId: string 
                 </div>
               )}
             </div>
+
+            {/* Update Issue */}
+            <button
+              className="story-update-btn"
+              onClick={() => setShowUpdateModal(true)}
+            >
+              <span className="story-update-btn-icon">📸</span>
+              <span className="story-update-btn-text">
+                <span className="story-update-btn-label">Update this Issue</span>
+                <span className="story-update-btn-sub">Add a photo to verify or mark as resolved</span>
+              </span>
+              <span className="story-update-btn-arrow">→</span>
+            </button>
 
             {/* Timeline */}
             <div className="story-section">
@@ -480,6 +506,14 @@ export default function IssueClient({ issueId: propIssueId }: { issueId: string 
           issue={editingIssue}
           onClose={() => setEditingIssue(null)}
           onUpdate={() => fetchIssue()}
+        />
+      )}
+      {showUpdateModal && issue && (
+        <UpdateIssueModal
+          issueId={issueId}
+          issueType={issue.type}
+          onClose={() => setShowUpdateModal(false)}
+          onSuccess={() => fetchIssue()}
         />
       )}
     </main>

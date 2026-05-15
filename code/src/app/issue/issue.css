@@ -553,6 +553,60 @@
   padding: 0 0.5rem 0.35rem;
 }
 
+/* Update Issue button */
+.story-update-btn {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  width: 100%;
+  background: #fff;
+  border: 1.5px solid #256d1b;
+  border-radius: 14px;
+  padding: 1rem 1.25rem;
+  margin-top: 0.75rem;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.15s ease, box-shadow 0.15s ease;
+}
+
+.story-update-btn:hover {
+  background: #f0fce8;
+  box-shadow: 0 2px 12px rgba(37, 109, 27, 0.15);
+}
+
+.story-update-btn:active {
+  background: #e4f7d9;
+}
+
+.story-update-btn-icon {
+  font-size: 1.5rem;
+  flex-shrink: 0;
+}
+
+.story-update-btn-text {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.story-update-btn-label {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #256d1b;
+}
+
+.story-update-btn-sub {
+  font-size: 0.78rem;
+  color: #6b7280;
+}
+
+.story-update-btn-arrow {
+  font-size: 1.1rem;
+  color: #256d1b;
+  flex-shrink: 0;
+}
+
 /* Mobile */
 @media (max-width: 480px) {
   .story-title {
