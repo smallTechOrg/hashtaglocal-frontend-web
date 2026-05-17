@@ -26,11 +26,11 @@ const API_BASE = process.env.NODE_ENV === "production"
   ? `${BASE_URL}/api/v1`
   : "/api";
 
-function allMediaImages(issue?: Issue): Array<{ url: string; thumbnail?: string }> {
+function allMediaImages(issue?: Issue): Array<{ url: string; thumbnail?: string; description?: string }> {
   if (!issue?.media_urls || issue.media_urls.length === 0) return [];
   return issue.media_urls
     .filter((m) => m.url)
-    .map((m) => ({ url: m.url!, thumbnail: m.url_thumbnail }));
+    .map((m) => ({ url: m.url!, thumbnail: m.url_thumbnail, description: m.description }));
 }
 
 // API returns bare ISO strings without timezone (e.g. "2026-05-13T06:20:00").
@@ -133,6 +133,7 @@ export default function IssueClient({ issueId: propIssueId }: { issueId: string 
   const [editingIssue, setEditingIssue] = useState<Issue | null>(null);
   const [showUpdateModal, setShowUpdateModal] = useState(false);
   const [canEdit, setCanEdit] = useState(false);
+  const [activeSlide, setActiveSlide] = useState(0);
 
   useScrollTracking();
   useTimeTracking(`/issue/${issueId}`);
@@ -241,6 +242,7 @@ export default function IssueClient({ issueId: propIssueId }: { issueId: string 
                 alt={issue.description?.slice(0, 60) || "Issue photo"}
                 imageClassName="story-hero-img"
                 autoPlayMs={5000}
+                onSlideChange={setActiveSlide}
               />
             ) : (
               <div className="story-hero-placeholder">
@@ -265,7 +267,12 @@ export default function IssueClient({ issueId: propIssueId }: { issueId: string 
               {issue.location?.address && issue.location.address !== locationLabel && (
                 <p className="story-subtitle">{issue.location.address}</p>
               )}
-              <p className="story-description">{issue.description || "No description provided."}</p>
+              <p
+                key={mediaImages.length > 1 ? activeSlide : undefined}
+                className="story-description"
+              >
+                {(mediaImages.length > 1 && mediaImages[activeSlide]?.description) || issue.description || "No description provided."}
+              </p>
               <div className="story-meta-row">
                 {issue.user?.username && (
                   <span className="story-meta-item">👤 {issue.user.username.split("@")[0]}</span>
