@@ -1,6 +1,7 @@
 "use client";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { useSearchParams, useRouter } from "next/navigation";
 import "../issue.css";
 import { Issue } from "../../models/issue";
 import ImageSlideshow from "../../components/ImageSlideshow";
@@ -11,6 +12,7 @@ import { trackIssueView, trackError, trackExternalLink, EventCategory } from "..
 import { useAnalytics } from "../../context/AnalyticsContext";
 import { BASE_URL } from "../../constants/api";
 import { extractIssueId } from "../../../utils/issueSlug";
+import { getAccessToken } from "../../ops/lib/auth";
 
 interface IssueResponse {
   data?: {
@@ -30,9 +32,17 @@ function allMediaImages(issue?: Issue): Array<{ url: string; thumbnail?: string 
     .map((m) => ({ url: m.url!, thumbnail: m.url_thumbnail }));
 }
 
+// API returns bare ISO strings without timezone (e.g. "2026-05-13T06:20:00").
+// Without a suffix the browser treats them as local time; append Z so they're
+// always parsed as UTC and converted to the user's local timezone.
+function parseDate(dateString: string): Date {
+  if (/[Z+\-]\d*$/.test(dateString)) return new Date(dateString);
+  return new Date(dateString + "Z");
+}
+
 function formatTimeAgo(dateString?: string): string {
   if (!dateString) return "Unknown date";
-  const date = new Date(dateString);
+  const date = parseDate(dateString);
   const now = new Date();
   const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
   const diffInMinutes = Math.floor(diffInSeconds / 60);
@@ -50,7 +60,7 @@ function formatTimeAgo(dateString?: string): string {
 
 function formatDate(dateString?: string): string {
   if (!dateString) return "";
-  return new Date(dateString).toLocaleDateString("en-IN", {
+  return parseDate(dateString).toLocaleDateString("en-IN", {
     day: "numeric",
     month: "short",
     year: "numeric",
@@ -76,6 +86,19 @@ const TYPE_META: Record<string, { emoji: string; color: string }> = {
 
 export default function IssueClient({ issueId: propIssueId }: { issueId: string }) {
   const [issueId, setIssueId] = useState<string>(propIssueId);
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const isNewReport = searchParams.get("new") === "1";
+  const [showNewBanner, setShowNewBanner] = useState(isNewReport);
+
+  // Silently remove ?new=1 from the URL so refresh doesn't re-show the banner
+  useEffect(() => {
+    if (isNewReport) {
+      const url = window.location.pathname;
+      router.replace(url, { scroll: false });
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   
   useEffect(() => {
     if (propIssueId && propIssueId !== 'index') {
@@ -113,7 +136,9 @@ export default function IssueClient({ issueId: propIssueId }: { issueId: string 
     setStatus("loading");
     try {
       const numericId = extractIssueId(issueId);
-      const res = await fetch(`${API_BASE}/issue/${numericId}`, { signal, cache: "no-store" });
+      const token = getAccessToken();
+      const fetchHeaders: HeadersInit = token ? { Authorization: `Bearer ${token}` } : {};
+      const res = await fetch(`${API_BASE}/issue/${numericId}`, { signal, cache: "no-store", headers: fetchHeaders });
       if (!res.ok) throw new Error(`Request failed with ${res.status}`);
       const payload: IssueResponse = await res.json();
       const loaded = payload.data?.issue || payload.issue || (payload as unknown as Issue);
@@ -137,16 +162,30 @@ export default function IssueClient({ issueId: propIssueId }: { issueId: string 
     return () => controller.abort();
   }, [fetchIssue, issueId]);
 
+  // Banner stays visible for the entire session — user closes it themselves (no auto-hide)
+
   const mediaImages = useMemo(() => allMediaImages(issue || undefined), [issue]);
   const hashtags = issue?.location?.locality?.hashtags || [];
   const locationLabel = issue?.location?.colloquial_name || issue?.location?.address || "Unknown location";
   const isResolved = issue?.status === "RESOLVED";
+  const STATUS_DISPLAY: Record<string, { label: string; className: string }> = {
+    OPEN:     { label: "🔴 Open",          className: "story-badge-open" },
+    ONHOLD:   { label: "⏳ ONHOLD",        className: "story-badge-onhold" },
+    RESOLVED: { label: "✅ Resolved",      className: "story-badge-resolved" },
+    REJECTED: { label: "❌ Rejected",      className: "story-badge-rejected" },
+  };
+  const statusDisplay = STATUS_DISPLAY[(issue?.status || "").toUpperCase()] ?? { label: issue?.status || "Unknown", className: "story-badge-open" };
   const typeMeta = TYPE_META[(issue?.type || "OTHER").toUpperCase()] || TYPE_META.OTHER;
   const portal = issue?.gov_portal_data?.[0];
   const daysActive = daysBetween(issue?.created_at);
 
   return (
     <main className="story-page">
+      {showNewBanner && (
+        <div className="story-new-banner">
+          🎉 Your issue has been submitted! It is under review. Once approved by our team, it will be visible to everyone.
+        </div>
+      )}
       {/* Top nav */}
       <nav className="story-nav">
         <Link className="story-back" href="/" onClick={() => trackClick('Back to Home', EventCategory.NAVIGATION)}>
@@ -199,8 +238,8 @@ export default function IssueClient({ issueId: propIssueId }: { issueId: string 
               <span className="story-badge" style={{ backgroundColor: typeMeta.color }}>
                 {typeMeta.emoji} {issue.type}
               </span>
-              <span className={`story-badge ${isResolved ? "story-badge-resolved" : "story-badge-open"}`}>
-                {isResolved ? "✅ Resolved" : "🔴 Open"}
+              <span className={`story-badge ${statusDisplay.className}`}>
+                {statusDisplay.label}
               </span>
             </div>
           </div>

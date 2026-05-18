@@ -224,6 +224,70 @@
 }
 
 /* ─────────────────────────────────────────────
+   Submission progress steps
+   ───────────────────────────────────────────── */
+
+.ri-progress-steps {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  margin-top: 0.75rem;
+}
+
+.ri-progress-step {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.78rem;
+  color: #9ca3af;
+  white-space: nowrap;
+  transition: color 0.2s ease;
+}
+
+.ri-progress-step + .ri-progress-step::before {
+  content: "";
+  display: block;
+  width: 1.5rem;
+  height: 2px;
+  background: #e5e7eb;
+  margin: 0 0.4rem;
+  transition: background 0.2s ease;
+}
+
+.ri-progress-step.done + .ri-progress-step::before,
+.ri-progress-step.active + .ri-progress-step::before {
+  background: var(--color-green);
+}
+
+.ri-progress-step.active {
+  color: var(--color-green);
+  font-weight: 700;
+}
+
+.ri-progress-step.done {
+  color: var(--color-green);
+}
+
+.ri-progress-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #e5e7eb;
+  flex-shrink: 0;
+  transition: background 0.2s ease;
+}
+
+.ri-progress-step.active .ri-progress-dot {
+  background: var(--color-green);
+  box-shadow: 0 0 0 3px rgba(37, 109, 27, 0.18);
+}
+
+.ri-progress-step.done .ri-progress-dot {
+  background: var(--color-green);
+}
+
+/* ─────────────────────────────────────────────
    Primary action button (in modals)
    ───────────────────────────────────────────── */
 
