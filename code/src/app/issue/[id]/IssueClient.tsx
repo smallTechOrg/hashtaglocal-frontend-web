@@ -6,6 +6,7 @@ import "../issue.css";
 import { Issue } from "../../models/issue";
 import ImageSlideshow from "../../components/ImageSlideshow";
 import EditIssueModal from "../../components/dashboard/editIssueModal";
+import UpdateIssueModal from "../../components/report-issue/UpdateIssueModal";
 import { useScrollTracking, useTimeTracking } from "../../hooks/useScrollTracking";
 import { useClickTracking } from "../../hooks/useClickTracking";
 import { trackIssueView, trackError, trackExternalLink, EventCategory } from "../../utils/analytics";
@@ -25,11 +26,11 @@ const API_BASE = process.env.NODE_ENV === "production"
   ? `${BASE_URL}/api/v1`
   : "/api";
 
-function allMediaImages(issue?: Issue): Array<{ url: string; thumbnail?: string }> {
+function allMediaImages(issue?: Issue): Array<{ url: string; thumbnail?: string; description?: string }> {
   if (!issue?.media_urls || issue.media_urls.length === 0) return [];
   return issue.media_urls
     .filter((m) => m.url)
-    .map((m) => ({ url: m.url!, thumbnail: m.url_thumbnail }));
+    .map((m) => ({ url: m.url!, thumbnail: m.url_thumbnail, description: m.description }));
 }
 
 // API returns bare ISO strings without timezone (e.g. "2026-05-13T06:20:00").
@@ -99,6 +100,17 @@ export default function IssueClient({ issueId: propIssueId }: { issueId: string 
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Auto-open update modal when returning from Google sign-in (?update=1)
+  useEffect(() => {
+    if (searchParams.get("update") === "1") {
+      // Consume the pending flag so ReportIssueButton won't also fire
+      sessionStorage.removeItem("report_issue_pending");
+      setShowUpdateModal(true);
+      router.replace(window.location.pathname, { scroll: false });
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   
   useEffect(() => {
     if (propIssueId && propIssueId !== 'index') {
@@ -119,7 +131,9 @@ export default function IssueClient({ issueId: propIssueId }: { issueId: string 
   const [issue, setIssue] = useState<Issue | null>(null);
   const [status, setStatus] = useState<"loading" | "error" | "ready">("loading");
   const [editingIssue, setEditingIssue] = useState<Issue | null>(null);
+  const [showUpdateModal, setShowUpdateModal] = useState(false);
   const [canEdit, setCanEdit] = useState(false);
+  const [activeSlide, setActiveSlide] = useState(0);
 
   useScrollTracking();
   useTimeTracking(`/issue/${issueId}`);
@@ -228,6 +242,7 @@ export default function IssueClient({ issueId: propIssueId }: { issueId: string 
                 alt={issue.description?.slice(0, 60) || "Issue photo"}
                 imageClassName="story-hero-img"
                 autoPlayMs={5000}
+                onSlideChange={setActiveSlide}
               />
             ) : (
               <div className="story-hero-placeholder">
@@ -252,7 +267,12 @@ export default function IssueClient({ issueId: propIssueId }: { issueId: string 
               {issue.location?.address && issue.location.address !== locationLabel && (
                 <p className="story-subtitle">{issue.location.address}</p>
               )}
-              <p className="story-description">{issue.description || "No description provided."}</p>
+              <p
+                key={mediaImages.length > 1 ? activeSlide : undefined}
+                className="story-description"
+              >
+                {(mediaImages.length > 1 && mediaImages[activeSlide]?.description) || issue.description || "No description provided."}
+              </p>
               <div className="story-meta-row">
                 {issue.user?.username && (
                   <span className="story-meta-item">👤 {issue.user.username.split("@")[0]}</span>
@@ -294,6 +314,19 @@ export default function IssueClient({ issueId: propIssueId }: { issueId: string 
                 </div>
               )}
             </div>
+
+            {/* Update Issue */}
+            <button
+              className="story-update-btn"
+              onClick={() => setShowUpdateModal(true)}
+            >
+              <span className="story-update-btn-icon">📸</span>
+              <span className="story-update-btn-text">
+                <span className="story-update-btn-label">Update this Issue</span>
+                <span className="story-update-btn-sub">Add a photo to verify or mark as resolved</span>
+              </span>
+              <span className="story-update-btn-arrow">→</span>
+            </button>
 
             {/* Timeline */}
             <div className="story-section">
@@ -480,6 +513,14 @@ export default function IssueClient({ issueId: propIssueId }: { issueId: string 
           issue={editingIssue}
           onClose={() => setEditingIssue(null)}
           onUpdate={() => fetchIssue()}
+        />
+      )}
+      {showUpdateModal && issue && (
+        <UpdateIssueModal
+          issueId={issueId}
+          issueType={issue.type}
+          onClose={() => setShowUpdateModal(false)}
+          onSuccess={() => fetchIssue()}
         />
       )}
     </main>

@@ -550,3 +550,70 @@
 .ri-hint-center {
   text-align: center;
 }
+
+/* ─────────────────────────────────────────────
+   Update Issue — action picker
+   ───────────────────────────────────────────── */
+
+.ui-action-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.6rem;
+}
+
+.ui-action-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.875rem 0.5rem;
+  border-radius: 10px;
+  border: 1.5px solid #e5e7eb;
+  background: #fff;
+  cursor: pointer;
+  text-align: center;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.ui-action-btn:hover:not(.selected) {
+  border-color: #d1d5db;
+  background: #f9fafb;
+}
+
+.ui-action-btn.selected {
+  border-color: var(--color-green);
+  background: #f0fce8;
+}
+
+.ui-action-icon {
+  font-size: 1.5rem;
+}
+
+.ui-action-name {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #111827;
+}
+
+.ui-action-desc {
+  font-size: 0.72rem;
+  color: #6b7280;
+  line-height: 1.3;
+}
+
+.ui-issue-type-pill {
+  display: inline-flex;
+  align-items: center;
+  background: #f3f4f6;
+  border-radius: 999px;
+  padding: 0.3rem 0.75rem;
+  font-size: 0.8rem;
+  color: #4b5563;
+  margin-bottom: 0.1rem;
+}
+
+.ri-optional {
+  font-weight: 400;
+  color: #9ca3af;
+  font-size: 0.8rem;
+}

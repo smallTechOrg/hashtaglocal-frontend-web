@@ -20,5 +20,6 @@ export function ConditionalFooter() {
 export function ConditionalReportButton() {
   const pathname = usePathname();
   if (pathname?.startsWith("/ops")) return null;
+  if (pathname?.startsWith("/issue/")) return null;
   return <ReportIssueButton />;
 }
