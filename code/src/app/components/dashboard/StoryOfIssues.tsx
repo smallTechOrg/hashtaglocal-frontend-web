@@ -2,7 +2,6 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { API_PATHS } from "../../constants/api";
-import { CITY_OPTIONS } from "../../constants/cityOptions";
 import type { IssueStory, IssueStoriesResponse, TimelineEvent } from "../../models/issueStory";
 import ImageSlideshow from "../ImageSlideshow";
 import type { SlideImage } from "../ImageSlideshow";
@@ -33,8 +32,8 @@ function formatDate(dateStr?: string): string {
 }
 
 function cityLabel(cityValue: string): string {
-  const city = CITY_OPTIONS.find(c => c.value === cityValue);
-  return city ? city.label : cityValue;
+  const decoded = decodeURIComponent(cityValue);
+  return decoded.startsWith("#") ? "#" + decoded.slice(1, 2).toUpperCase() + decoded.slice(2) : decoded;
 }
 
 // --- Sub-components ---
@@ -303,7 +302,8 @@ export default function StoryOfIssues({ selectedCity }: StoryOfIssuesProps) {
       setLoading(true);
       setError(false);
       try {
-        const res = await fetch(API_PATHS.issueStories(selectedCity), {
+        const locality = selectedCity === "%23india" ? undefined : selectedCity;
+        const res = await fetch(API_PATHS.issueStories(locality), {
           cache: "no-store",
         });
         if (!res.ok) throw new Error(`HTTP ${res.status}`);

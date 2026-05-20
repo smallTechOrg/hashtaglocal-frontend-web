@@ -68,7 +68,9 @@ export default function Map({ selectedType, selectedCity }: MapProps) {
 
     async function loadIssues() {
       try {
-        const endpoint = `${API_PATHS.issues}?locality=${selectedCity}`;
+        const endpoint = selectedCity === "%23india"
+          ? API_PATHS.issues
+          : `${API_PATHS.issues}?locality=${selectedCity}`;
         const res = await fetch(endpoint, { signal: controller.signal, cache: "no-store" });
         if (!res.ok) throw new Error(`Request failed with ${res.status}`);
         const payload: IssuesResponse = await res.json();
