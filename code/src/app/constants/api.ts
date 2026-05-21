@@ -6,8 +6,6 @@ const API_ROOT = `${BASE_URL}/api`;
 export const API_PATHS = {
   issues: `${API_V1_BASE}/issues`,
   issue: (id: number | string) => `${API_V1_BASE}/issue/${id}`,
-  issueStories: (locality: string) =>
-    `${API_V1_BASE}/issues/stories?locality=${locality}`,
   polygons: `${API_ROOT}/localities/polygons`,
   reportIssue: `${API_V1_BASE}/issue`,
   mediaUploadUrl: (contentType: string) =>

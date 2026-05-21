@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Flag } from "lucide-react";
 import ReportIssueModal from "./ReportIssueModal";
 
 export default function ReportIssueButton() {
@@ -17,14 +16,6 @@ export default function ReportIssueButton() {
 
   return (
     <>
-      <button
-        className="ri-sticky-btn"
-        onClick={() => setModalOpen(true)}
-        aria-label="Report an Issue"
-      >
-        <Flag size={18} aria-hidden="true" />
-        <span className="ri-sticky-label">Report an Issue</span>
-      </button>
 
       {modalOpen && <ReportIssueModal onClose={() => setModalOpen(false)} />}
     </>
