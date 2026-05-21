@@ -3,7 +3,6 @@ import React, { useState, useEffect, useRef } from "react";
 import { ChevronDown } from "lucide-react";
 import "./dashboard.css";
 import Map from "./map";
-import StoryOfIssues from "./StoryOfIssues";
 import { IssueType } from "../../models/issue";
 import { API_PATHS } from "../../constants/api";
 // import { useClickTracking } from "../../hooks/useClickTracking";
@@ -87,9 +86,9 @@ export default function Dashboard({ selectedCity, onCityChange }: DashboardProps
         });
 
         const options = [
-          { label: "#India", value: "%23india" },
+          { label: "#india", value: "%23india" },
           ...Array.from(hashtagSet).sort().map(tag => ({
-            label: "#" + tag.slice(1, 2).toUpperCase() + tag.slice(2),
+            label: tag.startsWith('#') ? tag : '#' + tag,
             value: encodeURIComponent(tag),
           })),
         ];
@@ -206,7 +205,6 @@ export default function Dashboard({ selectedCity, onCityChange }: DashboardProps
             )}
           </div>
         </div>
-        <StoryOfIssues selectedCity={selectedCity} />
         <div className="dashboard-filters" role="group" aria-label="Filter issues by type">
             {visibleFilters.map((filter) => (
               <button

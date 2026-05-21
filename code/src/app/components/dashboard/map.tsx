@@ -139,8 +139,8 @@ export default function Map({ selectedType, selectedCity }: MapProps) {
       if (!mapRef.current || mapInstanceRef.current) return;
 
       const map = new google.maps.Map(mapRef.current, {
-        zoom: 12,
-        center: { lat: 12.9716, lng: 77.5946 },
+        zoom: 5,
+        center: { lat: 20.5937, lng: 78.9629 },
         mapTypeControl: true,
         styles: [{ featureType: "poi", elementType: "labels", stylers: [{ visibility: "off" }] }],
       });
@@ -200,7 +200,7 @@ export default function Map({ selectedType, selectedCity }: MapProps) {
       map.fitBounds(bounds);
       google.maps.event.addListenerOnce(map, "idle", () => {
         const currentZoom = map.getZoom();
-        if (currentZoom && currentZoom < 11) map.setZoom(currentZoom + 1);
+        if (currentZoom && currentZoom > 13) map.setZoom(13);
       });
     }
   }, [filteredLocations, isMapLoaded]);

@@ -90,7 +90,7 @@ export default function IssueClient({ issueId: propIssueId }: { issueId: string 
   const searchParams = useSearchParams();
   const router = useRouter();
   const isNewReport = searchParams.get("new") === "1";
-  const [showNewBanner, setShowNewBanner] = useState(isNewReport);
+  const showNewBanner = isNewReport;
 
   // Silently remove ?new=1 from the URL so refresh doesn't re-show the banner
   useEffect(() => {
