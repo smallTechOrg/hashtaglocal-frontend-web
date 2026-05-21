@@ -2,6 +2,7 @@
 import React from "react";
 import { X, ArrowLeft, MapPin, Calendar, Clock, ExternalLink } from "lucide-react";
 import ImageSlideshow from "../ImageSlideshow";
+import ProgressiveImage from "../ProgressiveImage";
 import { MapItem } from "./types";
 import {
   LAYER_BY_ID,
@@ -23,12 +24,15 @@ type Props = {
 function ItemThumb({ item }: { item: MapItem }) {
   const layer = LAYER_BY_ID[item.layer];
   if (item.images.length > 0) {
+    const first = item.images[0];
     return (
-      <ImageSlideshow
-        images={item.images}
+      <ProgressiveImage
+        src={first.url}
+        thumbnail={first.thumbnail}
         alt={item.title}
-        imageClassName="xp-card-img"
+        className="xp-card-img"
         loading="lazy"
+        decoding="async"
       />
     );
   }
@@ -47,33 +51,45 @@ function ListCard({
   onSelect: (i: MapItem) => void;
 }) {
   const layer = LAYER_BY_ID[item.layer];
+  const isEvent = item.layer === "events";
   return (
     <button className="xp-card" onClick={() => onSelect(item)}>
       <div className="xp-card-media">
         <ItemThumb item={item} />
-        <span
-          className="xp-chip xp-card-chip"
-          style={{ background: layer.color }}
-        >
-          {prettyType(item.type)}
-        </span>
       </div>
       <div className="xp-card-body">
+        <div className="xp-card-toprow">
+          <span
+            className="xp-chip xp-chip--sm"
+            style={{ background: layer.color }}
+          >
+            {prettyType(item.type)}
+          </span>
+          <span className="xp-card-time">
+            {isEvent ? (
+              <>
+                <Calendar size={11} /> {formatEventDate(item.timestamp)}
+              </>
+            ) : (
+              <>
+                <Clock size={11} /> {formatTimeAgo(item.timestamp)}
+              </>
+            )}
+          </span>
+        </div>
         <p className="xp-card-title">{item.title}</p>
         <p className="xp-card-loc">
-          <MapPin size={12} /> {item.locationLabel}
+          <MapPin size={11} /> {item.locationLabel}
         </p>
-        <p className="xp-card-meta">
-          {item.layer === "events" ? (
-            <>
-              <Calendar size={12} /> {formatEventDate(item.timestamp)}
-            </>
-          ) : (
-            <>
-              <Clock size={12} /> {formatTimeAgo(item.timestamp)}
-            </>
-          )}
-        </p>
+        {item.hashtags && item.hashtags.length > 0 && (
+          <p className="xp-card-tags">
+            {item.hashtags.slice(0, 3).map((h) => (
+              <span key={h} className="xp-tag">
+                {h.startsWith("#") ? h : `#${h}`}
+              </span>
+            ))}
+          </p>
+        )}
       </div>
     </button>
   );
@@ -112,7 +128,11 @@ function ItemDetail({
         <span className="xp-chip" style={{ background: layer.color }}>
           {prettyType(item.type)}
         </span>
-        <h3 className="xp-detail-title">{item.title}</h3>
+
+        {/* Events have a real name; issues use description as title so skip the h3 */}
+        {item.layer === "events" && (
+          <h3 className="xp-detail-title">{item.title}</h3>
+        )}
 
         <p className="xp-detail-row">
           <MapPin size={14} /> {item.locationLabel}
@@ -146,7 +166,9 @@ function ItemDetail({
             <p className="xp-detail-row">
               <Clock size={14} /> {formatTimeAgo(item.timestamp)}
             </p>
-            <p className="xp-detail-desc">{item.description}</p>
+            {item.description && (
+              <p className="xp-detail-desc">{item.description}</p>
+            )}
             {item.detailHref && (
               <a className="xp-cta" href={item.detailHref}>
                 View full issue <ExternalLink size={15} />

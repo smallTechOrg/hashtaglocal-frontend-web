@@ -6,7 +6,7 @@ import { API_PATHS } from "../../constants/api";
 import { trackError } from "../../utils/analytics";
 import { toIssueSlug } from "../../../utils/issueSlug";
 import { MapItem } from "./types";
-import { isUpcoming } from "./layerConfig";
+import { isUpcoming, prettyType } from "./layerConfig";
 
 interface IssuesResponse {
   data?: { issues?: Issue[] };
@@ -25,8 +25,8 @@ function issueToItem(issue: Issue): MapItem {
     lat: loc!.lat!,
     lng: loc!.lng!,
     type: issue.type,
-    title: issue.type || "Issue",
-    description: issue.description || "No description available",
+    title: issue.description || prettyType(issue.type) || "Issue",
+    description: issue.description || "",
     images: images.length > 0 ? images : [{ url: PLACEHOLDER }],
     locationLabel:
       loc?.colloquial_name ||
