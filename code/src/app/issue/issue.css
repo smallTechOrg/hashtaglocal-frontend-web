@@ -6,6 +6,18 @@
   min-height: 100vh;
 }
 
+/* New-report banner */
+.story-new-banner {
+  background: #ecfce7;
+  color: #1a5c13;
+  border-bottom: 1px solid #a8e6a1;
+  padding: 0.7rem 1.25rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  text-align: center;
+  line-height: 1.4;
+}
+
 /* Nav */
 .story-nav {
   display: flex;
@@ -78,7 +90,7 @@
   bottom: 0;
   left: 0;
   right: 0;
-  padding: 0.75rem 1rem;
+  padding: 0.75rem 1rem 2.25rem;
   display: flex;
   gap: 0.5rem;
   flex-wrap: wrap;
@@ -105,6 +117,14 @@
 
 .story-badge-open {
   background: #dc2626;
+}
+
+.story-badge-onhold {
+  background: #b45309;
+}
+
+.story-badge-rejected {
+  background: #6b7280;
 }
 
 /* Loading / Error */
@@ -141,7 +161,7 @@
 
 /* Body */
 .story-body {
-  padding: 0 1rem 3rem;
+  padding: 0 1rem 7rem;
 }
 
 /* Header Card */
@@ -175,6 +195,18 @@
   color: #292524;
   line-height: 1.65;
   margin: 0 0 0.75rem;
+  animation: story-description-in 0.35s ease-out both;
+}
+
+@keyframes story-description-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .story-meta-row {
@@ -531,6 +563,77 @@
   color: #a8a29e;
   margin: 0;
   padding: 0 0.5rem 0.35rem;
+}
+
+/* Update Issue button — floating */
+.story-update-btn {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  position: fixed;
+  bottom: 1rem;
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(calc(100vw - 2rem), 688px);
+  z-index: 50;
+  background: #256d1b;
+  border: none;
+  border-radius: 14px;
+  padding: 1rem 1.25rem;
+  cursor: pointer;
+  text-align: left;
+  box-shadow: 0 4px 20px rgba(37, 109, 27, 0.35), 0 1px 4px rgba(0, 0, 0, 0.08);
+  transition: background 0.15s ease, box-shadow 0.15s ease;
+  animation: update-btn-rise 0.3s ease-out both;
+}
+
+@keyframes update-btn-rise {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+}
+
+.story-update-btn:hover {
+  background: #1e5c15;
+  box-shadow: 0 6px 28px rgba(37, 109, 27, 0.45);
+}
+
+.story-update-btn:active {
+  background: #174d10;
+}
+
+.story-update-btn-icon {
+  font-size: 1.5rem;
+  flex-shrink: 0;
+}
+
+.story-update-btn-text {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.story-update-btn-label {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #fff;
+}
+
+.story-update-btn-sub {
+  font-size: 0.78rem;
+  color: rgba(255, 255, 255, 0.75);
+}
+
+.story-update-btn-arrow {
+  font-size: 1.1rem;
+  color: rgba(255, 255, 255, 0.9);
+  flex-shrink: 0;
 }
 
 /* Mobile */

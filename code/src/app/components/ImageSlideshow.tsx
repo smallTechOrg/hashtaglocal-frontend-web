@@ -6,6 +6,7 @@ import "./ImageSlideshow.css";
 export interface SlideImage {
   url: string;
   thumbnail?: string;
+  description?: string;
 }
 
 interface ImageSlideshowProps {
@@ -19,6 +20,8 @@ interface ImageSlideshowProps {
   decoding?: "async" | "auto" | "sync";
   /** Auto-advance interval in ms. 0 or undefined = no auto-play */
   autoPlayMs?: number;
+  /** Called whenever the active slide index changes */
+  onSlideChange?: (index: number) => void;
 }
 
 export default function ImageSlideshow({
@@ -30,9 +33,14 @@ export default function ImageSlideshow({
   loading = "lazy",
   decoding = "async",
   autoPlayMs,
+  onSlideChange,
 }: ImageSlideshowProps) {
   const [current, setCurrent] = useState(0);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  useEffect(() => {
+    onSlideChange?.(current);
+  }, [current, onSlideChange]);
 
   const resetAutoPlay = useCallback(() => {
     if (timerRef.current) clearInterval(timerRef.current);

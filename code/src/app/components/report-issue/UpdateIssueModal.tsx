@@ -1,21 +1,21 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
-import { useRouter } from "next/navigation";
 import {
   X,
   Camera,
   RotateCcw,
-  Send,
   AlertCircle,
   CheckCircle,
-  MapPin,
   Loader2,
   SwitchCamera,
 } from "lucide-react";
 import { getAccessToken, buildGoogleAuthUrl } from "../../ops/lib/auth";
 import { API_PATHS } from "../../constants/api";
 import { GOOGLE_CLIENT_ID } from "../../ops/lib/constants";
+import "./reportIssue.css";
+
+type Action = "VERIFY" | "RESOLVE";
 
 type Step =
   | "checking-auth"
@@ -28,45 +28,31 @@ type Step =
   | "success"
   | "error";
 
-type IssueType =
-  | "POTHOLE"
-  | "WASTE"
-  | "FOOTPATH"
-  | "POLLUTION"
-  | "HYGIENE"
-  | "SAFETY"
-  | "OTHER";
-
-const ISSUE_TYPES: { value: IssueType; label: string; emoji: string }[] = [
-  { value: "POTHOLE", label: "Pothole", emoji: "🕳️" },
-  { value: "WASTE", label: "Waste", emoji: "🗑️" },
-  { value: "FOOTPATH", label: "Footpath", emoji: "🚶" },
-  { value: "POLLUTION", label: "Pollution", emoji: "💨" },
-  { value: "HYGIENE", label: "Hygiene", emoji: "🧹" },
-  { value: "SAFETY", label: "Safety", emoji: "⚠️" },
-  { value: "OTHER", label: "Other", emoji: "📌" },
-];
-
-interface ReportIssueModalProps {
+interface UpdateIssueModalProps {
+  issueId: string | number;
+  issueType?: string;
   onClose: () => void;
+  onSuccess: () => void;
 }
 
-export default function ReportIssueModal({ onClose }: ReportIssueModalProps) {
-  const router = useRouter();
+export default function UpdateIssueModal({
+  issueId,
+  issueType,
+  onClose,
+  onSuccess,
+}: UpdateIssueModalProps) {
   const [step, setStep] = useState<Step>("checking-auth");
-  const [issueType, setIssueType] = useState<IssueType>("POTHOLE");
+  const [action, setAction] = useState<Action>("VERIFY");
   const [description, setDescription] = useState("");
   const [capturedBlob, setCapturedBlob] = useState<Blob | null>(null);
   const [capturedPreviewUrl, setCapturedPreviewUrl] = useState<string | null>(null);
-  const [location, setLocation] = useState<GeolocationPosition | null>(null);
+  const [location, setLocation] = useState<GeolocationCoordinates | null>(null);
   const [facingMode, setFacingMode] = useState<"environment" | "user">("environment");
   const [errorMsg, setErrorMsg] = useState("");
-  const [submitStage, setSubmitStage] = useState<0 | 1 | 2 | 3>(0);
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
 
-  // Check auth on mount — directly kick off permissions if already signed in
   useEffect(() => {
     const token = getAccessToken();
     if (token) {
@@ -74,7 +60,7 @@ export default function ReportIssueModal({ onClose }: ReportIssueModalProps) {
     } else {
       setStep("unauthenticated");
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const stopStream = useCallback(() => {
@@ -84,7 +70,6 @@ export default function ReportIssueModal({ onClose }: ReportIssueModalProps) {
     }
   }, []);
 
-  // Cleanup stream on unmount
   useEffect(() => {
     return () => {
       stopStream();
@@ -101,7 +86,6 @@ export default function ReportIssueModal({ onClose }: ReportIssueModalProps) {
         audio: false,
       });
     } catch {
-      // Fallback: request any camera without constraints
       return await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
     }
   }
@@ -113,41 +97,35 @@ export default function ReportIssueModal({ onClose }: ReportIssueModalProps) {
     try {
       stream = await startCameraStream(facingMode);
     } catch {
-      setErrorMsg("Camera access was denied. Camera permission is required to report an issue.");
+      setErrorMsg("Camera access was denied. A photo is required to update an issue.");
       setStep("perms-denied");
       return;
     }
 
-    let position: GeolocationPosition;
+    // Location is optional — proceed even if denied
     try {
-      position = await new Promise<GeolocationPosition>((resolve, reject) => {
+      const position = await new Promise<GeolocationPosition>((resolve, reject) => {
         navigator.geolocation.getCurrentPosition(resolve, reject, {
           enableHighAccuracy: true,
-          timeout: 15000,
+          timeout: 10000,
           maximumAge: 0,
         });
       });
+      setLocation(position.coords);
     } catch {
-      stream.getTracks().forEach((t) => t.stop());
-      setErrorMsg("Location access was denied. Location permission is required to report an issue.");
-      setStep("perms-denied");
-      return;
+      setLocation(null);
     }
 
     streamRef.current = stream;
-    setLocation(position);
     setStep("form");
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [facingMode]);
 
-  // Attach stream to video element when entering the form step
   useEffect(() => {
     if (step === "form" && videoRef.current && streamRef.current) {
       videoRef.current.srcObject = streamRef.current;
     }
   }, [step]);
-
-
 
   async function switchCamera() {
     const newFacing = facingMode === "environment" ? "user" : "environment";
@@ -155,9 +133,7 @@ export default function ReportIssueModal({ onClose }: ReportIssueModalProps) {
     try {
       const stream = await startCameraStream(newFacing);
       streamRef.current = stream;
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-      }
+      if (videoRef.current) videoRef.current.srcObject = stream;
     } catch {
       setErrorMsg("Could not switch camera.");
     }
@@ -166,13 +142,11 @@ export default function ReportIssueModal({ onClose }: ReportIssueModalProps) {
   function capturePhoto() {
     const video = videoRef.current;
     if (!video) return;
-
     const canvas = document.createElement("canvas");
     canvas.width = video.videoWidth || 1280;
     canvas.height = video.videoHeight || 720;
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
-
     ctx.drawImage(video, 0, 0);
     canvas.toBlob(
       (blob) => {
@@ -195,38 +169,31 @@ export default function ReportIssueModal({ onClose }: ReportIssueModalProps) {
       setCapturedPreviewUrl(null);
     }
     setCapturedBlob(null);
-    setStep("requesting-perms");
     requestPermissions();
   }
 
   async function handleSubmit() {
-    if (!capturedBlob || !location) return;
-
+    if (!capturedBlob) return;
     const token = getAccessToken();
     if (!token) {
       setStep("unauthenticated");
       return;
     }
-
-    setSubmitStage(1);
     setStep("submitting");
 
     try {
-      // Step 1: Get signed upload URL
+      // 1. Get signed upload URL
       const uploadUrlRes = await fetch(API_PATHS.mediaUploadUrl("image/jpeg"), {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (!uploadUrlRes.ok) throw new Error("Failed to get upload URL");
-
       const uploadUrlData = await uploadUrlRes.json();
       const { signed_url: signedUrl, path } = uploadUrlData.data.media_url as {
         signed_url: string;
         path: string;
       };
 
-      setSubmitStage(2);
-
-      // Step 2: Upload image to Cloud Storage (no auth header on signed URL PUT)
+      // 2. Upload image to Cloud Storage
       const uploadRes = await fetch(signedUrl, {
         method: "PUT",
         body: capturedBlob,
@@ -234,52 +201,34 @@ export default function ReportIssueModal({ onClose }: ReportIssueModalProps) {
       });
       if (!uploadRes.ok) throw new Error("Failed to upload photo");
 
-      setSubmitStage(3);
+      // 3. Build media entry
+      const mediaEntry: Record<string, unknown> = { type: "PHOTO", url: path };
+      if (location) {
+        mediaEntry.location = {
+          lat: location.latitude,
+          lng: location.longitude,
+          meta_data: { accuracy: location.accuracy },
+        };
+      }
+      if (description.trim()) mediaEntry.description = description.trim();
 
-      // Step 3: Submit the issue
-      const { latitude, longitude, accuracy } = location.coords;
-      const locationPayload = {
-        lat: latitude,
-        lng: longitude,
-        meta_data: {
-          accuracy,
-          timestamp: location.timestamp,
-        },
-      };
-
-      const issueRes = await fetch(API_PATHS.reportIssue, {
-        method: "POST",
+      // 4. PUT update issue
+      const updateRes = await fetch(API_PATHS.issue(issueId), {
+        method: "PUT",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
-          issue: {
-            type: issueType,
-            ...(description.trim() ? { description: description.trim() } : {}),
-            location: locationPayload,
-            media_urls: [
-              {
-                type: "PHOTO",
-                url: path,
-                location: locationPayload,
-              },
-            ],
+          issue_action: {
+            action,
+            media_urls: [mediaEntry],
           },
         }),
       });
+      if (!updateRes.ok) throw new Error("Failed to submit update");
 
-      if (!issueRes.ok) throw new Error("Failed to submit issue");
-
-      const issueData = await issueRes.json();
-      const newIssueId: number | undefined = issueData?.data?.issue_id;
-
-      stopStream();
-      if (capturedPreviewUrl) URL.revokeObjectURL(capturedPreviewUrl);
-      onClose();
-      if (newIssueId) {
-        router.push(`/issue/${newIssueId}?new=1`);
-      }
+      setStep("success");
     } catch (err: unknown) {
       setErrorMsg(
         err instanceof Error ? err.message : "Something went wrong. Please try again.",
@@ -289,8 +238,8 @@ export default function ReportIssueModal({ onClose }: ReportIssueModalProps) {
   }
 
   function handleGoogleSignIn() {
-    // Remember current page so the callback can return here
-    sessionStorage.setItem("report_issue_return_to", window.location.pathname);
+    // Return to this issue page with ?update=1 so the modal auto-reopens
+    sessionStorage.setItem("report_issue_return_to", window.location.pathname + "?update=1");
     const redirectUri = `${window.location.origin}/auth/callback`;
     const url = buildGoogleAuthUrl(GOOGLE_CLIENT_ID, redirectUri);
     window.location.href = url;
@@ -309,13 +258,13 @@ export default function ReportIssueModal({ onClose }: ReportIssueModalProps) {
       className="ri-overlay"
       role="dialog"
       aria-modal="true"
-      aria-label="Report an Issue"
+      aria-label="Update Issue"
       onClick={(e) => e.target === e.currentTarget && handleClose()}
     >
       <div className="ri-modal">
         {/* Header */}
         <div className="ri-header">
-          <h2 className="ri-title">Report an Issue</h2>
+          <h2 className="ri-title">Update Issue</h2>
           <button onClick={handleClose} className="ri-close-btn" aria-label="Close modal">
             <X size={18} />
           </button>
@@ -333,9 +282,9 @@ export default function ReportIssueModal({ onClose }: ReportIssueModalProps) {
           {/* Unauthenticated */}
           {step === "unauthenticated" && (
             <div className="ri-center-state">
-              <p className="ri-state-title">Sign in to report</p>
+              <p className="ri-state-title">Sign in to update</p>
               <p className="ri-state-desc">
-                Sign in with Google to submit an issue report to your community.
+                Sign in with Google to verify or resolve this issue.
               </p>
               <button onClick={handleGoogleSignIn} className="ri-primary-btn">
                 <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true">
@@ -350,22 +299,20 @@ export default function ReportIssueModal({ onClose }: ReportIssueModalProps) {
             </div>
           )}
 
-          {/* Requesting permissions */}
+          {/* Requesting perms */}
           {step === "requesting-perms" && (
             <div className="ri-center-state">
               <Loader2 className="ri-icon-spin ri-icon-green" size={32} />
-              <p className="ri-state-title">Looking for access…</p>
-              <p className="ri-state-desc">
-                Please allow camera and location access.
-              </p>
+              <p className="ri-state-title">Opening camera…</p>
+              <p className="ri-state-desc">A photo is required to update an issue.</p>
             </div>
           )}
 
-          {/* Permissions denied */}
+          {/* Perms denied */}
           {step === "perms-denied" && (
             <div className="ri-center-state">
               <AlertCircle size={44} className="ri-icon-red" />
-              <p className="ri-state-title">Permission required</p>
+              <p className="ri-state-title">Camera required</p>
               <p className="ri-state-desc">{errorMsg}</p>
               <button onClick={requestPermissions} className="ri-primary-btn">
                 Try Again
@@ -373,10 +320,9 @@ export default function ReportIssueModal({ onClose }: ReportIssueModalProps) {
             </div>
           )}
 
-          {/* Camera + Form (form & captured steps) */}
+          {/* Camera + Form */}
           {isCamera && (
             <>
-              {/* Camera / Preview area */}
               <div className="ri-camera-container">
                 {step === "form" ? (
                   <>
@@ -431,55 +377,59 @@ export default function ReportIssueModal({ onClose }: ReportIssueModalProps) {
                 )}
               </div>
 
-              {/* Form fields */}
               <div className="ri-form-fields">
-                {/* Location badge */}
-                {location && (
-                  <div className="ri-location-badge">
-                    <MapPin size={13} />
-                    <span>
-                      Location captured &nbsp;·&nbsp;{location.coords.accuracy.toFixed(0)} m accuracy
-                    </span>
+                {/* Fixed issue type pill */}
+                {issueType && (
+                  <div className="ui-issue-type-pill">
+                    Issue type: <strong>{issueType}</strong>
                   </div>
                 )}
 
                 {/* Description */}
                 <div className="ri-field">
                   <label className="ri-label">
-                    Description
+                    Description <span className="ri-optional">(optional)</span>
                   </label>
                   <textarea
                     value={description}
                     onChange={(e) => setDescription(e.target.value)}
-                    placeholder="Briefly describe the issue…"
+                    placeholder={
+                      action === "VERIFY"
+                        ? "Describe what you observed…"
+                        : "Describe how the issue was resolved…"
+                    }
                     className="ri-textarea"
                     rows={2}
                     maxLength={500}
                   />
                 </div>
 
-                {/* Issue type */}
+                {/* Action picker */}
                 <div className="ri-field">
-                  <label className="ri-label">Issue Type</label>
-                  <div className="ri-type-grid">
-                    {ISSUE_TYPES.map((t) => (
-                      <button
-                        key={t.value}
-                        onClick={() => setIssueType(t.value)}
-                        className={`ri-type-btn${issueType === t.value ? " selected" : ""}`}
-                      >
-                        <span className="ri-type-emoji">{t.emoji}</span>
-                        <span>{t.label}</span>
-                      </button>
-                    ))}
+                  <label className="ri-label">What would you like to report?</label>
+                  <div className="ui-action-grid">
+                    <button
+                      onClick={() => setAction("VERIFY")}
+                      className={`ui-action-btn${action === "VERIFY" ? " selected" : ""}`}
+                    >
+                      <span className="ui-action-icon">✅</span>
+                      <span className="ui-action-name">Verify</span>
+                      <span className="ui-action-desc">I can confirm this issue still exists</span>
+                    </button>
+                    <button
+                      onClick={() => setAction("RESOLVE")}
+                      className={`ui-action-btn${action === "RESOLVE" ? " selected" : ""}`}
+                    >
+                      <span className="ui-action-icon">🎉</span>
+                      <span className="ui-action-name">Resolve</span>
+                      <span className="ui-action-desc">This issue has been fixed</span>
+                    </button>
                   </div>
                 </div>
 
-                {/* Actions */}
                 {step === "captured" ? (
                   <button onClick={handleSubmit} className="ri-submit-btn">
-                    <Send size={15} />
-                    Submit Report
+                    {action === "VERIFY" ? "✅ Submit Verification" : "🎉 Mark as Resolved"}
                   </button>
                 ) : (
                   <p className="ri-hint ri-hint-center">Take a photo to continue</p>
@@ -492,25 +442,7 @@ export default function ReportIssueModal({ onClose }: ReportIssueModalProps) {
           {step === "submitting" && (
             <div className="ri-center-state">
               <Loader2 className="ri-icon-spin ri-icon-green" size={32} />
-              <p className="ri-state-title">
-                {submitStage === 1 && "Preparing upload…"}
-                {submitStage === 2 && "Uploading photo…"}
-                {submitStage === 3 && "Submitting report…"}
-              </p>
-              <div className="ri-progress-steps">
-                <div className={`ri-progress-step${submitStage > 1 ? " done" : submitStage === 1 ? " active" : ""}`}>
-                  <span className="ri-progress-dot" />
-                  Prepare
-                </div>
-                <div className={`ri-progress-step${submitStage > 2 ? " done" : submitStage === 2 ? " active" : ""}`}>
-                  <span className="ri-progress-dot" />
-                  Upload photo
-                </div>
-                <div className={`ri-progress-step${submitStage > 3 ? " done" : submitStage === 3 ? " active" : ""}`}>
-                  <span className="ri-progress-dot" />
-                  Submit
-                </div>
-              </div>
+              <p className="ri-state-title">Submitting…</p>
             </div>
           )}
 
@@ -518,11 +450,17 @@ export default function ReportIssueModal({ onClose }: ReportIssueModalProps) {
           {step === "success" && (
             <div className="ri-center-state">
               <CheckCircle size={52} className="ri-icon-green" />
-              <p className="ri-state-title">Report submitted!</p>
-              <p className="ri-state-desc">
-                Thank you for helping improve your community.
+              <p className="ri-state-title">
+                {action === "VERIFY" ? "Verification submitted!" : "Issue marked as resolved!"}
               </p>
-              <button onClick={handleClose} className="ri-primary-btn">
+              <p className="ri-state-desc">Thank you for helping your community.</p>
+              <button
+                onClick={() => {
+                  onSuccess();
+                  handleClose();
+                }}
+                className="ri-primary-btn"
+              >
                 Done
               </button>
             </div>
