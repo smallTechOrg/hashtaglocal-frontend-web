@@ -17,6 +17,10 @@ const nextConfig: NextConfig = {
           source: "/api/issue/:id",
           destination: API_PATHS.issue(":id"),
         },
+        {
+          source: "/api/events",
+          destination: API_PATHS.events,
+        },
       ];
     },
   }),
