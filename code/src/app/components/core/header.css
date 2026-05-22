@@ -1,12 +1,79 @@
 @import "tailwindcss";
 
-header {
-  @apply 
-    w-full 
-    flex justify-between 
-    p-2 items-start overflow-visible;
+.site-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 60px;
+  padding: 0 20px;
+  background: #ffffff;
+  border-bottom: 1px solid #e7e9ee;
 }
 
-header img {
-  overflow: visible;
+.site-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  text-decoration: none;
+}
+
+.site-brand-text {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.1;
+}
+
+.site-brand-name {
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: #0c1116;
+}
+
+.site-brand-tag {
+  font-size: 12px;
+  font-weight: 400;
+  color: #6b7280;
+}
+
+@media (max-width: 480px) {
+  .site-brand-tag {
+    display: none;
+  }
+}
+
+.site-nav {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.site-nav-cta {
+  display: inline-flex;
+  align-items: center;
+  height: 38px;
+  padding: 0 18px;
+  border: none;
+  border-radius: 999px;
+  background: #0c1116;
+  color: #ffffff;
+  font-family: inherit;
+  font-size: 13.5px;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+  transition: transform 0.12s ease, background 0.12s ease;
+}
+
+.site-nav-cta:hover {
+  transform: translateY(-1px);
+  background: #1c2530;
+  color: #ffffff;
+}
+
+@media (max-width: 640px) {
+  .site-header {
+    height: 54px;
+    padding: 0 14px;
+  }
 }

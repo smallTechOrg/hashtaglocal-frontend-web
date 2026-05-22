@@ -129,7 +129,7 @@ export default function RootLayout({
       >
         <AnalyticsProvider>
           <ConditionalHeader />
-          <main className="flex-1">{children} </main>
+          <main className="flex-1">{children}</main>
           <ConditionalFooter />
           <ConditionalReportButton />
         </AnalyticsProvider>
