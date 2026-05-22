@@ -63,15 +63,142 @@ export default function MapControls({
     setQuery("");
   });
 
+  // Mobile combined filter state
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const [mobileQuery, setMobileQuery] = useState("");
+  const mobileRef = useOutside<HTMLDivElement>(() => {
+    setMobileOpen(false);
+    setMobileQuery("");
+  });
+
   const activeCity =
     cities.find((c) => c.value === selectedCity)?.label ??
     decodeURIComponent(selectedCity);
   const activeCount = activeSubFilters.size;
+  const activeLayerLabel = LAYERS.find((l) => l.id === activeLayer)?.label ?? activeLayer;
 
   return (
     <div className="xp-controls">
-      {/* City selector — primary control */}
-      <div className="xp-control" ref={cityRef}>
+      {/* ── Mobile: single combined filter pill ── */}
+      <div className="xp-mobile-filter" ref={mobileRef}>
+        <button
+          className="xp-mobile-filter-btn"
+          onClick={() => setMobileOpen((o) => !o)}
+        >
+          <MapPin size={13} />
+          <span className="xp-mobile-filter-summary">
+            {citiesLoading ? "Loading…" : activeCity}
+            {" · "}
+            {activeLayerLabel}
+            {activeCount > 0 && (
+              <span className="xp-mobile-filter-badge">{activeCount}</span>
+            )}
+          </span>
+          <ChevronDown size={13} />
+        </button>
+
+        {mobileOpen && (
+          <div className="xp-mobile-filter-panel">
+            {/* City */}
+            <div className="xp-mf-section">
+              <div className="xp-mf-search">
+                <Search size={13} />
+                <input
+                  placeholder="Search city…"
+                  value={mobileQuery}
+                  onChange={(e) => setMobileQuery(e.target.value)}
+                />
+              </div>
+              <ul className="xp-mf-list">
+                {cities
+                  .filter((c) =>
+                    c.label.toLowerCase().includes(mobileQuery.toLowerCase()),
+                  )
+                  .map((c) => (
+                    <li key={c.value}>
+                      <button
+                        className={`xp-mf-item ${
+                          c.value === selectedCity ? "is-active" : ""
+                        }`}
+                        onClick={() => {
+                          onCityChange(c.value);
+                          setMobileQuery("");
+                        }}
+                      >
+                        {c.label}
+                        {c.value === selectedCity && <Check size={13} />}
+                      </button>
+                    </li>
+                  ))}
+                {cities.filter((c) =>
+                  c.label.toLowerCase().includes(mobileQuery.toLowerCase()),
+                ).length === 0 && (
+                  <li className="xp-menu-empty">No city found</li>
+                )}
+              </ul>
+            </div>
+
+            {/* Type */}
+            <div className="xp-mf-section">
+              <div className="xp-mf-types">
+                {LAYERS.map((layer) => (
+                  <button
+                    key={layer.id}
+                    className={`xp-mf-type-btn ${
+                      activeLayer === layer.id ? "is-active" : ""
+                    }`}
+                    onClick={() => onLayerChange(layer.id)}
+                    style={
+                      activeLayer === layer.id
+                        ? { background: layer.color, color: "#fff", borderColor: layer.color }
+                        : { borderColor: layer.color }
+                    }
+                  >
+                    <span
+                      className="xp-segment-dot"
+                      style={{ background: layer.color }}
+                    />
+                    {layer.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Category */}
+            <div className="xp-mf-section">
+              <ul className="xp-mf-list">
+                {subFilters.map((sf) => {
+                  const on = activeSubFilters.has(sf.value);
+                  return (
+                    <li key={sf.value}>
+                      <button
+                        className={`xp-mf-item ${
+                          on ? "is-active" : ""
+                        }`}
+                        onClick={() => onToggleSubFilter(sf.value)}
+                      >
+                        <span className="xp-filter-left">
+                          <span className="xp-filter-icon">{sf.icon}</span>
+                          {sf.label}
+                        </span>
+                        <span className="xp-filter-right">
+                          <span className="xp-filter-count">
+                            {counts[sf.value] || 0}
+                          </span>
+                          {on && <Check size={13} />}
+                        </span>
+                      </button>
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* City selector — primary control (desktop) */}
+      <div className="xp-control xp-desktop-ctrl" ref={cityRef}>
         <button
           className="xp-city-btn"
           onClick={() => {
@@ -134,8 +261,8 @@ export default function MapControls({
         )}
       </div>
 
-      {/* Layer segmented toggle */}
-      <div className="xp-segment">
+      {/* Layer segmented toggle (desktop) */}
+      <div className="xp-segment xp-desktop-ctrl">
         {LAYERS.map((layer) => (
           <button
             key={layer.id}
@@ -155,8 +282,8 @@ export default function MapControls({
         ))}
       </div>
 
-      {/* Sub-filter dropdown */}
-      <div className="xp-control" ref={filterRef}>
+      {/* Sub-filter dropdown (desktop) */}
+      <div className="xp-control xp-desktop-ctrl" ref={filterRef}>
         <button
           className={`xp-pill ${activeCount > 0 ? "is-active" : ""}`}
           onClick={() => setFilterOpen((o) => !o)}

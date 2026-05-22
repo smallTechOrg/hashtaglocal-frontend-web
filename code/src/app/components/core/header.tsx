@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useClickTracking } from "../../hooks/useClickTracking";
 import { EventCategory } from "../../utils/analytics";
 import GetAppModal from "./GetAppModal";
+import ReportIssueButton from "../report-issue/ReportIssueButton";
 
 export default function Header() {
   const trackClick = useClickTracking();
@@ -36,6 +37,7 @@ export default function Header() {
         </Link>
 
         <nav className="site-nav">
+          <ReportIssueButton variant="header" />
           <button
             type="button"
             className="site-nav-cta"

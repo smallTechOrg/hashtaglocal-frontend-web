@@ -86,6 +86,16 @@
   pointer-events: none;
 }
 
+/* Report Issue — full-width bar at the bottom of the map area */
+.xp-report-btn-bottom {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 16;
+  pointer-events: auto;
+}
+
 .xp-controls {
   display: flex;
   flex-wrap: wrap;
@@ -372,11 +382,21 @@
   color: var(--xp-accent);
 }
 
+/* Mobile combined filter — hidden on desktop */
+.xp-mobile-filter {
+  display: none;
+}
+
+/* Mobile combined filter — hidden on desktop */
+.xp-mobile-filter {
+  display: none;
+}
+
 /* ---------- Legend ---------- */
 .xp-legend {
   position: absolute;
   left: 18px;
-  bottom: 18px;
+  bottom: 74px; /* sits above the full-width report button (~62px + 12px gap) */
   z-index: 15;
   display: flex;
   gap: 6px;
@@ -391,10 +411,18 @@
   align-items: center;
   gap: 7px;
   padding: 5px 10px;
+  border: none;
   border-radius: 8px;
+  background: transparent;
   font-size: 12px;
   font-weight: 600;
   color: var(--xp-text-faint);
+  cursor: pointer;
+  transition: background 0.12s ease, color 0.12s ease;
+}
+.xp-legend-item:hover {
+  background: var(--xp-surface-2);
+  color: var(--xp-text);
 }
 .xp-legend-item.is-active {
   background: var(--xp-surface-2);
@@ -793,17 +821,176 @@
   .xp-controls {
     gap: 8px;
   }
-  .xp-pill,
-  .xp-segment {
-    height: 38px;
-  }
-  .xp-pill-label {
-    max-width: 92px;
+
+  /* Hide the three desktop controls — replaced by combined mobile filter */
+  .xp-desktop-ctrl {
+    display: none !important;
   }
 
+  /* Show the combined mobile filter pill */
+  .xp-mobile-filter {
+    display: block;
+    width: 100%;
+    position: relative;
+  }
+  .xp-mobile-filter-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    height: 42px;
+    padding: 0 14px;
+    border: 1px solid var(--xp-border);
+    border-radius: 12px;
+    background: var(--xp-surface);
+    color: var(--xp-text);
+    font-size: 13.5px;
+    font-weight: 600;
+    cursor: pointer;
+    box-shadow: var(--xp-shadow);
+    text-align: left;
+  }
+  .xp-mobile-filter-summary {
+    flex: 1;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .xp-mobile-filter-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 18px;
+    height: 18px;
+    padding: 0 5px;
+    border-radius: 999px;
+    background: var(--xp-accent);
+    color: #fff;
+    font-size: 10.5px;
+    font-weight: 700;
+  }
+  .xp-mobile-filter-panel {
+    position: absolute;
+    top: calc(100% + 8px);
+    left: 0;
+    right: 0;
+    z-index: 40;
+    background: var(--xp-surface);
+    border: 1px solid var(--xp-border);
+    border-radius: 16px;
+    box-shadow: var(--xp-shadow-lg);
+    overflow: hidden;
+    animation: xp-pop 0.14s ease;
+  }
+  .xp-mf-section {
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--xp-border);
+  }
+  .xp-mf-section:last-child {
+    border-bottom: none;
+  }
+  .xp-mf-section-label {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    color: var(--xp-text-faint);
+    margin-bottom: 7px;
+  }
+  .xp-mf-section-label-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 7px;
+  }
+  .xp-mf-search {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    padding: 7px 10px;
+    border: 1px solid var(--xp-border);
+    border-radius: 9px;
+    color: var(--xp-text-faint);
+    margin-bottom: 6px;
+  }
+  .xp-mf-search input {
+    flex: 1;
+    border: none;
+    outline: none;
+    font-size: 13px;
+    color: var(--xp-text);
+    background: transparent;
+  }
+  .xp-mf-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    max-height: 130px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+  }
+  .xp-mf-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    width: 100%;
+    padding: 8px 10px;
+    border: none;
+    border-radius: 8px;
+    background: none;
+    color: var(--xp-text);
+    font-size: 13px;
+    font-weight: 500;
+    text-align: left;
+    cursor: pointer;
+    transition: background 0.1s ease;
+  }
+  .xp-mf-item:hover {
+    background: var(--xp-surface-2);
+  }
+  .xp-mf-item.is-active {
+    color: var(--xp-accent);
+    font-weight: 600;
+  }
+  .xp-mf-types {
+    display: flex;
+    gap: 8px;
+  }
+  .xp-mf-type-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    flex: 1;
+    justify-content: center;
+    height: 36px;
+    padding: 0 12px;
+    border: 1.5px solid var(--xp-border);
+    border-radius: 999px;
+    background: var(--xp-surface);
+    color: var(--xp-text-soft);
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+  }
+  .xp-mf-type-btn.is-active {
+    color: #fff;
+  }
+
+  /* Hide legend on mobile — layer switching handled by mobile filter */
   .xp-legend {
-    left: 12px;
-    bottom: calc(46% + 12px);
+    display: none;
+  }
+
+  /* Report button position */
+  .xp-report-btn-bottom {
+    bottom: 48%;
   }
 
   /* Panel docks to the bottom as a sheet, tab rail on top */
