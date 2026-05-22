@@ -6,9 +6,9 @@ import { useClickTracking } from "../../hooks/useClickTracking";
 import { EventCategory } from "../../utils/analytics";
 
 /* ── Replace these placeholders with the real URLs ── */
-const PLAY_STORE_URL = "https://play.google.com/store/apps/details?id=YOUR_APP_ID";
-const APP_STORE_URL = "https://apps.apple.com/app/idYOUR_APP_ID";
-const WHATSAPP_URL = "https://chat.whatsapp.com/YOUR_INVITE_CODE";
+const PLAY_STORE_URL = "https://play.google.com/store/apps/details?id=com.smalltech.hashtaglocal";
+const APP_STORE_URL = "https://docs.google.com/forms/d/e/1FAIpQLSdDjs6xd3nyzJKWtF3DEk1uQPnqVlpfYv8Ibnp8gZbRV5RV0Q/viewform?embedded=true";
+const WHATSAPP_URL = "https://chat.whatsapp.com/EYaX2WwCuKZ0Q7r4Vt6Zsa";
 const FEEDBACK_FORM_URL =
   "https://docs.google.com/forms/d/e/1FAIpQLSdDjs6xd3nyzJKWtF3DEk1uQPnqVlpfYv8Ibnp8gZbRV5RV0Q/viewform?embedded=true";
 
