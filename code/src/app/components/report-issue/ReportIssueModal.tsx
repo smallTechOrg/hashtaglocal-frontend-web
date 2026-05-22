@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
+import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import {
   X,
@@ -53,6 +54,7 @@ interface ReportIssueModalProps {
 
 export default function ReportIssueModal({ onClose }: ReportIssueModalProps) {
   const router = useRouter();
+  const [mounted, setMounted] = useState(false);
   const [step, setStep] = useState<Step>("checking-auth");
   const [issueType, setIssueType] = useState<IssueType>("POTHOLE");
   const [description, setDescription] = useState("");
@@ -65,6 +67,9 @@ export default function ReportIssueModal({ onClose }: ReportIssueModalProps) {
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
+
+  // Mount guard for portal (SSR safety)
+  useEffect(() => { setMounted(true); }, []);
 
   // Check auth on mount — directly kick off permissions if already signed in
   useEffect(() => {
@@ -304,7 +309,9 @@ export default function ReportIssueModal({ onClose }: ReportIssueModalProps) {
 
   const isCamera = step === "form" || step === "captured";
 
-  return (
+  if (!mounted) return null;
+
+  const modal = (
     <div
       className="ri-overlay"
       role="dialog"
@@ -543,4 +550,6 @@ export default function ReportIssueModal({ onClose }: ReportIssueModalProps) {
       </div>
     </div>
   );
+
+  return createPortal(modal, document.body);
 }
