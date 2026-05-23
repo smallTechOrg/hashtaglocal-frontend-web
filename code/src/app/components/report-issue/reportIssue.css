@@ -93,6 +93,14 @@
   }
 }
 
+/* Always centered — used by guidelines modal */
+.ri-overlay--centered {
+  align-items: center;
+}
+.ri-overlay--centered .ri-modal {
+  border-radius: 1.25rem;
+}
+
 .ri-modal {
   position: relative;
   background: #fff;
@@ -617,3 +625,276 @@
   color: #9ca3af;
   font-size: 0.8rem;
 }
+
+/* ─────────────────────────────────────────────
+   Map-embedded "Report Issue" buttons
+   ───────────────────────────────────────────── */
+
+/* Header nav button */
+.ri-header-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 38px;
+  padding: 0 16px;
+  border: 1.5px solid #a3c49e;
+  border-radius: 999px;
+  background: #f0fdf0;
+  color: #256d1b;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.12s ease, border-color 0.12s ease, transform 0.12s ease;
+  white-space: nowrap;
+}
+
+.ri-header-btn:hover {
+  background: #dcf5d8;
+  border-color: #256d1b;
+  transform: translateY(-1px);
+}
+
+.ri-header-btn:active {
+  transform: translateY(0);
+}
+
+@media (max-width: 480px) {
+  .ri-header-btn span {
+    display: none;
+  }
+  .ri-header-btn {
+    padding: 0 10px;
+  }
+}
+
+/* Full-width bar at bottom of map */
+.ri-map-bottom-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  width: 100%;
+  min-height: 62px;
+  padding: 12px 24px;
+  border: none;
+  background: var(--color-green);
+  color: #ffffff;
+  font-family: var(--font-montserrat), sans-serif;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.ri-map-bottom-btn:hover {
+  background: #1e5914;
+}
+
+.ri-map-bottom-btn:active {
+  background: #1a4f11;
+}
+
+.ri-map-bottom-btn-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.ri-map-bottom-btn-main {
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: 0.01em;
+}
+
+.ri-map-bottom-btn-sub {
+  font-size: 11.5px;
+  font-weight: 400;
+  opacity: 0.88;
+  line-height: 1.2;
+}
+
+/* ─────────────────────────────────────────────
+   Issue Guidelines Modal — clear card design
+   ───────────────────────────────────────────── */
+
+.ri-guidelines-modal {
+  max-width: 500px;
+}
+
+.ri-guidelines-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 20px 20px 16px;
+  border-bottom: 1px solid #e5e7eb;
+  background: #fff;
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  border-radius: 1.25rem 1.25rem 0 0;
+}
+
+.ri-guidelines-title-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.ri-guidelines-title-icon {
+  font-size: 28px;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.ri-guidelines-title {
+  margin: 0 0 2px;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #111827;
+}
+
+.ri-guidelines-subtitle {
+  margin: 0;
+  font-size: 0.78rem;
+  color: #6b7280;
+  font-weight: 400;
+}
+
+.ri-guidelines-body {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 16px 16px 4px;
+}
+
+/* Colored section cards */
+.ri-guideline-card {
+  border-radius: 12px;
+  padding: 13px 15px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.ri-guideline-card--ok {
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+}
+
+.ri-guideline-card--no {
+  background: #fff7f7;
+  border: 1px solid #fecaca;
+}
+
+.ri-guideline-card--shield {
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+}
+
+.ri-guideline-card-heading {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.875rem;
+  font-weight: 700;
+}
+
+.ri-guideline-card--ok .ri-guideline-card-heading {
+  color: #15803d;
+}
+
+.ri-guideline-card--no .ri-guideline-card-heading {
+  color: #b91c1c;
+}
+
+.ri-guideline-card--shield .ri-guideline-card-heading {
+  color: #1d4ed8;
+}
+
+.ri-guideline-card-list {
+  margin: 0;
+  padding-left: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.ri-guideline-card-list li {
+  font-size: 0.82rem;
+  line-height: 1.5;
+}
+
+.ri-guideline-card--ok .ri-guideline-card-list li { color: #166534; }
+.ri-guideline-card--no .ri-guideline-card-list li { color: #7f1d1d; }
+.ri-guideline-card--shield .ri-guideline-card-list li { color: #1e3a8a; }
+
+.ri-guidelines-community-note {
+  margin: 4px 0 8px;
+  font-size: 0.8rem;
+  color: #6b7280;
+  text-align: center;
+  line-height: 1.5;
+  padding: 0 4px;
+}
+
+.ri-guidelines-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.625rem;
+  padding: 12px 16px 16px;
+  border-top: 1px solid #e5e7eb;
+  background: #fff;
+  border-radius: 0 0 1.25rem 1.25rem;
+  position: sticky;
+  bottom: 0;
+}
+
+@media (min-width: 600px) {
+  .ri-guidelines-actions {
+    border-radius: 0 0 1.25rem 1.25rem;
+  }
+}
+
+.ri-guidelines-back-btn {
+  padding: 0.55rem 1.125rem;
+  border: 1.5px solid #e5e7eb;
+  border-radius: 0.5rem;
+  background: #fff;
+  color: #374151;
+  font-family: var(--font-montserrat), sans-serif;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.ri-guidelines-back-btn:hover {
+  background: #f9fafb;
+  border-color: #d1d5db;
+}
+
+.ri-guidelines-agree-btn {
+  padding: 0.55rem 1.25rem;
+  border: none;
+  border-radius: 0.5rem;
+  background: #111827;
+  color: #fff;
+  font-family: var(--font-montserrat), sans-serif;
+  font-size: 0.875rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.15s, transform 0.12s;
+}
+
+.ri-guidelines-agree-btn:hover {
+  background: #1f2937;
+  transform: translateY(-1px);
+}
+
+.ri-guidelines-agree-btn:active {
+  transform: translateY(0);
+}
+

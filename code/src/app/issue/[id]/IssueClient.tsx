@@ -90,7 +90,7 @@ export default function IssueClient({ issueId: propIssueId }: { issueId: string 
   const searchParams = useSearchParams();
   const router = useRouter();
   const isNewReport = searchParams.get("new") === "1";
-  const showNewBanner = isNewReport;
+  const [showNewBanner, setShowNewBanner] = useState(isNewReport);
 
   // Silently remove ?new=1 from the URL so refresh doesn't re-show the banner
   useEffect(() => {
@@ -198,6 +198,7 @@ export default function IssueClient({ issueId: propIssueId }: { issueId: string 
       {showNewBanner && (
         <div className="story-new-banner">
           🎉 Your issue has been submitted! It is under review. Once approved by our team, it will be visible to everyone.
+          <button className="story-new-banner-close" onClick={() => setShowNewBanner(false)} aria-label="Dismiss">✕</button>
         </div>
       )}
       {/* Top nav */}

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
+import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import {
   X,
@@ -16,6 +17,7 @@ import {
 import { getAccessToken, buildGoogleAuthUrl } from "../../ops/lib/auth";
 import { API_PATHS } from "../../constants/api";
 import { GOOGLE_CLIENT_ID } from "../../ops/lib/constants";
+import { reverseGeocode, LocationMetadata } from "../../utils/geocoding";
 
 type Step =
   | "checking-auth"
@@ -53,18 +55,23 @@ interface ReportIssueModalProps {
 
 export default function ReportIssueModal({ onClose }: ReportIssueModalProps) {
   const router = useRouter();
+  const [mounted, setMounted] = useState(false);
   const [step, setStep] = useState<Step>("checking-auth");
   const [issueType, setIssueType] = useState<IssueType>("POTHOLE");
   const [description, setDescription] = useState("");
   const [capturedBlob, setCapturedBlob] = useState<Blob | null>(null);
   const [capturedPreviewUrl, setCapturedPreviewUrl] = useState<string | null>(null);
   const [location, setLocation] = useState<GeolocationPosition | null>(null);
+  const [locationMeta, setLocationMeta] = useState<LocationMetadata | null>(null);
   const [facingMode, setFacingMode] = useState<"environment" | "user">("environment");
   const [errorMsg, setErrorMsg] = useState("");
   const [submitStage, setSubmitStage] = useState<0 | 1 | 2 | 3>(0);
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
+
+  // Mount guard for portal (SSR safety)
+  useEffect(() => { setMounted(true); }, []);
 
   // Check auth on mount — directly kick off permissions if already signed in
   useEffect(() => {
@@ -137,6 +144,7 @@ export default function ReportIssueModal({ onClose }: ReportIssueModalProps) {
     streamRef.current = stream;
     setLocation(position);
     setStep("form");
+    reverseGeocode(position.coords.latitude, position.coords.longitude).then(setLocationMeta);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [facingMode]);
 
@@ -241,10 +249,7 @@ export default function ReportIssueModal({ onClose }: ReportIssueModalProps) {
       const locationPayload = {
         lat: latitude,
         lng: longitude,
-        meta_data: {
-          accuracy,
-          timestamp: location.timestamp,
-        },
+        meta_data: locationMeta ?? { accuracy, timestamp: location.timestamp },
       };
 
       const issueRes = await fetch(API_PATHS.reportIssue, {
@@ -304,7 +309,9 @@ export default function ReportIssueModal({ onClose }: ReportIssueModalProps) {
 
   const isCamera = step === "form" || step === "captured";
 
-  return (
+  if (!mounted) return null;
+
+  const modal = (
     <div
       className="ri-overlay"
       role="dialog"
@@ -543,4 +550,6 @@ export default function ReportIssueModal({ onClose }: ReportIssueModalProps) {
       </div>
     </div>
   );
+
+  return createPortal(modal, document.body);
 }
