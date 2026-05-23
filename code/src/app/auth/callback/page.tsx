@@ -46,12 +46,13 @@ function CallbackHandler() {
           refreshToken: { value: data.refresh_token.value, expiry: data.refresh_token.expiry },
         });
 
-        // Signal the report modal to auto-open after redirect
-        sessionStorage.setItem("report_issue_pending", "1");
-
-        // Return to the page the user came from (default: home)
-        const returnTo = sessionStorage.getItem("report_issue_return_to") ?? "/";
+        // Return to the page the user came from.
+        // Default includes ?autoopen=report so the modal always triggers even if
+        // sessionStorage was lost (e.g. Chrome Custom Tab / SFSafariViewController).
+        const returnTo = sessionStorage.getItem("report_issue_return_to") ?? "/?autoopen=report";
         sessionStorage.removeItem("report_issue_return_to");
+        // Also set the sessionStorage flag as a belt-and-suspenders fallback.
+        sessionStorage.setItem("report_issue_pending", "1");
         window.location.replace(returnTo);
       } catch (err) {
         setError(`Failed to authenticate: ${err}`);

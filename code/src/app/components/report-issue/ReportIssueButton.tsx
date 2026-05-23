@@ -38,22 +38,36 @@ export default function ReportIssueButton({ variant = "header" }: ReportIssueBut
   const [modalOpen, setModalOpen] = useState(false);
 
   useEffect(() => {
-    function checkPending() {
-      if (sessionStorage.getItem("report_issue_pending")) {
-        sessionStorage.removeItem("report_issue_pending");
-        if (hasRecentlyAccepted()) {
-          setModalOpen(true);
-        } else {
-          setGuidelinesOpen(true);
-        }
+    function open() {
+      if (hasRecentlyAccepted()) {
+        setModalOpen(true);
+      } else {
+        setGuidelinesOpen(true);
       }
     }
 
-    // Run on initial mount
-    checkPending();
+    // Primary: URL param set by auth callback.
+    // Using a URL param rather than sessionStorage means it works even when the
+    // mobile browser runs OAuth in a separate context (Custom Tab / SafariVC) and
+    // the original tab's sessionStorage is unreachable. The param also forces a
+    // fresh page load so the effect always runs (no bfcache restore).
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("autoopen") === "report") {
+      const clean = new URL(window.location.href);
+      clean.searchParams.delete("autoopen");
+      window.history.replaceState({}, "", clean.toString());
+      open();
+    }
 
-    // Also run on pageshow — fires when iOS Safari restores a page from bfcache
-    // (useEffect won't re-run in that case, but pageshow always does)
+    // Fallback: sessionStorage flag (covers the case where returnTo already had
+    // ?autoopen=report but bfcache somehow restored the page without it).
+    function checkPending() {
+      if (sessionStorage.getItem("report_issue_pending")) {
+        sessionStorage.removeItem("report_issue_pending");
+        open();
+      }
+    }
+    checkPending();
     window.addEventListener("pageshow", checkPending);
     return () => window.removeEventListener("pageshow", checkPending);
   }, []);
