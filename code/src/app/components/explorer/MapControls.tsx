@@ -56,6 +56,8 @@ export default function MapControls({
   const [filterOpen, setFilterOpen] = useState(false);
   const [cityOpen, setCityOpen] = useState(false);
   const [query, setQuery] = useState("");
+  const [nearbyCity, setNearbyCity] = useState<CityOption | null>(null);
+  const nearbyFetchedRef = useRef(false);
 
   const filterRef = useOutside<HTMLDivElement>(() => setFilterOpen(false));
   const cityRef = useOutside<HTMLDivElement>(() => {
@@ -69,6 +71,43 @@ export default function MapControls({
   const activeCount = activeSubFilters.size;
   const activeLayerLabel = LAYERS.find((l) => l.id === activeLayer)?.label ?? activeLayer;
 
+  function fetchNearbyCity() {
+    if (nearbyFetchedRef.current || !navigator.geolocation) return;
+    nearbyFetchedRef.current = true;
+    navigator.geolocation.getCurrentPosition(
+      async (pos) => {
+        try {
+          const { latitude: lat, longitude: lng } = pos.coords;
+          const res = await fetch(
+            `http://localhost:8080/api/localities/hashtag?lat=${lat}&lng=${lng}`,
+          );
+          if (!res.ok) return;
+          const json = await res.json();
+          const hashtag: string | undefined = json?.data?.hashtag;
+          if (!hashtag) return;
+          const normalized = hashtag.toLowerCase().replace(/^#/, "");
+          const match = cities.find(
+            (c) => c.label.toLowerCase().replace(/^#/, "") === normalized,
+          );
+          if (match) setNearbyCity(match);
+        } catch {
+          // silently fall back to normal flow
+        }
+      },
+      () => {
+        // permission denied — silently fall back to normal flow
+      },
+    );
+  }
+
+  const queryLower = query.toLowerCase();
+  const filteredCities = cities.filter((c) =>
+    c.label.toLowerCase().includes(queryLower),
+  );
+  const showNearby =
+    nearbyCity &&
+    nearbyCity.label.toLowerCase().includes(queryLower);
+
   return (
     <div className="xp-controls">
       {/* City selector — primary control */}
@@ -76,8 +115,10 @@ export default function MapControls({
         <button
           className="xp-city-btn"
           onClick={() => {
-            setCityOpen((o) => !o);
+            const opening = !cityOpen;
+            setCityOpen(opening);
             setQuery("");
+            if (opening) fetchNearbyCity();
           }}
           disabled={citiesLoading}
         >
@@ -104,10 +145,30 @@ export default function MapControls({
               />
             </div>
             <ul className="xp-menu-list">
-              {cities
-                .filter((c) =>
-                  c.label.toLowerCase().includes(query.toLowerCase()),
-                )
+              {showNearby && (
+                <>
+                  <li className="xp-menu-section-label">Near you</li>
+                  <li key={`nearby-${nearbyCity!.value}`}>
+                    <button
+                      className={`xp-menu-item ${
+                        nearbyCity!.value === selectedCity ? "is-active" : ""
+                      }`}
+                      onClick={() => {
+                        onCityChange(nearbyCity!.value);
+                        setCityOpen(false);
+                        setQuery("");
+                      }}
+                    >
+                      <MapPin size={13} className="xp-menu-item-pin" />
+                      {nearbyCity!.label}
+                      {nearbyCity!.value === selectedCity && <Check size={14} />}
+                    </button>
+                  </li>
+                  <li className="xp-menu-divider" />
+                </>
+              )}
+              {filteredCities
+                .filter((c) => !showNearby || c.value !== nearbyCity!.value)
                 .map((c) => (
                   <li key={c.value}>
                     <button
@@ -125,9 +186,7 @@ export default function MapControls({
                     </button>
                   </li>
                 ))}
-              {cities.filter((c) =>
-                c.label.toLowerCase().includes(query.toLowerCase()),
-              ).length === 0 && (
+              {filteredCities.length === 0 && !showNearby && (
                 <li className="xp-menu-empty">No city found</li>
               )}
             </ul>
