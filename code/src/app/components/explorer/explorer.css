@@ -802,8 +802,7 @@
   }
 
   .xp-legend {
-    left: 12px;
-    bottom: calc(46% + 12px);
+    display: none;
   }
 
   /* Panel docks to the bottom as a sheet, tab rail on top */
