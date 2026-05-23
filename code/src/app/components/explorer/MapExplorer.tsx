@@ -304,7 +304,7 @@ export default function MapExplorer() {
         </div>
 
         {/* Report Issue — bottom-center CTA */}
-        <div className="xp-report-btn-bottom">
+        <div className={`xp-report-btn-bottom${panelOpen ? "" : " is-panel-collapsed"}`}>
           <ReportIssueButton variant="map-bottom" />
         </div>
 

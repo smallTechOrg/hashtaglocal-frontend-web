@@ -8,14 +8,30 @@
 
 /* New-report banner */
 .story-new-banner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
   background: #ecfce7;
   color: #1a5c13;
   border-bottom: 1px solid #a8e6a1;
   padding: 0.7rem 1.25rem;
   font-size: 0.875rem;
   font-weight: 600;
-  text-align: center;
   line-height: 1.4;
+}
+.story-new-banner-close {
+  flex-shrink: 0;
+  background: none;
+  border: none;
+  color: #1a5c13;
+  font-size: 1rem;
+  cursor: pointer;
+  padding: 0 0.25rem;
+  opacity: 0.6;
+}
+.story-new-banner-close:hover {
+  opacity: 1;
 }
 
 /* Nav */

@@ -17,6 +17,7 @@ import {
 import { getAccessToken, buildGoogleAuthUrl } from "../../ops/lib/auth";
 import { API_PATHS } from "../../constants/api";
 import { GOOGLE_CLIENT_ID } from "../../ops/lib/constants";
+import { reverseGeocode, LocationMetadata } from "../../utils/geocoding";
 
 type Step =
   | "checking-auth"
@@ -61,6 +62,7 @@ export default function ReportIssueModal({ onClose }: ReportIssueModalProps) {
   const [capturedBlob, setCapturedBlob] = useState<Blob | null>(null);
   const [capturedPreviewUrl, setCapturedPreviewUrl] = useState<string | null>(null);
   const [location, setLocation] = useState<GeolocationPosition | null>(null);
+  const [locationMeta, setLocationMeta] = useState<LocationMetadata | null>(null);
   const [facingMode, setFacingMode] = useState<"environment" | "user">("environment");
   const [errorMsg, setErrorMsg] = useState("");
   const [submitStage, setSubmitStage] = useState<0 | 1 | 2 | 3>(0);
@@ -142,6 +144,7 @@ export default function ReportIssueModal({ onClose }: ReportIssueModalProps) {
     streamRef.current = stream;
     setLocation(position);
     setStep("form");
+    reverseGeocode(position.coords.latitude, position.coords.longitude).then(setLocationMeta);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [facingMode]);
 
@@ -246,10 +249,7 @@ export default function ReportIssueModal({ onClose }: ReportIssueModalProps) {
       const locationPayload = {
         lat: latitude,
         lng: longitude,
-        meta_data: {
-          accuracy,
-          timestamp: location.timestamp,
-        },
+        meta_data: locationMeta ?? { accuracy, timestamp: location.timestamp },
       };
 
       const issueRes = await fetch(API_PATHS.reportIssue, {

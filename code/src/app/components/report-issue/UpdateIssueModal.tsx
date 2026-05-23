@@ -13,6 +13,7 @@ import {
 import { getAccessToken, buildGoogleAuthUrl } from "../../ops/lib/auth";
 import { API_PATHS } from "../../constants/api";
 import { GOOGLE_CLIENT_ID } from "../../ops/lib/constants";
+import { reverseGeocode, LocationMetadata } from "../../utils/geocoding";
 import "./reportIssue.css";
 
 type Action = "VERIFY" | "RESOLVE";
@@ -47,6 +48,7 @@ export default function UpdateIssueModal({
   const [capturedBlob, setCapturedBlob] = useState<Blob | null>(null);
   const [capturedPreviewUrl, setCapturedPreviewUrl] = useState<string | null>(null);
   const [location, setLocation] = useState<GeolocationCoordinates | null>(null);
+  const [locationMeta, setLocationMeta] = useState<LocationMetadata | null>(null);
   const [facingMode, setFacingMode] = useState<"environment" | "user">("environment");
   const [errorMsg, setErrorMsg] = useState("");
 
@@ -112,6 +114,7 @@ export default function UpdateIssueModal({
         });
       });
       setLocation(position.coords);
+      reverseGeocode(position.coords.latitude, position.coords.longitude).then(setLocationMeta);
     } catch {
       setLocation(null);
     }
@@ -207,7 +210,7 @@ export default function UpdateIssueModal({
         mediaEntry.location = {
           lat: location.latitude,
           lng: location.longitude,
-          meta_data: { accuracy: location.accuracy },
+          meta_data: locationMeta ?? { accuracy: location.accuracy },
         };
       }
       if (description.trim()) mediaEntry.description = description.trim();

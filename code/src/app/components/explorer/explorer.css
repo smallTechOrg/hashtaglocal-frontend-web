@@ -992,6 +992,9 @@
   .xp-report-btn-bottom {
     bottom: 48%;
   }
+  .xp-report-btn-bottom.is-panel-collapsed {
+    bottom: 50px;
+  }
 
   /* Panel docks to the bottom as a sheet, tab rail on top */
   .xp-panel-dock {
