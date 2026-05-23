@@ -302,8 +302,11 @@ export default function ReportIssueModal({ onClose }: ReportIssueModalProps) {
   }
 
   function handleGoogleSignIn() {
-    // Remember current page so the callback can return here
-    sessionStorage.setItem("report_issue_return_to", window.location.pathname);
+    // Embed ?autoopen=report in the return URL — this survives any mobile browser
+    // context switch (Chrome Custom Tab, SFSafariViewController, bfcache) because
+    // URL params are always present on fresh load regardless of sessionStorage state.
+    const returnTo = `${window.location.pathname}?autoopen=report`;
+    sessionStorage.setItem("report_issue_return_to", returnTo);
     const redirectUri = `${window.location.origin}/auth/callback`;
     const url = buildGoogleAuthUrl(GOOGLE_CLIENT_ID, redirectUri);
     window.location.href = url;
