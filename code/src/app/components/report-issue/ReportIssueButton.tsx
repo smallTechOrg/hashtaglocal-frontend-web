@@ -38,16 +38,24 @@ export default function ReportIssueButton({ variant = "header" }: ReportIssueBut
   const [modalOpen, setModalOpen] = useState(false);
 
   useEffect(() => {
-    // Auto-open if user just returned from Google sign-in
-    if (typeof window !== "undefined" && sessionStorage.getItem("report_issue_pending")) {
-      sessionStorage.removeItem("report_issue_pending");
-      // If already accepted guidelines, skip straight to the form
-      if (hasRecentlyAccepted()) {
-        setModalOpen(true);
-      } else {
-        setGuidelinesOpen(true);
+    function checkPending() {
+      if (sessionStorage.getItem("report_issue_pending")) {
+        sessionStorage.removeItem("report_issue_pending");
+        if (hasRecentlyAccepted()) {
+          setModalOpen(true);
+        } else {
+          setGuidelinesOpen(true);
+        }
       }
     }
+
+    // Run on initial mount
+    checkPending();
+
+    // Also run on pageshow — fires when iOS Safari restores a page from bfcache
+    // (useEffect won't re-run in that case, but pageshow always does)
+    window.addEventListener("pageshow", checkPending);
+    return () => window.removeEventListener("pageshow", checkPending);
   }, []);
 
   const handleOpen = () => {
