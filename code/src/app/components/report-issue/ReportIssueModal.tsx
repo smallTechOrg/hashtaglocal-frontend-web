@@ -66,6 +66,7 @@ export default function ReportIssueModal({ onClose }: ReportIssueModalProps) {
   const [facingMode, setFacingMode] = useState<"environment" | "user">("environment");
   const [errorMsg, setErrorMsg] = useState("");
   const [submitStage, setSubmitStage] = useState<0 | 1 | 2 | 3>(0);
+  const [locationLoading, setLocationLoading] = useState(false);
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -115,6 +116,7 @@ export default function ReportIssueModal({ onClose }: ReportIssueModalProps) {
 
   const requestPermissions = useCallback(async () => {
     setStep("requesting-perms");
+    setLocationLoading(false);
 
     let stream: MediaStream;
     try {
@@ -125,26 +127,30 @@ export default function ReportIssueModal({ onClose }: ReportIssueModalProps) {
       return;
     }
 
-    let position: GeolocationPosition;
+    // Show camera immediately — don't block on location
+    streamRef.current = stream;
+    setStep("form");
+    setLocationLoading(true);
+
+    // Fetch location in the background so the camera is visible right away
     try {
-      position = await new Promise<GeolocationPosition>((resolve, reject) => {
+      const position = await new Promise<GeolocationPosition>((resolve, reject) => {
         navigator.geolocation.getCurrentPosition(resolve, reject, {
           enableHighAccuracy: true,
           timeout: 15000,
           maximumAge: 0,
         });
       });
+      setLocation(position);
+      setLocationLoading(false);
+      reverseGeocode(position.coords.latitude, position.coords.longitude).then(setLocationMeta);
     } catch {
       stream.getTracks().forEach((t) => t.stop());
+      streamRef.current = null;
+      setLocationLoading(false);
       setErrorMsg("Location access was denied. Location permission is required to report an issue.");
       setStep("perms-denied");
-      return;
     }
-
-    streamRef.current = stream;
-    setLocation(position);
-    setStep("form");
-    reverseGeocode(position.coords.latitude, position.coords.longitude).then(setLocationMeta);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [facingMode]);
 
@@ -152,6 +158,8 @@ export default function ReportIssueModal({ onClose }: ReportIssueModalProps) {
   useEffect(() => {
     if (step === "form" && videoRef.current && streamRef.current) {
       videoRef.current.srcObject = streamRef.current;
+      // Explicit play() needed on some mobile browsers even with autoPlay attribute
+      videoRef.current.play().catch(() => {});
     }
   }, [step]);
 
@@ -441,14 +449,19 @@ export default function ReportIssueModal({ onClose }: ReportIssueModalProps) {
               {/* Form fields */}
               <div className="ri-form-fields">
                 {/* Location badge */}
-                {location && (
+                {locationLoading ? (
+                  <div className="ri-location-badge">
+                    <Loader2 size={13} className="ri-icon-spin" />
+                    <span>Detecting location…</span>
+                  </div>
+                ) : location ? (
                   <div className="ri-location-badge">
                     <MapPin size={13} />
                     <span>
                       Location captured &nbsp;·&nbsp;{location.coords.accuracy.toFixed(0)} m accuracy
                     </span>
                   </div>
-                )}
+                ) : null}
 
                 {/* Description */}
                 <div className="ri-field">
@@ -484,9 +497,13 @@ export default function ReportIssueModal({ onClose }: ReportIssueModalProps) {
 
                 {/* Actions */}
                 {step === "captured" ? (
-                  <button onClick={handleSubmit} className="ri-submit-btn">
+                  <button
+                    onClick={handleSubmit}
+                    className="ri-submit-btn"
+                    disabled={locationLoading}
+                  >
                     <Send size={15} />
-                    Submit Report
+                    {locationLoading ? "Waiting for location…" : "Submit Report"}
                   </button>
                 ) : (
                   <p className="ri-hint ri-hint-center">Take a photo to continue</p>

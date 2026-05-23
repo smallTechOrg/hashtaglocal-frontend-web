@@ -543,8 +543,13 @@
   margin-top: 0.125rem;
 }
 
-.ri-submit-btn:hover {
+.ri-submit-btn:hover:not(:disabled) {
   background: #1e5914;
+}
+
+.ri-submit-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
 }
 
 /* Small hint / helper text */
