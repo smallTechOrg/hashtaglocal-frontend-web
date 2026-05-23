@@ -16,31 +16,31 @@ function GooglePlayBadge() {
   return (
     <svg viewBox="0 0 135 40" xmlns="http://www.w3.org/2000/svg" aria-label="Get it on Google Play">
       <rect width="135" height="40" rx="5" fill="#000"/>
-      <path d="M7.2 40C6.1 40 5 39.5 4.2 38.7 3.4 37.9 3 36.9 3 35.8V4.2C3 3.1 3.4 2.1 4.2 1.3 5 .5 6.1 0 7.2 0h120.6c1.1 0 2.2.5 3 1.3.8.8 1.2 1.8 1.2 2.9v31.6c0 1.1-.4 2.1-1.2 2.9-.8.8-1.9 1.3-3 1.3H7.2z" fill="#A6A6A6"/>
-      <path d="M127.8 1c.6 0 1.2.2 1.7.7.5.5.7 1 .7 1.7v31.2c0 .6-.2 1.2-.7 1.7-.5.5-1 .7-1.7.7H7.2c-.6 0-1.2-.2-1.7-.7-.5-.5-.7-1-.7-1.7V3.4c0-.6.2-1.2.7-1.7.5-.5 1-.7 1.7-.7h120.6M127.8 0H7.2C5.3 0 3.7.7 2.5 1.9 1.3 3.1.6 4.7.6 6.5v27c0 1.8.7 3.4 1.9 4.6C3.7 39.3 5.3 40 7.2 40h120.6c1.9 0 3.5-.7 4.7-1.9 1.2-1.2 1.9-2.8 1.9-4.6V6.5c0-1.8-.7-3.4-1.9-4.6C131.3.7 129.7 0 127.8 0z" fill="#000"/>
-      {/* Play icon */}
-      <path d="M19 20l-8-13.9v27.8L19 20z" fill="url(#gp-grad1)"/>
-      <path d="M27 11.9L19 20l3.5 3.5 8.5-4.9c.9-.5.9-1.7 0-2.2L27 11.9z" fill="url(#gp-grad2)"/>
-      <path d="M11 6.1L27 16.4l-8 8-8-13.9V6.1z" fill="url(#gp-grad3)"/>
-      <path d="M11 33.9v-5.4L19 20l8 8-16 5.9z" fill="url(#gp-grad4)"/>
+      <rect x=".5" y=".5" width="134" height="39" rx="4.5" fill="none" stroke="#A6A6A6"/>
       <defs>
-        <linearGradient id="gp-grad1" x1="11" y1="20" x2="19" y2="20" gradientUnits="userSpaceOnUse">
+        {/* Play icon gradients — 4 non-overlapping pieces of the play triangle */}
+        <linearGradient id="gp-blue" x1="9" y1="20" x2="20" y2="20" gradientUnits="userSpaceOnUse">
           <stop offset="0" stopColor="#00A0FF"/>
-          <stop offset="1" stopColor="#00A1FF"/>
+          <stop offset="1" stopColor="#00BEFF"/>
         </linearGradient>
-        <linearGradient id="gp-grad2" x1="38" y1="20" x2="11" y2="20" gradientUnits="userSpaceOnUse">
-          <stop offset="0" stopColor="#FFD900"/>
-          <stop offset="1" stopColor="#FFBD00"/>
-        </linearGradient>
-        <linearGradient id="gp-grad3" x1="11" y1="20" x2="27" y2="6" gradientUnits="userSpaceOnUse">
+        <linearGradient id="gp-red" x1="9" y1="7" x2="27" y2="17.6" gradientUnits="userSpaceOnUse">
           <stop offset="0" stopColor="#FF3A44"/>
           <stop offset="1" stopColor="#C31162"/>
         </linearGradient>
-        <linearGradient id="gp-grad4" x1="11" y1="28" x2="27" y2="20" gradientUnits="userSpaceOnUse">
+        <linearGradient id="gp-green" x1="9" y1="33" x2="27" y2="22.4" gradientUnits="userSpaceOnUse">
           <stop offset="0" stopColor="#32A071"/>
-          <stop offset="1" stopColor="#2DA771"/>
+          <stop offset="1" stopColor="#00F076"/>
+        </linearGradient>
+        <linearGradient id="gp-yellow" x1="20" y1="20" x2="31" y2="20" gradientUnits="userSpaceOnUse">
+          <stop offset="0" stopColor="#FFBD00"/>
+          <stop offset="1" stopColor="#FFD900"/>
         </linearGradient>
       </defs>
+      {/* Play icon: triangle (9,7)→(31,20)→(9,33) split into 4 non-overlapping pieces */}
+      <path d="M9 7L9 33L20 20Z" fill="url(#gp-blue)"/>
+      <path d="M9 7L20 20L27 17.6Z" fill="url(#gp-red)"/>
+      <path d="M9 33L27 22.4L20 20Z" fill="url(#gp-green)"/>
+      <path d="M20 20L27 17.6L31 20L27 22.4Z" fill="url(#gp-yellow)"/>
       {/* Text */}
       <text x="36" y="14" fill="#fff" fontSize="7" fontFamily="sans-serif" letterSpacing="0.3">GET IT ON</text>
       <text x="36" y="26" fill="#fff" fontSize="13" fontFamily="sans-serif" fontWeight="bold" letterSpacing="-0.2">Google Play</text>
