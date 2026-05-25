@@ -652,6 +652,13 @@
   flex-shrink: 0;
 }
 
+.story-update-error {
+  font-size: 0.8rem;
+  color: #b91c1c;
+  margin: -0.25rem 0 0;
+  padding: 0 0.25rem;
+}
+
 /* Mobile */
 @media (max-width: 480px) {
   .story-title {
