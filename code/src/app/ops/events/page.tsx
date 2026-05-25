@@ -54,7 +54,7 @@ export default function EventsPage() {
   const [creating, setCreating] = useState(false);
   const [createForm, setCreateForm] = useState({
     name: "", organisation: "", address: "",
-    start_time: "", end_time: "", link: "", type: "OTHER",
+    start_time: "", end_time: "", link: "", type: "OTHER", image_url: "",
   });
 
   // ── Edit form ──
@@ -81,7 +81,7 @@ export default function EventsPage() {
       if (err instanceof DOMException && err.name === "AbortError") return;
       toast.error(`Failed to load events: ${err}`);
     } finally {
-      setLoading(false);
+      if (!signal?.aborted) setLoading(false);
     }
   }, []);
 
@@ -118,12 +118,20 @@ export default function EventsPage() {
           end_time: toLocalDateTime(createForm.end_time) || null,
           link: createForm.link,
           type: createForm.type,
+          image_url: createForm.image_url || null,
         }),
       });
-      if (!res.ok) throw new Error(`${res.status}`);
+      if (!res.ok) {
+        let msg = `${res.status}`;
+        try {
+          const body = await res.json();
+          if (body?.message) msg = body.message;
+        } catch { /* ignore */ }
+        throw new Error(msg);
+      }
       toast.success("Event created and live");
       setShowCreateForm(false);
-      setCreateForm({ name: "", organisation: "", address: "", start_time: "", end_time: "", link: "", type: "OTHER" });
+      setCreateForm({ name: "", organisation: "", address: "", start_time: "", end_time: "", link: "", type: "OTHER", image_url: "" });
       loadEvents();
     } catch (err) {
       toast.error(`Failed to create event: ${err}`);
@@ -267,6 +275,11 @@ export default function EventsPage() {
                   {EVENT_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
                 </select>
               </div>
+              <div>
+                <label className="text-xs text-zinc-400 mb-1 block">Image URL *</label>
+                <Input required type="url" value={createForm.image_url} onChange={(e) => setCreateField("image_url", e.target.value)}
+                  placeholder="https://cdn.example.com/banner.jpg" className="h-8 text-sm bg-zinc-800 border-zinc-700 text-zinc-200" />
+              </div>
               <div className="flex justify-end gap-2 pt-2">
                 <Button type="button" variant="ghost" size="sm" onClick={() => setShowCreateForm(false)} className="text-zinc-400">Cancel</Button>
                 <Button type="submit" size="sm" disabled={creating} className="bg-emerald-700 hover:bg-emerald-600 text-white">
@@ -364,8 +377,9 @@ export default function EventsPage() {
       )}
 
       {loading ? (
-        <div className="flex items-center justify-center min-h-[60vh]">
-          <Loader2 className="w-8 h-8 text-zinc-600 animate-spin" />
+        <div className="flex flex-col items-center justify-center min-h-[60vh] gap-3">
+          <Loader2 className="w-8 h-8 text-white animate-spin" />
+          <p className="text-zinc-400 text-sm">Loading events…</p>
         </div>
       ) : events.length === 0 ? (
         <div className="flex flex-col items-center justify-center min-h-[60vh] gap-3">
