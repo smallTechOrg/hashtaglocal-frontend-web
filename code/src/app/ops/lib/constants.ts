@@ -56,4 +56,10 @@ export const ADMIN_API = {
 
   /** Manually create an event via the ops portal */
   createEvent: `${BASE_URL}/admin/event/manual`,
+
+  /** Edit an existing event */
+  editEvent: (eventId: number) => `${BASE_URL}/admin/event/${eventId}`,
+
+  /** Permanently delete an event */
+  deleteEvent: (eventId: number) => `${BASE_URL}/admin/event/${eventId}`,
 };
