@@ -5,7 +5,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { isAuthenticated, clearTokens } from "./lib/auth";
 import { useEffect, useState } from "react";
-import { Shield, List, LogOut, ArrowLeft, History } from "lucide-react";
+import { Shield, List, LogOut, ArrowLeft, History, Calendar } from "lucide-react";
 import { Toaster } from "sonner";
 
 export default function OpsLayout({ children }: { children: React.ReactNode }) {
@@ -96,6 +96,17 @@ export default function OpsLayout({ children }: { children: React.ReactNode }) {
           >
             <History className="w-4 h-4" />
             <span className="hidden sm:inline">History</span>
+          </Link>
+          <Link
+            href="/ops/events"
+            className={`flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-md transition ${
+              pathname === "/ops/events"
+                ? "bg-zinc-800 text-white"
+                : "text-zinc-400 hover:text-white hover:bg-zinc-800/50"
+            }`}
+          >
+            <Calendar className="w-4 h-4" />
+            <span className="hidden sm:inline">Events</span>
           </Link>
           <button
             onClick={handleLogout}

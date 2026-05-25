@@ -1,3 +1,25 @@
+/** A scraped event as returned by the admin event endpoints */
+export interface AdminEvent {
+  id: number;
+  name: string;
+  display_name: string | null;
+  organisation: string | null;
+  portal: string | null;
+  type: string | null;
+  start_time: string;
+  end_time: string | null;
+  location: {
+    lat: number;
+    lng: number;
+    name: string;
+    locality: { hashtags: string[] } | null;
+  } | null;
+  address: string;
+  link: string;
+  image_url: string | null;
+  approval_status: "PENDING" | "APPROVED" | "REJECTED" | null;
+}
+
 /** A recently reviewed (approved or rejected) action */
 export interface ReviewedAction {
   action_id: number;

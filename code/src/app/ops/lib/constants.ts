@@ -39,4 +39,21 @@ export const ADMIN_API = {
   /** Report issue to government complaint portal */
   reportComplaint: (issueId: number) =>
     `${BASE_URL}/api/v1/portal/REPORT_ISSUE?issue_id=${encodeURIComponent(String(issueId))}`,
+
+  // ---- Event approval ----
+
+  /** List scraped events awaiting admin review (geocoded only) */
+  pendingEvents: `${BASE_URL}/admin/event/pending`,
+
+  /** Approve an event, optionally setting a display name override */
+  approveEvent: (eventId: number) => `${BASE_URL}/admin/event/${eventId}/approve`,
+
+  /** Reject an event */
+  rejectEvent: (eventId: number) => `${BASE_URL}/admin/event/${eventId}/reject`,
+
+  /** List already-reviewed (approved / rejected) events */
+  eventHistory: `${BASE_URL}/admin/event/history`,
+
+  /** Manually create an event via the ops portal */
+  createEvent: `${BASE_URL}/admin/event/manual`,
 };
