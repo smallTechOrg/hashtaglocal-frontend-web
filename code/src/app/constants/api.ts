@@ -8,6 +8,8 @@ export const API_PATHS = {
   issue: (id: number | string) => `${API_V1_BASE}/issue/${id}`,
   events: `${API_V1_BASE}/events`,
   polygons: `${API_ROOT}/localities/polygons`,
+  localityByCoords: (lat: number, lng: number) =>
+    `${API_ROOT}/localities/hashtag?lat=${lat}&lng=${lng}`,
   reportIssue: `${API_V1_BASE}/issue`,
   mediaUploadUrl: (contentType: string) =>
     `${API_V1_BASE}/media/upload-url?content_type=${encodeURIComponent(contentType)}`,

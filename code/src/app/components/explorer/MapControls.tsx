@@ -8,6 +8,7 @@ import {
   MapPin,
 } from "lucide-react";
 import { LAYERS, LayerId, SubFilter } from "./layerConfig";
+import { API_PATHS } from "../../constants/api";
 
 export interface CityOption {
   label: string;
@@ -57,6 +58,7 @@ export default function MapControls({
   const [cityOpen, setCityOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [nearbyCity, setNearbyCity] = useState<CityOption | null>(null);
+  const [nearbyHashtag, setNearbyHashtag] = useState<string | null>(null);
   const nearbyFetchedRef = useRef(false);
 
   const filterRef = useOutside<HTMLDivElement>(() => setFilterOpen(false));
@@ -65,11 +67,18 @@ export default function MapControls({
     setQuery("");
   });
 
+  useEffect(() => {
+    if (!navigator.permissions) return;
+    navigator.permissions.query({ name: "geolocation" }).then((status) => {
+      if (status.state === "granted") fetchNearbyCity();
+    });
+   
+  }, []);
+
   const activeCity =
     cities.find((c) => c.value === selectedCity)?.label ??
     decodeURIComponent(selectedCity);
   const activeCount = activeSubFilters.size;
-  const activeLayerLabel = LAYERS.find((l) => l.id === activeLayer)?.label ?? activeLayer;
 
   function fetchNearbyCity() {
     if (nearbyFetchedRef.current || !navigator.geolocation) return;
@@ -78,18 +87,12 @@ export default function MapControls({
       async (pos) => {
         try {
           const { latitude: lat, longitude: lng } = pos.coords;
-          const res = await fetch(
-            `http://localhost:8080/api/localities/hashtag?lat=${lat}&lng=${lng}`,
-          );
+          const res = await fetch(API_PATHS.localityByCoords(lat, lng));
           if (!res.ok) return;
           const json = await res.json();
           const hashtag: string | undefined = json?.data?.hashtag;
           if (!hashtag) return;
-          const normalized = hashtag.toLowerCase().replace(/^#/, "");
-          const match = cities.find(
-            (c) => c.label.toLowerCase().replace(/^#/, "") === normalized,
-          );
-          if (match) setNearbyCity(match);
+          setNearbyHashtag(hashtag.toLowerCase().replace(/^#/, ""));
         } catch {
           // silently fall back to normal flow
         }
@@ -99,6 +102,17 @@ export default function MapControls({
       },
     );
   }
+
+  useEffect(() => {
+    if (!nearbyHashtag || cities.length === 0) return;
+    const match = cities.find(
+      (c) => c.label.toLowerCase().replace(/^#/, "") === nearbyHashtag,
+    );
+    if (match) {
+      setNearbyCity(match);
+      onCityChange(match.value);
+    }
+  }, [nearbyHashtag, cities]);
 
   const queryLower = query.toLowerCase();
   const filteredCities = cities.filter((c) =>
