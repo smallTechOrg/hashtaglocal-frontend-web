@@ -67,7 +67,7 @@ export default function UpdateFormClient() {
   useEffect(() => {
     if (!id) return;
     if (!reportData.current.blob) {
-      router.replace(`/update/${id}/camera?type=${encodeURIComponent(issueType)}`);
+      router.replace(`/update/index/camera?id=${id}&type=${encodeURIComponent(issueType)}`);
     }
   }, [router, id, issueType]);
 
