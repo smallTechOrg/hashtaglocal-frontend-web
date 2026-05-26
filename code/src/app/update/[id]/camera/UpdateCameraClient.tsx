@@ -13,7 +13,7 @@ export default function UpdateCameraClient() {
     const id = (pathId && pathId !== "index") ? pathId : (params.get("id") ?? null);
     const type = params.get("type") ?? "";
     if (id) {
-      setNextPath(`/update/${id}/form?type=${encodeURIComponent(type)}`);
+      setNextPath(`/update/index/form?id=${id}&type=${encodeURIComponent(type)}`);
     }
   }, []);
 
