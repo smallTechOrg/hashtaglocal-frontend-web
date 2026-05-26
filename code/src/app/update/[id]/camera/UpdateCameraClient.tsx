@@ -8,8 +8,10 @@ export default function UpdateCameraClient() {
 
   useEffect(() => {
     const match = window.location.pathname.match(/\/update\/([^/]+)\/camera/);
-    const id = match?.[1] && match[1] !== "index" ? match[1] : null;
-    const type = new URLSearchParams(window.location.search).get("type") ?? "";
+    const params = new URLSearchParams(window.location.search);
+    const pathId = match?.[1];
+    const id = (pathId && pathId !== "index") ? pathId : (params.get("id") ?? null);
+    const type = params.get("type") ?? "";
     if (id) {
       setNextPath(`/update/${id}/form?type=${encodeURIComponent(type)}`);
     }

@@ -2,14 +2,18 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { RotateCcw, SwitchCamera, ZapOff } from "lucide-react";
+import { RotateCcw, SwitchCamera, Zap, ZapOff } from "lucide-react";
 import { setReportBlob } from "./reportStore";
 import "./reportIssue.css";
 
 interface CameraCaptureProps {
-  /** Path to push to after "Use Photo" is confirmed */
   nextPath: string;
 }
+
+type ExtendedCapabilities = MediaTrackCapabilities & {
+  zoom?: { min: number; max: number; step?: number };
+  torch?: boolean;
+};
 
 export default function CameraCapture({ nextPath }: CameraCaptureProps) {
   const router = useRouter();
@@ -17,6 +21,12 @@ export default function CameraCapture({ nextPath }: CameraCaptureProps) {
   const [facingMode, setFacingMode] = useState<"environment" | "user">("environment");
   const [capturedUrl, setCapturedUrl] = useState<string | null>(null);
   const [capturedBlob, setCapturedBlob] = useState<Blob | null>(null);
+
+  const [zoomSupported, setZoomSupported] = useState(false);
+  const [torchSupported, setTorchSupported] = useState(false);
+  const [zoom, setZoom] = useState<1 | 2>(1);
+  const [torchOn, setTorchOn] = useState(false);
+  const [capError, setCapError] = useState<string | null>(null);
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -26,19 +36,37 @@ export default function CameraCapture({ nextPath }: CameraCaptureProps) {
     streamRef.current = null;
   }, []);
 
+  function checkCapabilities(stream: MediaStream) {
+    const track = stream.getVideoTracks()[0];
+    if (!track) return;
+    try {
+      const caps = track.getCapabilities?.() as ExtendedCapabilities | undefined;
+      setZoomSupported(!!caps?.zoom);
+      setTorchSupported(!!caps?.torch);
+    } catch {
+      // getCapabilities not available
+    }
+  }
+
   const startStream = useCallback(
     async (facing: "environment" | "user") => {
       stopStream();
+      setZoomSupported(false);
+      setTorchSupported(false);
+      setZoom(1);
+      setTorchOn(false);
       try {
         const stream = await navigator.mediaDevices.getUserMedia({
           video: { facingMode: facing, width: { ideal: 1280 }, height: { ideal: 720 } },
           audio: false,
         });
         streamRef.current = stream;
+        checkCapabilities(stream);
         return stream;
       } catch {
         const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
         streamRef.current = stream;
+        checkCapabilities(stream);
         return stream;
       }
     },
@@ -62,6 +90,36 @@ export default function CameraCapture({ nextPath }: CameraCaptureProps) {
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  function showCapError(msg: string) {
+    setCapError(msg);
+    setTimeout(() => setCapError(null), 3000);
+  }
+
+  async function applyZoom(level: 1 | 2) {
+    const track = streamRef.current?.getVideoTracks()[0];
+    if (!track) return;
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await (track as any).applyConstraints({ advanced: [{ zoom: level }] });
+      setZoom(level);
+    } catch {
+      showCapError("Zoom is not supported on this device");
+    }
+  }
+
+  async function toggleTorch() {
+    const track = streamRef.current?.getVideoTracks()[0];
+    if (!track) return;
+    const next = !torchOn;
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await (track as any).applyConstraints({ advanced: [{ torch: next }] });
+      setTorchOn(next);
+    } catch {
+      showCapError("Flash is not supported on this device");
+    }
+  }
 
   async function switchCamera() {
     const next = facingMode === "environment" ? "user" : "environment";
@@ -125,25 +183,53 @@ export default function CameraCapture({ nextPath }: CameraCaptureProps) {
         ) : null}
       </div>
 
+      {capError && (
+        <div className="rc-cap-error">{capError}</div>
+      )}
+
       {step === "live" ? (
         <div className="rc-controls">
           <div className="rc-controls-top">
-            <button className="rc-icon-btn" aria-label="Flash off">
-              <ZapOff size={20} />
-            </button>
+            {torchSupported && (
+              <button
+                className={`rc-icon-btn${torchOn ? " rc-icon-btn--active" : ""}`}
+                aria-label={torchOn ? "Flash on" : "Flash off"}
+                onClick={toggleTorch}
+              >
+                {torchOn ? <Zap size={20} /> : <ZapOff size={20} />}
+              </button>
+            )}
             <button className="rc-icon-btn rc-icon-btn--right" onClick={switchCamera} aria-label="Switch camera">
               <SwitchCamera size={20} />
             </button>
           </div>
           <div className="rc-controls-bottom">
-            <span className="rc-zoom-label">Zoom: 1.0x</span>
+            {zoomSupported ? (
+              <span className="rc-zoom-label">Zoom: {zoom}.0x</span>
+            ) : (
+              <span className="rc-zoom-label" />
+            )}
             <button className="rc-shutter" onClick={capturePhoto} aria-label="Take photo">
               <span className="rc-shutter-inner" />
             </button>
-            <div className="rc-zoom-btns">
-              <button className="rc-zoom-btn rc-zoom-btn--active">1x</button>
-              <button className="rc-zoom-btn">2x</button>
-            </div>
+            {zoomSupported ? (
+              <div className="rc-zoom-btns">
+                <button
+                  className={`rc-zoom-btn${zoom === 1 ? " rc-zoom-btn--active" : ""}`}
+                  onClick={() => applyZoom(1)}
+                >
+                  1x
+                </button>
+                <button
+                  className={`rc-zoom-btn${zoom === 2 ? " rc-zoom-btn--active" : ""}`}
+                  onClick={() => applyZoom(2)}
+                >
+                  2x
+                </button>
+              </div>
+            ) : (
+              <div className="rc-zoom-btns" />
+            )}
           </div>
           <p className="rc-tap-hint">Tap to capture</p>
         </div>
