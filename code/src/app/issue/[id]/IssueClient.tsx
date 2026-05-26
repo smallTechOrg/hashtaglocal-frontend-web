@@ -384,7 +384,7 @@ export default function IssueClient({ issueId: propIssueId }: { issueId: string 
               <span className="story-update-btn-icon">📸</span>
               <span className="story-update-btn-text">
                 <span className="story-update-btn-label">
-                  {updateChecking ? "Checking…" : "Update this Issue"}
+                  {updateChecking ? "Checking for Camera and Location…" : "Update this Issue"}
                 </span>
                 <span className="story-update-btn-sub">Add a photo to verify or mark as resolved</span>
               </span>

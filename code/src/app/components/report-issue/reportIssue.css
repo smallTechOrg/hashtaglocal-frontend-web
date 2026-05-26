@@ -904,6 +904,101 @@
 }
 
 /* ─────────────────────────────────────────────
+   Sign-in bottom sheet
+   ───────────────────────────────────────────── */
+
+.ri-signin-sheet {
+  padding: 0;
+  border-radius: 1.25rem;
+  position: relative;
+  width: calc(100% - 2.5rem);
+  max-width: 360px;
+}
+
+.ri-signin-handle {
+  display: none;
+}
+
+.ri-signin-close {
+  position: absolute;
+  top: 0.875rem;
+  right: 0.875rem;
+}
+
+.ri-signin-body {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 1rem 1.5rem 2rem;
+  gap: 0.5rem;
+}
+
+.ri-signin-icon {
+  font-size: 2.75rem;
+  line-height: 1;
+  margin-bottom: 0.25rem;
+}
+
+.ri-signin-title {
+  margin: 0;
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--color-ink-black);
+}
+
+.ri-signin-desc {
+  margin: 0;
+  font-size: 0.875rem;
+  color: #6b7280;
+  line-height: 1.55;
+  max-width: 300px;
+}
+
+.ri-google-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.625rem;
+  width: 100%;
+  max-width: 320px;
+  padding: 0.8rem 1rem;
+  margin-top: 0.75rem;
+  border: 1.5px solid #e5e7eb;
+  border-radius: 0.625rem;
+  background: #fff;
+  color: #374151;
+  font-family: var(--font-montserrat), sans-serif;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, box-shadow 0.15s;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+}
+
+.ri-google-btn:hover {
+  background: #f9fafb;
+  border-color: #d1d5db;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+}
+
+.ri-google-btn:active {
+  background: #f3f4f6;
+}
+
+.ri-google-logo {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+}
+
+.ri-signin-hint {
+  margin: 0.25rem 0 0;
+  font-size: 0.78rem;
+  color: #9ca3af;
+}
+
+/* ─────────────────────────────────────────────
    Permission error toast
    ───────────────────────────────────────────── */
 
