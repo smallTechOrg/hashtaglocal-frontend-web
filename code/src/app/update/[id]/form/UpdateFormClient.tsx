@@ -44,8 +44,11 @@ export default function UpdateFormClient() {
 
   useEffect(() => {
     const match = window.location.pathname.match(/\/update\/([^/]+)\/form/);
-    if (match?.[1] && match[1] !== "index") setId(match[1]);
-    setIssueType(new URLSearchParams(window.location.search).get("type") ?? "");
+    const params = new URLSearchParams(window.location.search);
+    const pathId = match?.[1];
+    const id = (pathId && pathId !== "index") ? pathId : (params.get("id") ?? "");
+    if (id) setId(id);
+    setIssueType(params.get("type") ?? "");
   }, []);
 
   const [description, setDescription] = useState("");
