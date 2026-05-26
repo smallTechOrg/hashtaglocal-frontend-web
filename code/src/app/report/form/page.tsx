@@ -362,11 +362,11 @@ export default function ReportFormPage() {
         <div className="rs-overlay">
           <div className="rs-card">
             <h2 className="rs-title">Success</h2>
-            <p className="rs-desc">Issue reported successfully!</p>
+            <p className="rs-note">Issue reported successfully!</p>
             <p className="rs-note">
               The issue is currently on hold and will be reviewed by our admin before it is made public.
             </p>
-            <p className="rs-karma">⭐ +5 Karma Points!</p>
+            <p className="rs-note">⭐ +5 Karma Points!</p>
             <div className="rs-actions">
               {successIssueId > 0 && (
                 <button

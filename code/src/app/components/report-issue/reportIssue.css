@@ -1,78 +1,4 @@
 /* ─────────────────────────────────────────────
-   Sticky "Report an Issue" button
-   ───────────────────────────────────────────── */
-
-.ri-sticky-btn {
-  position: fixed;
-  bottom: 1.5rem;
-  right: 1.5rem;
-  z-index: 50;
-
-  display: flex;
-  align-items: center;
-  justify-content: center;
-
-  gap: 0;
-  background-color: var(--color-green);
-  color: #fff;
-  border: none;
-  cursor: pointer;
-  font-family: var(--font-montserrat), sans-serif;
-  font-size: 0.875rem;
-  font-weight: 600;
-  letter-spacing: 0.01em;
-
-  /* Large state */
-  padding: 0.75rem 1.125rem;
-  border-radius: 2rem;
-  box-shadow: 0 4px 18px rgba(37, 109, 27, 0.42);
-
-  transition:
-    padding 0.55s cubic-bezier(0.4, 0, 0.2, 1),
-    border-radius 0.55s cubic-bezier(0.4, 0, 0.2, 1),
-    box-shadow 0.2s ease,
-    transform 0.15s ease;
-
-  white-space: nowrap;
-  overflow: hidden;
-}
-
-.ri-sticky-btn:hover {
-  background-color: #1e5914;
-  box-shadow: 0 6px 22px rgba(37, 109, 27, 0.55);
-  transform: translateY(-2px);
-}
-
-.ri-sticky-btn:active {
-  transform: translateY(0);
-}
-
-/* Label text inside the button */
-.ri-sticky-label {
-  display: inline-block;
-  overflow: hidden;
-  max-width: 160px;
-  opacity: 1;
-  padding-left: 0.45rem;
-  transition:
-    max-width 0.55s cubic-bezier(0.4, 0, 0.2, 1),
-    opacity 0.3s ease,
-    padding-left 0.55s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-/* Compact (icon-only) state */
-.ri-sticky-btn.compact {
-  padding: 0.75rem;
-  border-radius: 50%;
-}
-
-.ri-sticky-btn.compact .ri-sticky-label {
-  max-width: 0;
-  opacity: 0;
-  padding-left: 0;
-}
-
-/* ─────────────────────────────────────────────
    Modal overlay & shell
    ───────────────────────────────────────────── */
 
@@ -1734,7 +1660,6 @@
   position: fixed;
   inset: 0;
   z-index: 200;
-  background: rgba(0,0,0,0.5);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1742,12 +1667,13 @@
 }
 
 .rs-card {
-  background: #1f2937;
+  background: #ffffff;
   border-radius: 1rem;
   padding: 1.5rem;
   max-width: 340px;
   width: 100%;
-  color: #fff;
+  color: var(--color-ink-black);
+  box-shadow: 0 8px 32px rgba(0,18,25,0.18), 0 2px 8px rgba(0,18,25,0.10);
 }
 
 .rs-title {
@@ -1764,7 +1690,7 @@
 
 .rs-note {
   font-size: 0.8rem;
-  color: #d1d5db;
+  color: #000000;
   line-height: 1.5;
   margin: 0 0 0.875rem;
 }
@@ -1778,7 +1704,7 @@
 .rs-actions {
   display: flex;
   gap: 1.25rem;
-  border-top: 1px solid #374151;
+  border-top: 1px solid #e5e7eb;
   padding-top: 0.875rem;
 }
 

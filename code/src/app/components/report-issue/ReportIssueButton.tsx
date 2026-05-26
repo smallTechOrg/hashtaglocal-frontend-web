@@ -134,18 +134,6 @@ export default function ReportIssueButton({ variant = "header" }: ReportIssueBut
         </button>
       )}
 
-      {variant === "fab" && (
-        <button
-          className="ri-sticky-btn"
-          onClick={handleOpen}
-          disabled={checking}
-          aria-label="Report a community issue"
-        >
-          <TriangleAlert size={16} />
-          <span className="ri-sticky-label">{buttonLabel}</span>
-        </button>
-      )}
-
       {/* Sign-in bottom sheet — portalled to body to escape stacking context */}
       {showSignIn && createPortal(
         <div className="ri-overlay ri-overlay--centered" role="dialog" aria-modal="true" aria-label="Sign in required">

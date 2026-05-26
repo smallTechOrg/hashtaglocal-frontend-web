@@ -283,10 +283,10 @@ export default function UpdateFormClient() {
           <div className="rs-card">
             <h2 className="rs-title">Success</h2>
             {successAction === "VERIFY" ? (
-              <p className="rs-desc">Issue verified successfully!</p>
+              <p className="rs-note">Issue verified successfully!</p>
             ) : (
               <>
-                <p className="rs-desc">Thank you for resolving this issue!</p>
+                <p className="rs-note">Thank you for resolving this issue!</p>
                 <p className="rs-note">
                   Once our community reviews the status will be updated. Till then, the status will show as Pending and will be visible to others.
                 </p>
