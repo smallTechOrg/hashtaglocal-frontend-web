@@ -158,7 +158,7 @@ export default function IssueClient({ issueId: propIssueId }: { issueId: string 
       const loaded = payload.data?.issue || payload.issue || (payload as unknown as Issue);
       if (!loaded) throw new Error("Issue not found in response");
       setIssue(loaded);
-      setStatus("ready");
+      setStatus("ready"); 
       trackIssueView(issueId, loaded.type);
       trackJourneyStep('issue_viewed', { issue_id: String(issueId), issue_type: loaded.type, issue_status: loaded.status });
     } catch (err) {
