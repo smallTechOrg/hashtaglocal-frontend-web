@@ -1,7 +1,7 @@
 import { IssueType } from "../../models/issue";
 import { EventType } from "../../models/event";
 
-export type LayerId = "issues" | "events";
+export type LayerId = "issues" | "events" | "chat";
 
 export interface SubFilter {
   value: string;
@@ -55,11 +55,19 @@ export const LAYERS: LayerDef[] = [
     color: "#6366F1",
     subFilters: EVENT_SUBFILTERS,
   },
+  {
+    id: "chat",
+    label: "Chat",
+    icon: "💬",
+    color: "#10B981",
+    subFilters: [],
+  },
 ];
 
 export const LAYER_BY_ID: Record<LayerId, LayerDef> = {
   issues: LAYERS[0],
   events: LAYERS[1],
+  chat: LAYERS[2],
 };
 
 export const normalizeType = (type?: string) =>

@@ -34,7 +34,11 @@ function cityMatches(item: MapItem, city: string): boolean {
 }
 
 export default function MapExplorer() {
-  const { issues, events, loading } = useMapData();
+  const { issues, events, chat, loading } = useMapData();
+
+  // Resolve the dataset for a layer id.
+  const datasetFor = (id: LayerId): MapItem[] =>
+    id === "issues" ? issues : id === "events" ? events : chat;
 
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<google.maps.Map | null>(null);
@@ -45,18 +49,19 @@ export default function MapExplorer() {
   const [subFilters, setSubFilters] = useState<Record<LayerId, Set<string>>>({
     issues: new Set(),
     events: new Set(),
+    chat: new Set(),
   });
   const [selectedCity, setSelectedCity] = useState("%23india");
   const [selected, setSelected] = useState<MapItem | null>(null);
   const [panelOpen, setPanelOpen] = useState(true);
 
-  const allForLayer = activeLayer === "issues" ? issues : events;
+  const allForLayer = datasetFor(activeLayer);
   const activeSubFilters = subFilters[activeLayer];
 
-  // City options derived from both datasets.
+  // City options derived from all datasets.
   const cities: CityOption[] = useMemo(() => {
     const set = new Set<string>();
-    [...issues, ...events].forEach((it) =>
+    [...issues, ...events, ...chat].forEach((it) =>
       (it.hashtags || []).forEach((h) => set.add(h.toLowerCase())),
     );
     return [
@@ -68,7 +73,7 @@ export default function MapExplorer() {
           value: encodeURIComponent(tag),
         })),
     ];
-  }, [issues, events]);
+  }, [issues, events, chat]);
 
   // Items filtered by city only — used for sub-filter counts.
   const cityItems = useMemo(
@@ -291,11 +296,11 @@ export default function MapExplorer() {
               />
               {l.label}
               <span className="xp-legend-count">
-                {(l.id === activeLayer
+                {l.id === activeLayer
                   ? visibleItems.length
-                  : (l.id === "issues" ? issues : events).filter((it) =>
+                  : datasetFor(l.id).filter((it) =>
                       cityMatches(it, selectedCity),
-                    ).length)}
+                    ).length}
               </span>
             </span>
           ))}

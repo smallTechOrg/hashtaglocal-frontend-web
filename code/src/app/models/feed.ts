@@ -35,6 +35,9 @@ export interface FeedPost {
   kind: FeedPostKind;
   status: FeedPostStatus;
   hashtag?: string;
+  /** Centroid of the post's locality, for the home-map marker. Null for boundary-less roots. */
+  locality_lat?: number;
+  locality_lng?: number;
   pinned: boolean;
   author?: FeedAuthor;
   text?: string;
