@@ -10,47 +10,99 @@ import type {
   ModerationQueueResponse,
 } from "../../models/feed";
 
-type Filter = "ALL" | "BLOCKED" | "FLAGGED";
+/** Top-level tabs. REVIEW = items needing a decision; ARCHIVE = all posts, every status. */
+type Tab = "REVIEW" | "ARCHIVE";
+
+/** Backend `verdict` filter values. */
+type Verdict = "REVIEW" | "BLOCKED" | "FLAGGED" | "ALL" | "PUBLISHED" | "HIDDEN";
+
+const ARCHIVE_FILTERS: { value: Verdict; label: string }[] = [
+  { value: "ALL", label: "All" },
+  { value: "PUBLISHED", label: "Published" },
+  { value: "HIDDEN", label: "Hidden" },
+  { value: "BLOCKED", label: "AI-blocked" },
+  { value: "FLAGGED", label: "Flagged" },
+];
 
 export default function OpsFeedModerationPage() {
+  const [tab, setTab] = useState<Tab>("REVIEW");
+  const [archiveFilter, setArchiveFilter] = useState<Verdict>("ALL");
+
   const [items, setItems] = useState<ModerationQueueItem[]>([]);
   const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState<Filter>("ALL");
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [nextCursor, setNextCursor] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<number | null>(null);
 
-  const load = useCallback(async () => {
-    setLoading(true);
-    try {
+  // The verdict sent to the backend depends on the active tab.
+  const verdict: Verdict = tab === "REVIEW" ? "REVIEW" : archiveFilter;
+
+  const fetchPage = useCallback(
+    async (cursor: string | null, append: boolean) => {
       const res = await adminFetch(
-        API_PATHS.feedModerationQueue(filter === "ALL" ? undefined : filter),
+        API_PATHS.feedModerationQueue(verdict, cursor ?? undefined),
       );
       if (!res.ok) throw new Error(`Failed: ${res.status}`);
       const json: ModerationQueueResponse = await res.json();
-      setItems(json.data?.items ?? []);
+      const data = json.data ?? {};
+      setNextCursor(data.next_cursor ?? null);
+      setItems((prev) =>
+        append ? [...prev, ...(data.items ?? [])] : data.items ?? [],
+      );
+    },
+    [verdict],
+  );
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    setNextCursor(null);
+    try {
+      await fetchPage(null, false);
     } catch (err) {
-      toast.error(`Failed to load moderation queue: ${err}`);
+      toast.error(`Failed to load: ${err}`);
     } finally {
       setLoading(false);
     }
-  }, [filter]);
+  }, [fetchPage]);
 
   useEffect(() => {
     load();
   }, [load]);
 
+  async function loadMore() {
+    if (!nextCursor || loadingMore) return;
+    setLoadingMore(true);
+    try {
+      await fetchPage(nextCursor, true);
+    } catch (err) {
+      toast.error(`Failed to load more: ${err}`);
+    } finally {
+      setLoadingMore(false);
+    }
+  }
+
   async function act(item: ModerationQueueItem, action: "approve" | "hide") {
     const id = item.post.id;
     setBusyId(id);
     try {
-      const url = action === "approve" ? API_PATHS.feedApprove(id) : API_PATHS.feedHide(id);
+      const url =
+        action === "approve" ? API_PATHS.feedApprove(id) : API_PATHS.feedHide(id);
       const res = await adminFetch(url, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ note: action === "hide" ? "Hidden by admin" : "Approved by admin" }),
+        body: JSON.stringify({
+          note: action === "hide" ? "Hidden by admin" : "Approved by admin",
+        }),
       });
       if (!res.ok) throw new Error(`Failed: ${res.status}`);
       toast.success(action === "approve" ? "Post published" : "Post hidden");
-      setItems((prev) => prev.filter((i) => i.post.id !== id));
+      // In the Review tab the item leaves the queue; in Archive it stays but its
+      // status changes, so a reload keeps the displayed status accurate.
+      if (tab === "REVIEW") {
+        setItems((prev) => prev.filter((i) => i.post.id !== id));
+      } else {
+        load();
+      }
     } catch (err) {
       toast.error(`Action failed: ${err}`);
     } finally {
@@ -70,21 +122,41 @@ export default function OpsFeedModerationPage() {
         </button>
       </div>
 
-      <div className="mb-4 flex gap-1">
-        {(["ALL", "BLOCKED", "FLAGGED"] as Filter[]).map((f) => (
+      {/* Tabs */}
+      <div className="mb-4 flex gap-1 border-b border-zinc-800">
+        {(["REVIEW", "ARCHIVE"] as Tab[]).map((t) => (
           <button
-            key={f}
-            onClick={() => setFilter(f)}
-            className={`rounded-md px-3 py-1.5 text-sm transition ${
-              filter === f
-                ? "bg-zinc-800 text-white"
-                : "text-zinc-400 hover:bg-zinc-800/50 hover:text-white"
+            key={t}
+            onClick={() => setTab(t)}
+            className={`-mb-px border-b-2 px-3 py-2 text-sm transition ${
+              tab === t
+                ? "border-emerald-500 text-white"
+                : "border-transparent text-zinc-400 hover:text-white"
             }`}
           >
-            {f === "ALL" ? "All" : f === "BLOCKED" ? "AI-blocked" : "Flagged"}
+            {t === "REVIEW" ? "Review queue" : "Archive"}
           </button>
         ))}
       </div>
+
+      {/* Archive sub-filters */}
+      {tab === "ARCHIVE" && (
+        <div className="mb-4 flex flex-wrap gap-1">
+          {ARCHIVE_FILTERS.map((f) => (
+            <button
+              key={f.value}
+              onClick={() => setArchiveFilter(f.value)}
+              className={`rounded-md px-3 py-1.5 text-sm transition ${
+                archiveFilter === f.value
+                  ? "bg-zinc-800 text-white"
+                  : "text-zinc-400 hover:bg-zinc-800/50 hover:text-white"
+              }`}
+            >
+              {f.label}
+            </button>
+          ))}
+        </div>
+      )}
 
       {loading ? (
         <div className="flex justify-center py-12 text-zinc-500">
@@ -92,7 +164,7 @@ export default function OpsFeedModerationPage() {
         </div>
       ) : items.length === 0 ? (
         <div className="py-12 text-center text-sm text-zinc-500">
-          Nothing to review. 🎉
+          {tab === "REVIEW" ? "Nothing to review. 🎉" : "No posts."}
         </div>
       ) : (
         <div className="flex flex-col gap-3">
@@ -105,11 +177,30 @@ export default function OpsFeedModerationPage() {
               onHide={() => act(item, "hide")}
             />
           ))}
+
+          {nextCursor && (
+            <button
+              onClick={loadMore}
+              disabled={loadingMore}
+              className="mx-auto mt-2 flex items-center gap-1.5 rounded-md bg-zinc-800 px-4 py-2 text-sm text-zinc-200 hover:bg-zinc-700 disabled:opacity-50"
+            >
+              {loadingMore && <Loader2 className="h-4 w-4 animate-spin" />}
+              Load more
+            </button>
+          )}
         </div>
       )}
     </div>
   );
 }
+
+const STATUS_STYLES: Record<string, string> = {
+  PUBLISHED: "bg-emerald-900/50 text-emerald-300",
+  PENDING_AI: "bg-blue-900/50 text-blue-300",
+  FLAGGED: "bg-amber-900/50 text-amber-300",
+  AI_BLOCKED: "bg-red-900/50 text-red-300",
+  ADMIN_HIDDEN: "bg-zinc-700 text-zinc-300",
+};
 
 function ModerationCard({
   item,
@@ -123,20 +214,21 @@ function ModerationCard({
   onHide: () => void;
 }) {
   const { post } = item;
+  const isPublished = post.status === "PUBLISHED";
+  const isHidden = post.status === "ADMIN_HIDDEN";
   return (
     <div className="rounded-lg border border-zinc-800 bg-zinc-900 p-4">
-      <div className="mb-2 flex items-center gap-2 text-xs">
+      <div className="mb-2 flex flex-wrap items-center gap-2 text-xs">
         <span className="rounded bg-zinc-800 px-2 py-0.5 text-zinc-300">{post.kind}</span>
-        {post.hashtag && <span className="text-emerald-400">#{post.hashtag}</span>}
+        {post.hashtag && <span className="text-emerald-400">#{post.hashtag.replace(/^#/, "")}</span>}
         <span className="text-zinc-500">by {post.author?.username ?? "system"}</span>
+        <span
+          className={`rounded px-2 py-0.5 ${STATUS_STYLES[post.status] ?? "bg-zinc-800 text-zinc-300"}`}
+        >
+          {post.status}
+        </span>
         {item.ai_verdict && (
-          <span
-            className={`ml-auto rounded px-2 py-0.5 ${
-              item.ai_verdict === "BLOCK"
-                ? "bg-red-900/50 text-red-300"
-                : "bg-amber-900/50 text-amber-300"
-            }`}
-          >
+          <span className="ml-auto rounded bg-zinc-800 px-2 py-0.5 text-zinc-400">
             AI: {item.ai_verdict}
             {item.ai_category && item.ai_category !== "NONE" ? ` · ${item.ai_category}` : ""}
           </span>
@@ -171,21 +263,25 @@ function ModerationCard({
       )}
 
       <div className="mt-3 flex gap-2">
-        <button
-          onClick={onApprove}
-          disabled={busy}
-          className="flex items-center gap-1.5 rounded-md bg-emerald-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-emerald-700 disabled:opacity-50"
-        >
-          {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
-          Approve
-        </button>
-        <button
-          onClick={onHide}
-          disabled={busy}
-          className="flex items-center gap-1.5 rounded-md bg-zinc-800 px-3 py-1.5 text-sm font-medium text-zinc-200 hover:bg-zinc-700 disabled:opacity-50"
-        >
-          <EyeOff className="h-4 w-4" /> Hide
-        </button>
+        {!isPublished && (
+          <button
+            onClick={onApprove}
+            disabled={busy}
+            className="flex items-center gap-1.5 rounded-md bg-emerald-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-emerald-700 disabled:opacity-50"
+          >
+            {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
+            {isHidden ? "Unhide / publish" : "Approve"}
+          </button>
+        )}
+        {!isHidden && (
+          <button
+            onClick={onHide}
+            disabled={busy}
+            className="flex items-center gap-1.5 rounded-md bg-zinc-800 px-3 py-1.5 text-sm font-medium text-zinc-200 hover:bg-zinc-700 disabled:opacity-50"
+          >
+            <EyeOff className="h-4 w-4" /> Hide
+          </button>
+        )}
       </div>
     </div>
   );
