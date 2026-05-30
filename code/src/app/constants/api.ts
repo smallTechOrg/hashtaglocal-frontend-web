@@ -9,6 +9,8 @@ export const API_PATHS = {
   events: `${API_V1_BASE}/events`,
   polygons: `${API_ROOT}/localities/polygons`,
   profile: `${BASE_URL}/account/profile`,
+  localityByCoords: (lat: number, lng: number) =>
+    `${API_ROOT}/localities/hashtag?lat=${lat}&lng=${lng}`,
   reportIssue: `${API_V1_BASE}/issue`,
   mediaUploadUrl: (contentType: string) =>
     `${API_V1_BASE}/media/upload-url?content_type=${encodeURIComponent(contentType)}`,

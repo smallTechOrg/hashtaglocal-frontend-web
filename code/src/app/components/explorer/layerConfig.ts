@@ -45,7 +45,7 @@ export const LAYERS: LayerDef[] = [
     id: "issues",
     label: "Issues",
     icon: "⚠️",
-    color: "#FF5A4E",
+    color: "#256d1b",
     subFilters: ISSUE_SUBFILTERS,
   },
   {

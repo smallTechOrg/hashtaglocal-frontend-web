@@ -8,13 +8,22 @@ export default function NotFound() {
   const router = useRouter();
 
   useEffect(() => {
-    // Check if this is a dynamic issue route
     const path = window.location.pathname;
+    const search = window.location.search;
     const issueMatch = path.match(/^\/issue\/([^/]+)$/);
-    
+    const updateCameraMatch = path.match(/^\/update\/([^/]+)\/camera/);
+    const updateFormMatch = path.match(/^\/update\/([^/]+)\/form/);
+
     if (issueMatch) {
-      // Redirect to the issue page with the ID
       router.replace(`/issue/index?id=${issueMatch[1]}`);
+    } else if (updateCameraMatch) {
+      const id = updateCameraMatch[1];
+      const type = new URLSearchParams(search).get("type") ?? "";
+      router.replace(`/update/index/camera?id=${id}&type=${encodeURIComponent(type)}`);
+    } else if (updateFormMatch) {
+      const id = updateFormMatch[1];
+      const type = new URLSearchParams(search).get("type") ?? "";
+      router.replace(`/update/index/form?id=${id}&type=${encodeURIComponent(type)}`);
     }
   }, [router]);
 

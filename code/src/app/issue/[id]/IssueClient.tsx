@@ -6,7 +6,10 @@ import "../issue.css";
 import { Issue } from "../../models/issue";
 import ImageSlideshow from "../../components/ImageSlideshow";
 import EditIssueModal from "../../components/dashboard/editIssueModal";
-import UpdateIssueModal from "../../components/report-issue/UpdateIssueModal";
+import { buildGoogleAuthUrl } from "../../ops/lib/auth";
+import { GOOGLE_CLIENT_ID } from "../../ops/lib/constants";
+import { setReportLocation } from "../../components/report-issue/reportStore";
+import { reverseGeocode } from "../../utils/geocoding";
 import { useScrollTracking, useTimeTracking } from "../../hooks/useScrollTracking";
 import { useClickTracking } from "../../hooks/useClickTracking";
 import { trackIssueView, trackError, trackExternalLink, EventCategory } from "../../utils/analytics";
@@ -90,7 +93,7 @@ export default function IssueClient({ issueId: propIssueId }: { issueId: string 
   const searchParams = useSearchParams();
   const router = useRouter();
   const isNewReport = searchParams.get("new") === "1";
-  const showNewBanner = isNewReport;
+  const [showNewBanner, setShowNewBanner] = useState(isNewReport);
 
   // Silently remove ?new=1 from the URL so refresh doesn't re-show the banner
   useEffect(() => {
@@ -101,17 +104,6 @@ export default function IssueClient({ issueId: propIssueId }: { issueId: string 
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Auto-open update modal when returning from Google sign-in (?update=1)
-  useEffect(() => {
-    if (searchParams.get("update") === "1") {
-      // Consume the pending flag so ReportIssueButton won't also fire
-      sessionStorage.removeItem("report_issue_pending");
-      setShowUpdateModal(true);
-      router.replace(window.location.pathname, { scroll: false });
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-  
   useEffect(() => {
     if (propIssueId && propIssueId !== 'index') {
       setIssueId(propIssueId);
@@ -131,7 +123,9 @@ export default function IssueClient({ issueId: propIssueId }: { issueId: string 
   const [issue, setIssue] = useState<Issue | null>(null);
   const [status, setStatus] = useState<"loading" | "error" | "ready">("loading");
   const [editingIssue, setEditingIssue] = useState<Issue | null>(null);
-  const [showUpdateModal, setShowUpdateModal] = useState(false);
+  const [pendingUpdate, setPendingUpdate] = useState(false);
+  const [updateChecking, setUpdateChecking] = useState(false);
+  const [updateError, setUpdateError] = useState<string | null>(null);
   const [canEdit, setCanEdit] = useState(false);
   const [activeSlide, setActiveSlide] = useState(0);
 
@@ -144,6 +138,26 @@ export default function IssueClient({ issueId: propIssueId }: { issueId: string 
     const hasEditAccess = localStorage.getItem('dev_edit_access') === 'true';
     setCanEdit(hasEditAccess);
   }, []);
+
+  // After OAuth redirect with ?update=1 — wait for issue to load, then navigate to camera
+  useEffect(() => {
+    if (searchParams.get("update") === "1") {
+      sessionStorage.removeItem("report_issue_pending");
+      router.replace(window.location.pathname, { scroll: false });
+      setPendingUpdate(true);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Navigate to camera once issue is loaded (post-OAuth update flow)
+  useEffect(() => {
+    if (pendingUpdate && issue) {
+      setPendingUpdate(false);
+      const numericId = extractIssueId(issueId);
+      router.push(`/update/${numericId}/camera?type=${encodeURIComponent(issue.type ?? "")}`);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pendingUpdate, issue]);
 
   const fetchIssue = useCallback(async (signal?: AbortSignal) => {
     if (!issueId) return;
@@ -176,6 +190,51 @@ export default function IssueClient({ issueId: propIssueId }: { issueId: string 
     return () => controller.abort();
   }, [fetchIssue, issueId]);
 
+  async function handleUpdateOpen() {
+    if (!issue) return;
+    setUpdateError(null);
+
+    const token = getAccessToken();
+    if (!token) {
+      sessionStorage.setItem("report_issue_return_to", `${window.location.pathname}?update=1`);
+      const redirectUri = `${window.location.origin}/auth/callback`;
+      window.location.href = buildGoogleAuthUrl(GOOGLE_CLIENT_ID, redirectUri);
+      return;
+    }
+
+    setUpdateChecking(true);
+
+    // Camera permission (required)
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+      stream.getTracks().forEach((t) => t.stop());
+    } catch {
+      setUpdateError("Camera access was denied. Camera permission is required to update an issue.");
+      setUpdateChecking(false);
+      return;
+    }
+
+    // Location (optional for update)
+    try {
+      const pos = await new Promise<GeolocationPosition>((resolve, reject) =>
+        navigator.geolocation.getCurrentPosition(resolve, reject, {
+          enableHighAccuracy: true,
+          timeout: 10000,
+        }),
+      );
+      setReportLocation(pos, null);
+      reverseGeocode(pos.coords.latitude, pos.coords.longitude).then((meta) => {
+        if (meta) setReportLocation(pos, meta);
+      });
+    } catch {
+      // Location is optional for updates — proceed without it
+    }
+
+    setUpdateChecking(false);
+    const numericId = extractIssueId(issueId);
+    router.push(`/update/${numericId}/camera?type=${encodeURIComponent(issue.type ?? "")}`);
+  }
+
   // Banner stays visible for the entire session — user closes it themselves (no auto-hide)
 
   const mediaImages = useMemo(() => allMediaImages(issue || undefined), [issue]);
@@ -198,6 +257,7 @@ export default function IssueClient({ issueId: propIssueId }: { issueId: string 
       {showNewBanner && (
         <div className="story-new-banner">
           🎉 Your issue has been submitted! It is under review. Once approved by our team, it will be visible to everyone.
+          <button className="story-new-banner-close" onClick={() => setShowNewBanner(false)} aria-label="Dismiss">✕</button>
         </div>
       )}
       {/* Top nav */}
@@ -318,15 +378,21 @@ export default function IssueClient({ issueId: propIssueId }: { issueId: string 
             {/* Update Issue */}
             <button
               className="story-update-btn"
-              onClick={() => setShowUpdateModal(true)}
+              onClick={handleUpdateOpen}
+              disabled={updateChecking}
             >
               <span className="story-update-btn-icon">📸</span>
               <span className="story-update-btn-text">
-                <span className="story-update-btn-label">Update this Issue</span>
+                <span className="story-update-btn-label">
+                  {updateChecking ? "Checking for Camera and Location…" : "Update this Issue"}
+                </span>
                 <span className="story-update-btn-sub">Add a photo to verify or mark as resolved</span>
               </span>
               <span className="story-update-btn-arrow">→</span>
             </button>
+            {updateError && (
+              <p className="story-update-error">{updateError}</p>
+            )}
 
             {/* Timeline */}
             <div className="story-section">
@@ -513,14 +579,6 @@ export default function IssueClient({ issueId: propIssueId }: { issueId: string 
           issue={editingIssue}
           onClose={() => setEditingIssue(null)}
           onUpdate={() => fetchIssue()}
-        />
-      )}
-      {showUpdateModal && issue && (
-        <UpdateIssueModal
-          issueId={issueId}
-          issueType={issue.type}
-          onClose={() => setShowUpdateModal(false)}
-          onSuccess={() => fetchIssue()}
         />
       )}
     </main>

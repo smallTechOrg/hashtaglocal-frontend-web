@@ -16,6 +16,7 @@ import {
   trackMapMarkerClick,
   trackIssueFilter,
 } from "../../utils/analytics";
+import ReportIssueButton from "../report-issue/ReportIssueButton";
 
 const GOOGLE_MAPS_SRC =
   "https://maps.googleapis.com/maps/api/js?key=AIzaSyCzJVwEPi_lq4CeiuafySI8-QKGEnDK3-o";
@@ -286,14 +287,15 @@ export default function MapExplorer() {
           />
         </div>
 
-        {/* Legend — map layers only; Chat is a panel, not a map filter. */}
+        {/* Legend — click to switch layer; Chat is a panel, not a map filter. */}
         <div className="xp-legend">
           {LAYERS.filter((l) => l.id !== "chat").map((l) => (
-            <span
+            <button
               key={l.id}
               className={`xp-legend-item ${
                 activeLayer === l.id ? "is-active" : ""
               }`}
+              onClick={() => setActiveLayer(l.id)}
             >
               <span
                 className="xp-legend-dot"
@@ -307,8 +309,13 @@ export default function MapExplorer() {
                       cityMatches(it, selectedCity),
                     ).length}
               </span>
-            </span>
+            </button>
           ))}
+        </div>
+
+        {/* Report Issue — bottom-center CTA */}
+        <div className={`xp-report-btn-bottom${panelOpen ? "" : " is-panel-collapsed"}`}>
+          <ReportIssueButton variant="map-bottom" />
         </div>
 
       </div>

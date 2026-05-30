@@ -68,7 +68,7 @@ function CallbackHandler() {
           console.warn("Admin verification fetch failed, proceeding to review");
         }
 
-        router.replace("/ops/review");
+        router.replace("/ops");
       } catch (err) {
         setError(`Failed to authenticate: ${err}`);
       }

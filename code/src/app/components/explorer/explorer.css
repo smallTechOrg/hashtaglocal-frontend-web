@@ -86,6 +86,16 @@
   pointer-events: none;
 }
 
+/* Report Issue — full-width bar at the bottom of the map area */
+.xp-report-btn-bottom {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 16;
+  pointer-events: auto;
+}
+
 .xp-controls {
   display: flex;
   flex-wrap: wrap;
@@ -343,6 +353,25 @@
   font-size: 13px;
   color: var(--xp-text-faint);
 }
+.xp-menu-section-label {
+  padding: 8px 14px 4px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--xp-text-faint);
+  list-style: none;
+}
+.xp-menu-divider {
+  height: 1px;
+  background: var(--xp-border);
+  margin: 4px 0;
+  list-style: none;
+}
+.xp-menu-item-pin {
+  flex-shrink: 0;
+  color: var(--xp-accent);
+}
 
 .xp-filter-left {
   display: inline-flex;
@@ -376,7 +405,7 @@
 .xp-legend {
   position: absolute;
   left: 18px;
-  bottom: 18px;
+  bottom: 74px; /* sits above the full-width report button (~62px + 12px gap) */
   z-index: 15;
   display: flex;
   gap: 6px;
@@ -391,10 +420,18 @@
   align-items: center;
   gap: 7px;
   padding: 5px 10px;
+  border: none;
   border-radius: 8px;
+  background: transparent;
   font-size: 12px;
   font-weight: 600;
   color: var(--xp-text-faint);
+  cursor: pointer;
+  transition: background 0.12s ease, color 0.12s ease;
+}
+.xp-legend-item:hover {
+  background: var(--xp-surface-2);
+  color: var(--xp-text);
 }
 .xp-legend-item.is-active {
   background: var(--xp-surface-2);
@@ -796,23 +833,26 @@
   .xp-pill,
   .xp-segment {
     height: 38px;
-  }
+    }
   .xp-pill-label {
     max-width: 92px;
   }
 
+  /* Hide legend on mobile — layer switching handled by mobile filter */
   .xp-legend {
     display: none;
   }
 
-  /* Panel docks to the bottom as a sheet, tab rail on top */
-  .xp-panel-dock {
-    position: absolute;
-    left: 0;
-    right: 0;
+  /* Report button sits at the bottom of the map area (panel is no longer overlaying it) */
+  .xp-report-btn-bottom {
     bottom: 0;
+  }
+
+  /* Panel is a normal flex item below the map — no longer overlays it */
+  .xp-panel-dock {
     width: 100%;
     height: 48%;
+    flex-shrink: 0;
     flex-direction: column;
     border-left: none;
     border-top: 1px solid var(--xp-border);
