@@ -1,49 +1,37 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import Link from "next/link";
-import { isAuthenticated, buildGoogleAuthUrl, clearTokens } from "./lib/auth";
+import { useRouter } from "next/navigation";
+import { isAuthenticated, buildGoogleAuthUrl } from "./lib/auth";
 import { GOOGLE_CLIENT_ID, GOOGLE_REDIRECT_URI } from "./lib/constants";
-import { Shield, LogOut, ArrowLeft, List, History, Calendar } from "lucide-react";
+import { Shield } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import ReviewPage from "./review/page";
-import BulkListPage from "./list/page";
-import HistoryPage from "./history/page";
-import EventsPage from "./events/page";
-
-type Tab = "review" | "bulk" | "history" | "events";
-
-const TABS: { id: Tab; label: string; icon: React.ElementType }[] = [
-  { id: "review", label: "Review", icon: Shield },
-  { id: "bulk", label: "Bulk", icon: List },
-  { id: "history", label: "History", icon: History },
-  { id: "events", label: "Events", icon: Calendar },
-];
 
 export default function OpsPage() {
+  const router = useRouter();
   const [authed, setAuthed] = useState(false);
   const [mounted, setMounted] = useState(false);
-  const [activeTab, setActiveTab] = useState<Tab>("review");
 
   useEffect(() => {
     setMounted(true);
-    setAuthed(isAuthenticated());
-  }, []);
+    const isAuthed = isAuthenticated();
+    setAuthed(isAuthed);
+    // Authed users get the real routed dashboard (single shared nav from the layout, incl. Feed).
+    if (isAuthed) router.replace("/ops/feed");
+  }, [router]);
 
   function handleGoogleLogin() {
     const url = buildGoogleAuthUrl(GOOGLE_CLIENT_ID, GOOGLE_REDIRECT_URI);
     window.location.href = url;
   }
 
-  function handleLogout() {
-    clearTokens();
-    setAuthed(false);
-  }
-
   if (!mounted) return null;
 
+  // Authed → redirecting to /ops/feed (handled in the effect); render nothing meanwhile.
+  if (authed) return null;
+
   // ── Login view ────────────────────────────────────────────────────────────
-  if (!authed) {
+  {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="flex flex-col items-center gap-6 p-8 rounded-xl bg-zinc-900 border border-zinc-800 max-w-sm w-full mx-4">
@@ -85,52 +73,4 @@ export default function OpsPage() {
       </div>
     );
   }
-
-  // ── Dashboard view ────────────────────────────────────────────────────────
-  return (
-    <div className="min-h-screen flex flex-col">
-      {/* Tab nav bar */}
-      <nav className="bg-zinc-900 border-b border-zinc-800 px-4 py-3 flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <Link href="/" className="text-zinc-500 hover:text-zinc-300 transition">
-            <ArrowLeft className="w-4 h-4" />
-          </Link>
-          <span className="font-bold text-sm tracking-wide text-zinc-300">#local ops</span>
-        </div>
-
-        <div className="flex items-center gap-1">
-          {TABS.map(({ id, label, icon: Icon }) => (
-            <button
-              key={id}
-              onClick={() => setActiveTab(id)}
-              className={`flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-md transition ${
-                activeTab === id
-                  ? "bg-zinc-800 text-white"
-                  : "text-zinc-400 hover:text-white hover:bg-zinc-800/50"
-              }`}
-            >
-              <Icon className="w-4 h-4" />
-              <span className="hidden sm:inline">{label}</span>
-            </button>
-          ))}
-        </div>
-
-        <button
-          onClick={handleLogout}
-          className="flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-md text-zinc-400 hover:text-red-400 hover:bg-zinc-800/50 transition"
-        >
-          <LogOut className="w-4 h-4" />
-          <span className="hidden sm:inline">Logout</span>
-        </button>
-      </nav>
-
-      {/* Tab content */}
-      <main className="flex-1">
-        {activeTab === "review" && <ReviewPage />}
-        {activeTab === "bulk" && <BulkListPage />}
-        {activeTab === "history" && <HistoryPage />}
-        {activeTab === "events" && <EventsPage />}
-      </main>
-    </div>
-  );
 }
