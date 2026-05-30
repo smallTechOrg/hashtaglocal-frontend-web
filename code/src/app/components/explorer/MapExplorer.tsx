@@ -353,7 +353,12 @@ export default function MapExplorer() {
         {panelOpen && (
           <div className="xp-panel-host">
             {isChat ? (
-              <ChatView hashtag={decodeURIComponent(selectedCity).replace(/^#/, "")} />
+              <ChatView
+                hashtag={decodeURIComponent(selectedCity).replace(/^#/, "")}
+                cities={cities}
+                selectedCity={selectedCity}
+                onCityChange={setSelectedCity}
+              />
             ) : (
               <DetailPanel
                 item={selected}

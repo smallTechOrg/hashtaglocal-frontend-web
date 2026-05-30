@@ -1,12 +1,22 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { Loader2 } from "lucide-react";
+import { Loader2, LogOut, MapPin } from "lucide-react";
 import { useFeed } from "../feed/useFeed";
 import { useProfile } from "../feed/useProfile";
 import { FeedComposer } from "../feed/FeedComposer";
+import type { CityOption } from "./MapControls";
 import type { FeedPost } from "../../models/feed";
 import { formatTimeAgo } from "./layerConfig";
+import { clearTokens, isAuthenticated, buildGoogleAuthUrl } from "../../ops/lib/auth";
+import { GOOGLE_CLIENT_ID } from "../../ops/lib/constants";
+
+interface Props {
+  hashtag: string;
+  cities: CityOption[];
+  selectedCity: string;
+  onCityChange: (value: string) => void;
+}
 
 /**
  * Compact chat panel for the home Chat tab. A dense, inline message stream (small username + text
@@ -16,14 +26,31 @@ import { formatTimeAgo } from "./layerConfig";
  * <p>Message bodies are routed by {@code kind} ({@link ChatBody}), so future rich kinds (POLL, QUIZ,
  * richer LINK/MEDIA cards) slot in by adding a branch — the row chrome stays the same.
  */
-export default function ChatView({ hashtag }: { hashtag: string }) {
+export default function ChatView({ hashtag, cities, selectedCity, onCityChange }: Props) {
   // The root channel aggregates children; specific localities show just their own feed.
   const isRoot = hashtag.replace(/^#/, "").toLowerCase() === "india";
   const { pinned, posts, loading, loadingMore, error, hasMore, loadMore, reload } = useFeed(
     hashtag,
     { aggregate: isRoot },
   );
-  const { isAdmin } = useProfile();
+  const { profile, isAdmin } = useProfile();
+  const loggedIn = typeof window !== "undefined" && isAuthenticated();
+
+  function logout() {
+    clearTokens();
+    window.location.reload();
+  }
+
+  function signIn() {
+    sessionStorage.setItem(
+      "report_issue_return_to",
+      window.location.pathname + window.location.search,
+    );
+    window.location.href = buildGoogleAuthUrl(
+      GOOGLE_CLIENT_ID,
+      `${window.location.origin}/auth/callback`,
+    );
+  }
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const topSentinel = useRef<HTMLDivElement | null>(null);
@@ -72,11 +99,58 @@ export default function ChatView({ hashtag }: { hashtag: string }) {
 
   return (
     <div className="xp-chat">
+      {/* Account bar: who you are, location status, logout. */}
+      <div className="xp-chat-account">
+        {loggedIn ? (
+          <>
+            <span className="xp-chat-user">
+              {profile?.picture && (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={profile.picture} alt="" className="xp-chat-avatar" />
+              )}
+              <span className="xp-chat-username">{profile?.username ?? "You"}</span>
+              {isAdmin && <span className="xp-chat-badge">admin</span>}
+            </span>
+            <span className="xp-chat-loc">
+              <MapPin className="xp-chat-loc-icon" />
+              {profile?.hashtag ? profile.hashtag : "location on"}
+            </span>
+            <button className="xp-chat-logout" onClick={logout} title="Log out">
+              <LogOut className="xp-chat-loc-icon" /> Log out
+            </button>
+          </>
+        ) : (
+          <>
+            <span className="xp-chat-loc xp-chat-loc--off">
+              <MapPin className="xp-chat-loc-icon" /> Not signed in
+            </span>
+            <button className="xp-chat-login" onClick={signIn}>
+              Sign in
+            </button>
+          </>
+        )}
+      </div>
+
+      {/* Channel header + hashtag switcher. */}
       <div className="xp-chat-header">
-        <span className="xp-chat-title">{label}</span>
-        <span className="xp-chat-sub">
-          {isRoot ? "All localities + national updates" : "Locality chat"}
-        </span>
+        <div className="xp-chat-header-text">
+          <span className="xp-chat-title">{label}</span>
+          <span className="xp-chat-sub">
+            {isRoot ? "All localities + national updates" : "Locality chat"}
+          </span>
+        </div>
+        <select
+          className="xp-chat-switch"
+          value={selectedCity}
+          onChange={(e) => onCityChange(e.target.value)}
+          aria-label="Switch hashtag"
+        >
+          {cities.map((c) => (
+            <option key={c.value} value={c.value}>
+              {c.label}
+            </option>
+          ))}
+        </select>
       </div>
 
       <div className="xp-chat-stream" ref={scrollRef}>
