@@ -42,7 +42,13 @@ export default function AuthWidget() {
     <div className="xp-auth">
       {profile?.picture && (
         // eslint-disable-next-line @next/next/no-img-element
-        <img src={profile.picture} alt="" className="xp-auth-avatar" />
+        <img
+          src={profile.picture}
+          alt=""
+          className="xp-auth-avatar"
+          // Google avatars (lh3.googleusercontent.com) 403 when a referrer is sent.
+          referrerPolicy="no-referrer"
+        />
       )}
       <span className="xp-auth-info">
         <span className="xp-auth-name">

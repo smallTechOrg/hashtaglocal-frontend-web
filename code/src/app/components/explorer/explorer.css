@@ -1280,3 +1280,131 @@
 .xp-auth-logout:hover {
   color: #dc2626;
 }
+
+/* Detailed ISSUE_REF card in chat. */
+.xp-issuecard {
+  display: block;
+  margin-top: 4px;
+  border: 1px solid var(--xp-border);
+  border-radius: 10px;
+  overflow: hidden;
+  text-decoration: none;
+  color: inherit;
+  background: var(--xp-surface);
+  max-width: 320px;
+}
+.xp-issuecard:hover {
+  border-color: #ff7a3c;
+}
+.xp-issuecard--mini {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 9px;
+  font-size: 0.82rem;
+  color: var(--xp-text-soft);
+  max-width: none;
+}
+.xp-issuecard-mini-icon {
+  width: 13px;
+  height: 13px;
+  color: #ff7a3c;
+}
+.xp-issuecard-img {
+  display: block;
+  width: 100%;
+  max-height: 150px;
+  object-fit: cover;
+}
+.xp-issuecard-body {
+  display: block;
+  padding: 9px 11px;
+}
+.xp-issuecard-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  margin-bottom: 4px;
+}
+.xp-issuecard-type {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--xp-text);
+}
+.xp-issuecard-type-icon {
+  width: 14px;
+  height: 14px;
+  color: #ff7a3c;
+}
+.xp-issuecard-status {
+  font-size: 0.64rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  padding: 2px 7px;
+  border-radius: 999px;
+}
+.xp-issuecard-status.is-open {
+  background: #fff1e8;
+  color: #c2410c;
+}
+.xp-issuecard-status.is-resolved {
+  background: #e7f7ee;
+  color: #0c8f5f;
+}
+.xp-issuecard-status.is-hold {
+  background: #fff7e0;
+  color: #a16207;
+}
+.xp-issuecard-status.is-rejected {
+  background: #f3f4f6;
+  color: #6b7280;
+}
+.xp-issuecard-desc {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  font-size: 0.82rem;
+  color: var(--xp-text);
+  line-height: 1.35;
+  margin-bottom: 6px;
+}
+.xp-issuecard-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.7rem;
+  color: var(--xp-text-faint);
+}
+.xp-issuecard-place,
+.xp-issuecard-stat,
+.xp-issuecard-time {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+.xp-issuecard-place {
+  max-width: 150px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.xp-issuecard-meta-icon {
+  width: 11px;
+  height: 11px;
+}
+.xp-issuecard-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  margin-top: 6px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: #ff7a3c;
+}

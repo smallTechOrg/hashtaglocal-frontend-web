@@ -5,6 +5,7 @@ import { Loader2 } from "lucide-react";
 import { useFeed } from "../feed/useFeed";
 import { useProfile } from "../feed/useProfile";
 import { FeedComposer } from "../feed/FeedComposer";
+import IssueRefCard from "./IssueRefCard";
 import type { FeedPost } from "../../models/feed";
 import { formatTimeAgo } from "./layerConfig";
 
@@ -192,13 +193,11 @@ function ChatBody({ post }: { post: FeedPost }) {
         </span>
       );
     case "ISSUE_REF":
+      return <IssueRefCard issueId={post.issue_id} fallbackText={post.text} />;
     case "EVENT_REF":
       return (
         <span className="xp-msg-body">
-          <span className="xp-msg-ref">
-            {post.kind === "ISSUE_REF" ? "⚠️" : "📅"}{" "}
-            {post.text ?? (post.kind === "ISSUE_REF" ? "Issue reported" : "Upcoming event")}
-          </span>
+          <span className="xp-msg-ref">📅 {post.text ?? "Upcoming event"}</span>
         </span>
       );
     // POLL / QUIZ and richer cards plug in here in a later phase.

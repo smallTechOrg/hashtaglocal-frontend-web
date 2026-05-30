@@ -9,7 +9,7 @@ export interface Profile {
   picture?: string;
   /** "USER" | "ADMIN" */
   userRole?: string;
-  /** The viewer's resolved home hashtag, if any. */
+  /** The viewer's resolved home hashtag (requires lat/lng; otherwise the backend default). */
   hashtag?: string;
 }
 
@@ -19,9 +19,21 @@ interface ProfileState {
   loading: boolean;
 }
 
+/** Map the snake_case API user object to our Profile (JSON is snake_case globally). */
+function toProfile(user: Record<string, unknown> | null | undefined): Profile | null {
+  if (!user) return null;
+  return {
+    username: user.username as string | undefined,
+    picture: user.picture as string | undefined,
+    userRole: user.user_role as string | undefined,
+    hashtag: user.hashtag as string | undefined,
+  };
+}
+
 /**
- * Loads the signed-in user's profile (role + home hashtag) from /account/profile. Returns nulls
- * when logged out. Used so the chat composer can let admins post to any hashtag without geolocation.
+ * Loads the signed-in user's profile (role + home hashtag) from /account/profile. Passes the
+ * browser's location when available so the backend can resolve the real home hashtag (without
+ * coords it returns a default). Returns nulls when logged out.
  */
 export function useProfile(): ProfileState {
   const [profile, setProfile] = useState<Profile | null>(null);
@@ -35,19 +47,32 @@ export function useProfile(): ProfileState {
       return;
     }
     const controller = new AbortController();
-    fetch(API_PATHS.profile, {
-      headers: { Authorization: `Bearer ${token}` },
-      cache: "no-store",
-      signal: controller.signal,
-    })
-      .then((r) => (r.ok ? r.json() : Promise.reject(r.status)))
-      .then((body) => setProfile(body?.data?.user ?? null))
-      .catch(() => {
-        /* logged out / unreachable — treat as no profile */
+
+    const load = (lat?: number, lng?: number) =>
+      fetch(API_PATHS.profile(lat, lng), {
+        headers: { Authorization: `Bearer ${token}` },
+        cache: "no-store",
+        signal: controller.signal,
       })
-      .finally(() => {
-        if (!controller.signal.aborted) setLoading(false);
-      });
+        .then((r) => (r.ok ? r.json() : Promise.reject(r.status)))
+        .then((body) => setProfile(toProfile(body?.data?.user)))
+        .catch(() => {
+          /* logged out / unreachable — treat as no profile */
+        })
+        .finally(() => {
+          if (!controller.signal.aborted) setLoading(false);
+        });
+
+    // Resolve the real home hashtag via geolocation; fall back to a coord-less fetch.
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => load(pos.coords.latitude, pos.coords.longitude),
+        () => load(),
+        { timeout: 10000, maximumAge: 300000 },
+      );
+    } else {
+      load();
+    }
     return () => controller.abort();
   }, []);
 

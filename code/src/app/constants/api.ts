@@ -8,7 +8,11 @@ export const API_PATHS = {
   issue: (id: number | string) => `${API_V1_BASE}/issue/${id}`,
   events: `${API_V1_BASE}/events`,
   polygons: `${API_ROOT}/localities/polygons`,
-  profile: `${BASE_URL}/account/profile`,
+  /** Optional lat/lng resolves the user's home hashtag for that location. */
+  profile: (lat?: number, lng?: number) => {
+    const base = `${BASE_URL}/account/profile`;
+    return lat != null && lng != null ? `${base}?lat=${lat}&lng=${lng}` : base;
+  },
   localityByCoords: (lat: number, lng: number) =>
     `${API_ROOT}/localities/hashtag?lat=${lat}&lng=${lng}`,
   reportIssue: `${API_V1_BASE}/issue`,
