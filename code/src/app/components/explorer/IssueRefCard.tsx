@@ -32,29 +32,51 @@ export default function IssueRefCard({ issueId, fallbackText }: { issueId?: numb
   useEffect(() => {
     if (issueId == null || issueCache.has(issueId)) return;
     const controller = new AbortController();
-    fetch(API_PATHS.issue(issueId), { cache: "no-store", signal: controller.signal })
-      .then((r) => (r.ok ? r.json() : Promise.reject(r.status)))
-      .then((body) => {
-        const loaded: Issue | undefined = body?.data?.issue ?? body?.issue;
-        if (loaded) {
-          issueCache.set(issueId, loaded);
-          setIssue(loaded);
-        } else {
+
+    // Fetch with one retry — a transient 404/blip shouldn't permanently strand the card on the
+    // fallback line. Only successful loads are cached (failures are never cached).
+    const attempt = (retriesLeft: number): Promise<void> =>
+      fetch(API_PATHS.issue(issueId), { cache: "no-store", signal: controller.signal })
+        .then((r) => (r.ok ? r.json() : Promise.reject(r.status)))
+        .then((body) => {
+          const loaded: Issue | undefined = body?.data?.issue ?? body?.issue;
+          if (loaded) {
+            issueCache.set(issueId, loaded);
+            setIssue(loaded);
+          } else {
+            throw new Error("no issue in response");
+          }
+        })
+        .catch(() => {
+          if (controller.signal.aborted) return;
+          if (retriesLeft > 0) {
+            return new Promise<void>((resolve) =>
+              setTimeout(() => resolve(attempt(retriesLeft - 1)), 1200),
+            );
+          }
           setFailed(true);
-        }
-      })
-      .catch(() => setFailed(true));
+        });
+
+    attempt(1);
     return () => controller.abort();
   }, [issueId]);
 
-  // Loading / failed → compact fallback line.
+  // Loading / failed → compact fallback line. When failed, still link to the issue (no dead end).
   if (!issue) {
+    const text = fallbackText ?? (failed ? "Issue reported nearby" : "Loading issue…");
+    const inner = (
+      <span className="xp-issuecard xp-issuecard--mini">
+        <AlertTriangle className="xp-issuecard-mini-icon" />
+        {text}
+      </span>
+    );
     return (
       <span className="xp-msg-body">
-        <span className="xp-issuecard xp-issuecard--mini">
-          <AlertTriangle className="xp-issuecard-mini-icon" />
-          {fallbackText ?? (failed ? "Issue reported nearby" : "Loading issue…")}
-        </span>
+        {failed && issueId != null ? (
+          <Link href={`/issue/${issueId}`}>{inner}</Link>
+        ) : (
+          inner
+        )}
       </span>
     );
   }
