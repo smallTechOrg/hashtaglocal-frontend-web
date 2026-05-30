@@ -105,6 +105,28 @@ export default function MapExplorer() {
     return c;
   }, [cityItems]);
 
+  // How many issues / events exist for the selected hashtag (independent of the active layer).
+  const issueCityCount = useMemo(
+    () => issues.filter((it) => cityMatches(it, selectedCity)).length,
+    [issues, selectedCity],
+  );
+  const eventCityCount = useMemo(
+    () => events.filter((it) => cityMatches(it, selectedCity)).length,
+    [events, selectedCity],
+  );
+
+  // When the hashtag changes, land on a map tab that actually has content: if the current map
+  // layer is empty for this hashtag but the other has items, switch to the other. Never auto-
+  // switches the Chat tab (chat is a deliberate choice) or overrides a non-empty current tab.
+  useEffect(() => {
+    if (isChat) return;
+    if (activeLayer === "issues" && issueCityCount === 0 && eventCityCount > 0) {
+      setActiveLayer("events");
+    } else if (activeLayer === "events" && eventCityCount === 0 && issueCityCount > 0) {
+      setActiveLayer("issues");
+    }
+  }, [selectedCity, issueCityCount, eventCityCount, activeLayer, isChat]);
+
   // Final visible items: city + sub-filter. Chat plots no markers.
   const visibleItems = useMemo(() => {
     if (isChat) return [];

@@ -55,23 +55,32 @@ export function useProfile(): ProfileState {
         signal: controller.signal,
       })
         .then((r) => (r.ok ? r.json() : Promise.reject(r.status)))
-        .then((body) => setProfile(toProfile(body?.data?.user)))
+        .then((body) => {
+          const p = toProfile(body?.data?.user);
+          // Don't clobber an already-loaded profile's hashtag with a coord-less default.
+          setProfile((prev) =>
+            prev && p && !p.hashtag ? { ...p, hashtag: prev.hashtag } : p,
+          );
+        })
         .catch(() => {
-          /* logged out / unreachable — treat as no profile */
+          /* bad token / unreachable — leave profile null (widget shows Sign in) */
         })
         .finally(() => {
           if (!controller.signal.aborted) setLoading(false);
         });
 
-    // Resolve the real home hashtag via geolocation; fall back to a coord-less fetch.
+    // Load name/pic/role immediately (never gated on location). Then upgrade the home hashtag
+    // once geolocation resolves — so the widget shows the user right away regardless of the
+    // location permission prompt.
+    load();
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         (pos) => load(pos.coords.latitude, pos.coords.longitude),
-        () => load(),
+        () => {
+          /* permission denied / unavailable — keep the coord-less profile */
+        },
         { timeout: 10000, maximumAge: 300000 },
       );
-    } else {
-      load();
     }
     return () => controller.abort();
   }, []);

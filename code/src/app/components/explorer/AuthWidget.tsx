@@ -11,7 +11,7 @@ import { GOOGLE_CLIENT_ID } from "../../ops/lib/constants";
  * login state is always visible regardless of the active tab.
  */
 export default function AuthWidget() {
-  const { profile, isAdmin } = useProfile();
+  const { profile, isAdmin, loading } = useProfile();
   const loggedIn = typeof window !== "undefined" && isAuthenticated();
 
   function signIn() {
@@ -28,7 +28,8 @@ export default function AuthWidget() {
     window.location.reload();
   }
 
-  if (!loggedIn) {
+  // Not logged in (or the token was rejected and no profile loaded) → Sign in.
+  if (!loggedIn || (!loading && !profile)) {
     return (
       <button className="xp-auth xp-auth-signin" onClick={signIn}>
         Sign in
@@ -36,9 +37,18 @@ export default function AuthWidget() {
     );
   }
 
+  // Logged in but the profile hasn't resolved yet → neutral loading chip (no placeholder garbage).
+  if (!profile) {
+    return (
+      <div className="xp-auth">
+        <span className="xp-auth-loading">Signing in…</span>
+      </div>
+    );
+  }
+
   return (
     <div className="xp-auth">
-      {profile?.picture && (
+      {profile.picture && (
         // eslint-disable-next-line @next/next/no-img-element
         <img
           src={profile.picture}
@@ -50,13 +60,15 @@ export default function AuthWidget() {
       )}
       <span className="xp-auth-info">
         <span className="xp-auth-name">
-          {profile?.username ?? "You"}
+          {profile.username ?? "Member"}
           {isAdmin && <span className="xp-auth-badge">admin</span>}
         </span>
-        <span className="xp-auth-loc">
-          <MapPin className="xp-auth-loc-icon" />
-          {profile?.hashtag ? profile.hashtag : "location on"}
-        </span>
+        {profile.hashtag && (
+          <span className="xp-auth-loc">
+            <MapPin className="xp-auth-loc-icon" />
+            {profile.hashtag}
+          </span>
+        )}
       </span>
       <button className="xp-auth-logout" onClick={logout} title="Log out" aria-label="Log out">
         <LogOut className="xp-auth-loc-icon" />
