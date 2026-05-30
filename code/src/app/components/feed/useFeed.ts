@@ -22,7 +22,16 @@ const PAGE_SIZE = 30;
  * Loads a hashtag's feed timeline with keyset pagination. Reads are public; if the viewer happens
  * to be logged in we attach the token so the backend can fill viewer_context.
  */
-export function useFeed(hashtag: string | null): UseFeedResult {
+interface UseFeedOptions {
+  /** When true, the backend aggregates this (root) hashtag's feed with all its children. */
+  aggregate?: boolean;
+}
+
+export function useFeed(
+  hashtag: string | null,
+  options: UseFeedOptions = {},
+): UseFeedResult {
+  const { aggregate = false } = options;
   const [pinned, setPinned] = useState<FeedPost[]>([]);
   const [posts, setPosts] = useState<FeedPost[]>([]);
   const [loading, setLoading] = useState(true);
@@ -38,10 +47,10 @@ export function useFeed(hashtag: string | null): UseFeedResult {
 
   const fetchPage = useCallback(
     async (cursor: string | null, append: boolean, signal?: AbortSignal) => {
-      const res = await fetch(
-        API_PATHS.feedTimeline(hashtag as string, cursor ?? undefined, PAGE_SIZE),
-        { cache: "no-store", headers: authHeader(), signal },
-      );
+      const url =
+        API_PATHS.feedTimeline(hashtag as string, cursor ?? undefined, PAGE_SIZE) +
+        (aggregate ? "&aggregate=true" : "");
+      const res = await fetch(url, { cache: "no-store", headers: authHeader(), signal });
       if (!res.ok) throw new Error(`Feed request failed (${res.status})`);
       const body: FeedListResponse = await res.json();
       const data = body.data ?? {};
@@ -54,7 +63,7 @@ export function useFeed(hashtag: string | null): UseFeedResult {
         setPosts(data.posts ?? []);
       }
     },
-    [hashtag, authHeader],
+    [hashtag, aggregate, authHeader],
   );
 
   const reload = useCallback(() => {

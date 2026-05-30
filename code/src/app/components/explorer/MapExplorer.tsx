@@ -5,6 +5,7 @@ import { useMapData } from "./useMapData";
 import { MapItem } from "./types";
 import MapControls, { CityOption } from "./MapControls";
 import DetailPanel from "./DetailPanel";
+import ChatView from "./ChatView";
 import {
   LAYER_BY_ID,
   LAYERS,
@@ -55,6 +56,8 @@ export default function MapExplorer() {
   const [selected, setSelected] = useState<MapItem | null>(null);
   const [panelOpen, setPanelOpen] = useState(true);
 
+  // Chat is NOT a map layer — when active it takes over the content area as a chat panel.
+  const isChat = activeLayer === "chat";
   const allForLayer = datasetFor(activeLayer);
   const activeSubFilters = subFilters[activeLayer];
 
@@ -90,13 +93,14 @@ export default function MapExplorer() {
     return c;
   }, [cityItems]);
 
-  // Final visible items: city + sub-filter.
+  // Final visible items: city + sub-filter. Chat plots no markers.
   const visibleItems = useMemo(() => {
+    if (isChat) return [];
     if (activeSubFilters.size === 0) return cityItems;
     return cityItems.filter((it) =>
       activeSubFilters.has(normalizeType(it.type)),
     );
-  }, [cityItems, activeSubFilters]);
+  }, [isChat, cityItems, activeSubFilters]);
 
   // Clear selection if it falls out of view.
   useEffect(() => {
@@ -254,17 +258,27 @@ export default function MapExplorer() {
   return (
     <div className={`xp-shell ${panelOpen ? "xp-shell--panel" : ""}`}>
       <div className="xp-map-area">
-        {(loading || !isMapLoaded) && (
+        {/* Chat tab takes over the content area with a Twitch-style chat panel. */}
+        {isChat && (
+          <div className="xp-chat-takeover">
+            <ChatView />
+          </div>
+        )}
+
+        {!isChat && (loading || !isMapLoaded) && (
           <div className="xp-map-loading">
             <span className="xp-spinner" />
             <p>Loading the map…</p>
           </div>
         )}
+        {/* Map stays mounted (cheap to keep) but is hidden under the chat takeover. */}
         <div
           ref={mapRef}
           className={`xp-map ${isMapLoaded ? "is-ready" : ""}`}
+          style={isChat ? { visibility: "hidden" } : undefined}
         />
 
+        {!isChat && (
         <div className="xp-controls-wrap">
           <MapControls
             activeLayer={activeLayer}
@@ -280,8 +294,10 @@ export default function MapExplorer() {
             citiesLoading={loading}
           />
         </div>
+        )}
 
         {/* Legend */}
+        {!isChat && (
         <div className="xp-legend">
           {LAYERS.map((l) => (
             <span
@@ -305,6 +321,7 @@ export default function MapExplorer() {
             </span>
           ))}
         </div>
+        )}
 
       </div>
 
@@ -338,7 +355,7 @@ export default function MapExplorer() {
           })}
         </div>
 
-        {panelOpen && (
+        {panelOpen && !isChat && (
           <div className="xp-panel-host">
             <DetailPanel
               item={selected}
