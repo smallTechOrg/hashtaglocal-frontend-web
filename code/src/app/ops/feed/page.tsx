@@ -129,7 +129,7 @@ export default function OpsFeedModerationPage() {
   return (
     <div className="mx-auto max-w-3xl px-4 py-6">
       <div className="mb-4 flex items-center justify-between">
-        <h1 className="text-lg font-bold text-white">Feed moderation</h1>
+        <h1 className="text-lg font-semibold text-zinc-200">Feed moderation</h1>
         <button
           onClick={load}
           className="flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm text-zinc-400 hover:bg-zinc-800/50 hover:text-white"
