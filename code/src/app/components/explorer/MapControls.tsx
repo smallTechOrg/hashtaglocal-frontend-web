@@ -60,6 +60,8 @@ export default function MapControls({
   const [nearbyCity, setNearbyCity] = useState<CityOption | null>(null);
   const [nearbyHashtag, setNearbyHashtag] = useState<string | null>(null);
   const nearbyFetchedRef = useRef(false);
+  // Ensures the nearby hashtag auto-selects at most once (so a manual switch sticks).
+  const autoSelectedRef = useRef(false);
 
   const filterRef = useOutside<HTMLDivElement>(() => setFilterOpen(false));
   const cityRef = useOutside<HTMLDivElement>(() => {
@@ -108,11 +110,16 @@ export default function MapControls({
     const match = cities.find(
       (c) => c.label.toLowerCase().replace(/^#/, "") === nearbyHashtag,
     );
-    if (match) {
-      setNearbyCity(match);
+    if (!match) return;
+    setNearbyCity(match);
+    // Auto-select the user's nearby hashtag ONLY once, and only if they haven't already
+    // navigated away from the default (#india). Without this guard the effect re-fires and
+    // snaps the selection back, making it impossible to switch to another hashtag.
+    if (!autoSelectedRef.current && selectedCity === "%23india") {
+      autoSelectedRef.current = true;
       onCityChange(match.value);
     }
-  }, [nearbyHashtag, cities]);
+  }, [nearbyHashtag, cities, selectedCity, onCityChange]);
 
   const queryLower = query.toLowerCase();
   const filteredCities = cities.filter((c) =>

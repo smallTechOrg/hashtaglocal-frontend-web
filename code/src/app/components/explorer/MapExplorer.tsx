@@ -6,6 +6,7 @@ import { MapItem } from "./types";
 import MapControls, { CityOption } from "./MapControls";
 import DetailPanel from "./DetailPanel";
 import ChatView from "./ChatView";
+import AuthWidget from "./AuthWidget";
 import {
   LAYER_BY_ID,
   LAYERS,
@@ -271,6 +272,11 @@ export default function MapExplorer() {
           className={`xp-map ${isMapLoaded ? "is-ready" : ""}`}
         />
 
+        {/* Auth status — pinned to the map, always visible. */}
+        <div className="xp-auth-wrap">
+          <AuthWidget />
+        </div>
+
         <div className="xp-controls-wrap">
           <MapControls
             activeLayer={activeLayer}
@@ -353,12 +359,7 @@ export default function MapExplorer() {
         {panelOpen && (
           <div className="xp-panel-host">
             {isChat ? (
-              <ChatView
-                hashtag={decodeURIComponent(selectedCity).replace(/^#/, "")}
-                cities={cities}
-                selectedCity={selectedCity}
-                onCityChange={setSelectedCity}
-              />
+              <ChatView hashtag={decodeURIComponent(selectedCity).replace(/^#/, "")} />
             ) : (
               <DetailPanel
                 item={selected}
