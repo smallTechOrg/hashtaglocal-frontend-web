@@ -6,7 +6,6 @@ import "../issue.css";
 import { Issue } from "../../models/issue";
 import ImageSlideshow from "../../components/ImageSlideshow";
 import EditIssueModal from "../../components/dashboard/editIssueModal";
-import UpdateIssueModal from "../../components/report-issue/UpdateIssueModal";
 import { useScrollTracking, useTimeTracking } from "../../hooks/useScrollTracking";
 import { useClickTracking } from "../../hooks/useClickTracking";
 import { trackIssueView, trackError, trackExternalLink, EventCategory } from "../../utils/analytics";
@@ -90,7 +89,7 @@ export default function IssueClient({ issueId: propIssueId }: { issueId: string 
   const searchParams = useSearchParams();
   const router = useRouter();
   const isNewReport = searchParams.get("new") === "1";
-  const showNewBanner = isNewReport;
+  const [showNewBanner, setShowNewBanner] = useState(isNewReport);
 
   // Silently remove ?new=1 from the URL so refresh doesn't re-show the banner
   useEffect(() => {
@@ -101,17 +100,6 @@ export default function IssueClient({ issueId: propIssueId }: { issueId: string 
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Auto-open update modal when returning from Google sign-in (?update=1)
-  useEffect(() => {
-    if (searchParams.get("update") === "1") {
-      // Consume the pending flag so ReportIssueButton won't also fire
-      sessionStorage.removeItem("report_issue_pending");
-      setShowUpdateModal(true);
-      router.replace(window.location.pathname, { scroll: false });
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-  
   useEffect(() => {
     if (propIssueId && propIssueId !== 'index') {
       setIssueId(propIssueId);
@@ -131,7 +119,6 @@ export default function IssueClient({ issueId: propIssueId }: { issueId: string 
   const [issue, setIssue] = useState<Issue | null>(null);
   const [status, setStatus] = useState<"loading" | "error" | "ready">("loading");
   const [editingIssue, setEditingIssue] = useState<Issue | null>(null);
-  const [showUpdateModal, setShowUpdateModal] = useState(false);
   const [canEdit, setCanEdit] = useState(false);
   const [activeSlide, setActiveSlide] = useState(0);
 
@@ -176,6 +163,7 @@ export default function IssueClient({ issueId: propIssueId }: { issueId: string 
     return () => controller.abort();
   }, [fetchIssue, issueId]);
 
+
   // Banner stays visible for the entire session — user closes it themselves (no auto-hide)
 
   const mediaImages = useMemo(() => allMediaImages(issue || undefined), [issue]);
@@ -198,6 +186,7 @@ export default function IssueClient({ issueId: propIssueId }: { issueId: string 
       {showNewBanner && (
         <div className="story-new-banner">
           🎉 Your issue has been submitted! It is under review. Once approved by our team, it will be visible to everyone.
+          <button className="story-new-banner-close" onClick={() => setShowNewBanner(false)} aria-label="Dismiss">✕</button>
         </div>
       )}
       {/* Top nav */}
@@ -314,19 +303,6 @@ export default function IssueClient({ issueId: propIssueId }: { issueId: string 
                 </div>
               )}
             </div>
-
-            {/* Update Issue */}
-            <button
-              className="story-update-btn"
-              onClick={() => setShowUpdateModal(true)}
-            >
-              <span className="story-update-btn-icon">📸</span>
-              <span className="story-update-btn-text">
-                <span className="story-update-btn-label">Update this Issue</span>
-                <span className="story-update-btn-sub">Add a photo to verify or mark as resolved</span>
-              </span>
-              <span className="story-update-btn-arrow">→</span>
-            </button>
 
             {/* Timeline */}
             <div className="story-section">
@@ -513,14 +489,6 @@ export default function IssueClient({ issueId: propIssueId }: { issueId: string 
           issue={editingIssue}
           onClose={() => setEditingIssue(null)}
           onUpdate={() => fetchIssue()}
-        />
-      )}
-      {showUpdateModal && issue && (
-        <UpdateIssueModal
-          issueId={issueId}
-          issueType={issue.type}
-          onClose={() => setShowUpdateModal(false)}
-          onSuccess={() => fetchIssue()}
         />
       )}
     </main>

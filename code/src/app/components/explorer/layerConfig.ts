@@ -1,7 +1,7 @@
 import { IssueType } from "../../models/issue";
 import { EventType } from "../../models/event";
 
-export type LayerId = "issues" | "events";
+export type LayerId = "issues" | "events" | "chat";
 
 export interface SubFilter {
   value: string;
@@ -45,7 +45,7 @@ export const LAYERS: LayerDef[] = [
     id: "issues",
     label: "Issues",
     icon: "⚠️",
-    color: "#FF5A4E",
+    color: "#256d1b",
     subFilters: ISSUE_SUBFILTERS,
   },
   {
@@ -55,19 +55,38 @@ export const LAYERS: LayerDef[] = [
     color: "#6366F1",
     subFilters: EVENT_SUBFILTERS,
   },
+  {
+    id: "chat",
+    label: "Chat",
+    icon: "💬",
+    color: "#10B981",
+    subFilters: [],
+  },
 ];
 
 export const LAYER_BY_ID: Record<LayerId, LayerDef> = {
   issues: LAYERS[0],
   events: LAYERS[1],
+  chat: LAYERS[2],
 };
 
 export const normalizeType = (type?: string) =>
   type ? type.toUpperCase() : "OTHER";
 
+/**
+ * Parse a backend timestamp. The API serialises {@code LocalDateTime} in UTC with no zone suffix
+ * (e.g. "2026-05-30T20:22:54.405"), which JS would otherwise read as browser-local time. Append a
+ * "Z" when there's no explicit zone so it's correctly interpreted as UTC (and renders in IST for
+ * Indian users via the browser locale).
+ */
+export const parseServerDate = (dateString: string): Date => {
+  const hasZone = /[zZ]|[+-]\d{2}:?\d{2}$/.test(dateString);
+  return new Date(hasZone ? dateString : `${dateString}Z`);
+};
+
 export const formatTimeAgo = (dateString?: string) => {
   if (!dateString) return "Unknown date";
-  const date = new Date(dateString);
+  const date = parseServerDate(dateString);
   const diffMs = Date.now() - date.getTime();
   const minutes = Math.floor(diffMs / 60000);
   const hours = Math.floor(minutes / 60);

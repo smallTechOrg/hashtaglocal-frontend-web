@@ -86,6 +86,16 @@
   pointer-events: none;
 }
 
+/* Report Issue — full-width bar at the bottom of the map area */
+.xp-report-btn-bottom {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 16;
+  pointer-events: auto;
+}
+
 .xp-controls {
   display: flex;
   flex-wrap: wrap;
@@ -343,6 +353,25 @@
   font-size: 13px;
   color: var(--xp-text-faint);
 }
+.xp-menu-section-label {
+  padding: 8px 14px 4px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--xp-text-faint);
+  list-style: none;
+}
+.xp-menu-divider {
+  height: 1px;
+  background: var(--xp-border);
+  margin: 4px 0;
+  list-style: none;
+}
+.xp-menu-item-pin {
+  flex-shrink: 0;
+  color: var(--xp-accent);
+}
 
 .xp-filter-left {
   display: inline-flex;
@@ -376,7 +405,7 @@
 .xp-legend {
   position: absolute;
   left: 18px;
-  bottom: 18px;
+  bottom: 74px; /* sits above the full-width report button (~62px + 12px gap) */
   z-index: 15;
   display: flex;
   gap: 6px;
@@ -391,10 +420,18 @@
   align-items: center;
   gap: 7px;
   padding: 5px 10px;
+  border: none;
   border-radius: 8px;
+  background: transparent;
   font-size: 12px;
   font-weight: 600;
   color: var(--xp-text-faint);
+  cursor: pointer;
+  transition: background 0.12s ease, color 0.12s ease;
+}
+.xp-legend-item:hover {
+  background: var(--xp-surface-2);
+  color: var(--xp-text);
 }
 .xp-legend-item.is-active {
   background: var(--xp-surface-2);
@@ -420,6 +457,8 @@
 .xp-panel-dock {
   display: flex;
   flex-shrink: 0;
+  /* rail (46px) + panel; inline style overrides this width when the user drags the handle. */
+  width: calc(46px + var(--xp-panel-w));
   border-left: 1px solid var(--xp-border);
   background: var(--xp-surface);
 }
@@ -479,12 +518,47 @@
 }
 
 .xp-panel-host {
-  width: var(--xp-panel-w);
+  flex: 1 1 auto;
+  min-width: 0;
   height: 100%;
 }
 
 .xp-panel-dock.is-collapsed .xp-panel-host {
   display: none;
+}
+
+/* Drag handle to resize the panel. Desktop: vertical bar on the dock's left edge (width).
+   Mobile: horizontal bar across the dock's top edge (height). */
+.xp-resize-handle {
+  flex-shrink: 0;
+  width: 7px;
+  background: transparent;
+  cursor: col-resize;
+  touch-action: none;
+  position: relative;
+  z-index: 6;
+}
+.xp-resize-handle::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 3px;
+  height: 36px;
+  border-radius: 999px;
+  background: var(--xp-border);
+}
+.xp-resize-handle:hover::before,
+.xp-resize-handle.is-dragging::before {
+  background: var(--xp-accent);
+}
+.xp-panel-dock.is-collapsed .xp-resize-handle {
+  display: none;
+}
+/* While dragging the handle, suppress text selection across the explorer. */
+.xp-shell:has(.xp-panel-dock.is-dragging) {
+  user-select: none;
 }
 
 .xp-panel {
@@ -796,23 +870,26 @@
   .xp-pill,
   .xp-segment {
     height: 38px;
-  }
+    }
   .xp-pill-label {
     max-width: 92px;
   }
 
+  /* Hide legend on mobile — layer switching handled by mobile filter */
   .xp-legend {
     display: none;
   }
 
-  /* Panel docks to the bottom as a sheet, tab rail on top */
-  .xp-panel-dock {
-    position: absolute;
-    left: 0;
-    right: 0;
+  /* Report button sits at the bottom of the map area (panel is no longer overlaying it) */
+  .xp-report-btn-bottom {
     bottom: 0;
+  }
+
+  /* Panel is a normal flex item below the map — no longer overlays it */
+  .xp-panel-dock {
     width: 100%;
     height: 48%;
+    flex-shrink: 0;
     flex-direction: column;
     border-left: none;
     border-top: 1px solid var(--xp-border);
@@ -823,6 +900,21 @@
   }
   .xp-panel-dock.is-collapsed {
     height: 50px;
+  }
+  /* No height animation while actively dragging (would feel laggy). */
+  .xp-panel-dock.is-dragging {
+    transition: none;
+  }
+
+  /* Handle becomes a horizontal grab bar across the top of the bottom sheet. */
+  .xp-resize-handle {
+    width: 100%;
+    height: 14px;
+    cursor: row-resize;
+  }
+  .xp-resize-handle::before {
+    width: 36px;
+    height: 4px;
   }
 
   /* Tab rail becomes a horizontal strip */
@@ -883,4 +975,494 @@
   .xp-pill {
     padding: 0 11px;
   }
+}
+
+/* ── Chat tab: compact inline chat panel in the dock (map stays visible) ── */
+.xp-chat {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  /* Fill the host: the 384px panel on desktop, full width on mobile. */
+  width: 100%;
+  background: var(--xp-surface);
+  color: var(--xp-text);
+}
+.xp-chat-header {
+  flex: 0 0 auto;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--xp-border);
+  background: var(--xp-surface-2);
+}
+.xp-chat-title {
+  font-weight: 700;
+  font-size: 0.9rem;
+  display: block;
+}
+.xp-chat-sub {
+  font-size: 0.68rem;
+  color: var(--xp-text-faint);
+}
+.xp-chat-stream {
+  flex: 1 1 auto;
+  overflow-y: auto;
+  padding: 8px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+/* One message = a single wrapping line: author · tag · time · body all inline. */
+.xp-msg {
+  font-size: 0.82rem;
+  line-height: 1.45;
+  padding: 2px 6px;
+  border-radius: 5px;
+}
+.xp-msg:hover {
+  background: var(--xp-surface-2);
+}
+.xp-msg.is-pinned {
+  background: rgba(16, 185, 129, 0.08);
+  box-shadow: inset 2px 0 0 #10b981;
+}
+.xp-msg-author {
+  font-weight: 700;
+  font-size: 0.78rem;
+  color: #7c3aed;
+  margin-right: 5px;
+}
+.xp-msg-author.is-system {
+  color: #0c8f5f;
+}
+.xp-msg-tag {
+  font-size: 0.68rem;
+  color: #0c8f5f;
+  margin-right: 5px;
+}
+.xp-msg-time {
+  font-size: 0.66rem;
+  color: var(--xp-text-faint);
+  margin-right: 5px;
+}
+.xp-msg-pin {
+  font-size: 0.66rem;
+  margin-right: 5px;
+}
+/* Body flows inline right after the header bits, wrapping naturally. */
+.xp-msg-body {
+  color: var(--xp-text);
+  word-break: break-word;
+}
+.xp-msg-text {
+  white-space: pre-wrap;
+}
+.xp-msg-link {
+  color: #2563eb;
+  text-decoration: none;
+}
+.xp-msg-link:hover {
+  text-decoration: underline;
+}
+.xp-msg-thumb {
+  display: block;
+  margin-top: 4px;
+  max-width: 100%;
+  max-height: 130px;
+  border-radius: 6px;
+  object-fit: cover;
+}
+.xp-msg-media {
+  display: block;
+  margin-top: 4px;
+  max-width: 100%;
+  max-height: 220px;
+  border-radius: 6px;
+  object-fit: cover;
+}
+.xp-msg-ref {
+  display: inline-block;
+  padding: 1px 6px;
+  background: var(--xp-surface-2);
+  border: 1px solid var(--xp-border);
+  border-radius: 5px;
+}
+
+.xp-chat-loading,
+.xp-chat-empty,
+.xp-chat-error {
+  text-align: center;
+  color: var(--xp-text-faint);
+  font-size: 0.8rem;
+  padding: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+.xp-chat-error {
+  color: #dc2626;
+}
+
+/* Compose bar pinned at the bottom. */
+.xp-chat-compose {
+  flex: 0 0 auto;
+  border-top: 1px solid var(--xp-border);
+  background: var(--xp-surface-2);
+}
+.xp-compose {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px 10px;
+}
+.xp-compose-row {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+.xp-compose-input {
+  flex: 1 1 auto;
+  min-width: 0;
+  border: 1px solid var(--xp-border);
+  border-radius: 999px;
+  padding: 8px 12px;
+  font-size: 0.82rem;
+  outline: none;
+  background: var(--xp-surface);
+  color: var(--xp-text);
+}
+.xp-compose-input:focus {
+  border-color: #10b981;
+}
+.xp-compose-send {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border: none;
+  border-radius: 50%;
+  background: #10b981;
+  color: #fff;
+  cursor: pointer;
+}
+.xp-compose-send:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+.xp-compose-icon {
+  width: 16px;
+  height: 16px;
+}
+.xp-compose-hint {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.66rem;
+  color: var(--xp-text-faint);
+}
+.xp-compose-hint-icon {
+  width: 11px;
+  height: 11px;
+}
+.xp-compose-error {
+  font-size: 0.72rem;
+  color: #dc2626;
+}
+.xp-chat-signin {
+  width: 100%;
+  margin: 8px 0;
+  padding: 9px 12px;
+  border: none;
+  border-radius: 999px;
+  background: #10b981;
+  color: #fff;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.xp-spin {
+  width: 16px;
+  height: 16px;
+  animation: xp-spin 0.8s linear infinite;
+}
+@keyframes xp-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Rich link card in chat (modern social-media style). */
+.xp-linkcard {
+  display: block;
+  margin-top: 4px;
+  border: 1px solid var(--xp-border);
+  border-radius: 10px;
+  overflow: hidden;
+  text-decoration: none;
+  color: inherit;
+  background: var(--xp-surface);
+  max-width: 320px;
+}
+.xp-linkcard:hover {
+  border-color: #10b981;
+}
+.xp-linkcard-img {
+  display: block;
+  width: 100%;
+  max-height: 168px;
+  object-fit: cover;
+}
+.xp-linkcard-body {
+  display: block;
+  padding: 8px 10px;
+}
+.xp-linkcard-site {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.66rem;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  color: var(--xp-text-faint);
+  margin-bottom: 2px;
+}
+.xp-linkcard-favicon {
+  width: 13px;
+  height: 13px;
+  border-radius: 3px;
+  object-fit: cover;
+}
+.xp-linkcard-title {
+  display: block;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--xp-text);
+  line-height: 1.3;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* Auth widget pinned to the map (top-right). */
+.xp-auth-wrap {
+  position: absolute;
+  top: 18px;
+  right: 18px;
+  z-index: 25;
+}
+.xp-auth {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 40px;
+  padding: 0 8px 0 6px;
+  background: var(--xp-surface);
+  border: 1px solid var(--xp-border);
+  border-radius: 999px;
+  box-shadow: var(--xp-shadow);
+}
+.xp-auth-signin {
+  padding: 0 16px;
+  background: #10b981;
+  color: #fff;
+  font-weight: 600;
+  font-size: 13.5px;
+  cursor: pointer;
+}
+.xp-auth-avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+.xp-auth-info {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.1;
+  min-width: 0;
+}
+.xp-auth-name {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--xp-text);
+  max-width: 150px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.xp-auth-badge {
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: #fff;
+  background: #7c3aed;
+  border-radius: 4px;
+  padding: 1px 4px;
+}
+.xp-auth-loc {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 10.5px;
+  color: #0c8f5f;
+}
+.xp-auth-loc-icon {
+  width: 12px;
+  height: 12px;
+}
+.xp-auth-logout {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border: none;
+  border-radius: 50%;
+  background: var(--xp-surface-2);
+  color: var(--xp-text-soft);
+  cursor: pointer;
+}
+.xp-auth-logout:hover {
+  color: #dc2626;
+}
+
+/* Detailed ISSUE_REF card in chat. */
+.xp-issuecard {
+  display: block;
+  margin-top: 4px;
+  border: 1px solid var(--xp-border);
+  border-radius: 10px;
+  overflow: hidden;
+  text-decoration: none;
+  color: inherit;
+  background: var(--xp-surface);
+  max-width: 320px;
+}
+.xp-issuecard:hover {
+  border-color: #ff7a3c;
+}
+.xp-issuecard--mini {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 9px;
+  font-size: 0.82rem;
+  color: var(--xp-text-soft);
+  max-width: none;
+}
+.xp-issuecard-mini-icon {
+  width: 13px;
+  height: 13px;
+  color: #ff7a3c;
+}
+.xp-issuecard-img {
+  display: block;
+  width: 100%;
+  max-height: 150px;
+  object-fit: cover;
+}
+.xp-issuecard-body {
+  display: block;
+  padding: 9px 11px;
+}
+.xp-issuecard-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  margin-bottom: 4px;
+}
+.xp-issuecard-type {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--xp-text);
+}
+.xp-issuecard-type-icon {
+  width: 14px;
+  height: 14px;
+  color: #ff7a3c;
+}
+.xp-issuecard-status {
+  font-size: 0.64rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  padding: 2px 7px;
+  border-radius: 999px;
+}
+.xp-issuecard-status.is-open {
+  background: #fff1e8;
+  color: #c2410c;
+}
+.xp-issuecard-status.is-resolved {
+  background: #e7f7ee;
+  color: #0c8f5f;
+}
+.xp-issuecard-status.is-hold {
+  background: #fff7e0;
+  color: #a16207;
+}
+.xp-issuecard-status.is-rejected {
+  background: #f3f4f6;
+  color: #6b7280;
+}
+.xp-issuecard-desc {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  font-size: 0.82rem;
+  color: var(--xp-text);
+  line-height: 1.35;
+  margin-bottom: 6px;
+}
+.xp-issuecard-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.7rem;
+  color: var(--xp-text-faint);
+}
+.xp-issuecard-place,
+.xp-issuecard-stat,
+.xp-issuecard-time {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+.xp-issuecard-place {
+  max-width: 150px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.xp-issuecard-meta-icon {
+  width: 11px;
+  height: 11px;
+}
+.xp-issuecard-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  margin-top: 6px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: #ff7a3c;
+}
+
+.xp-auth-loading {
+  padding: 0 10px;
+  font-size: 12.5px;
+  color: var(--xp-text-faint);
 }
