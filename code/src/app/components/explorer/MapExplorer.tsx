@@ -258,27 +258,18 @@ export default function MapExplorer() {
   return (
     <div className={`xp-shell ${panelOpen ? "xp-shell--panel" : ""}`}>
       <div className="xp-map-area">
-        {/* Chat tab takes over the content area with a Twitch-style chat panel. */}
-        {isChat && (
-          <div className="xp-chat-takeover">
-            <ChatView />
-          </div>
-        )}
-
-        {!isChat && (loading || !isMapLoaded) && (
+        {(loading || !isMapLoaded) && (
           <div className="xp-map-loading">
             <span className="xp-spinner" />
             <p>Loading the map…</p>
           </div>
         )}
-        {/* Map stays mounted (cheap to keep) but is hidden under the chat takeover. */}
+        {/* The map is always visible — every tab, including Chat. */}
         <div
           ref={mapRef}
           className={`xp-map ${isMapLoaded ? "is-ready" : ""}`}
-          style={isChat ? { visibility: "hidden" } : undefined}
         />
 
-        {!isChat && (
         <div className="xp-controls-wrap">
           <MapControls
             activeLayer={activeLayer}
@@ -294,10 +285,8 @@ export default function MapExplorer() {
             citiesLoading={loading}
           />
         </div>
-        )}
 
         {/* Legend */}
-        {!isChat && (
         <div className="xp-legend">
           {LAYERS.map((l) => (
             <span
@@ -321,7 +310,6 @@ export default function MapExplorer() {
             </span>
           ))}
         </div>
-        )}
 
       </div>
 
@@ -355,16 +343,20 @@ export default function MapExplorer() {
           })}
         </div>
 
-        {panelOpen && !isChat && (
+        {panelOpen && (
           <div className="xp-panel-host">
-            <DetailPanel
-              item={selected}
-              list={visibleItems}
-              activeLayerLabel={LAYER_BY_ID[activeLayer].label}
-              onSelect={handleSelect}
-              onClear={() => setSelected(null)}
-              onClose={() => setPanelOpen(false)}
-            />
+            {isChat ? (
+              <ChatView />
+            ) : (
+              <DetailPanel
+                item={selected}
+                list={visibleItems}
+                activeLayerLabel={LAYER_BY_ID[activeLayer].label}
+                onSelect={handleSelect}
+                onClear={() => setSelected(null)}
+                onClose={() => setPanelOpen(false)}
+              />
+            )}
           </div>
         )}
       </aside>
