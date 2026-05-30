@@ -46,14 +46,25 @@ function CallbackHandler() {
           refreshToken: { value: data.refresh_token.value, expiry: data.refresh_token.expiry },
         });
 
-        // Return to the page the user came from.
-        // Default includes ?autoopen=report so the modal always triggers even if
-        // sessionStorage was lost (e.g. Chrome Custom Tab / SFSafariViewController).
-        const returnTo = sessionStorage.getItem("report_issue_return_to") ?? "/?autoopen=report";
+        // Was this sign-in started from the "Report issue" flow specifically? Only then should
+        // we re-open the report modal after redirect. Other entry points (map / chat auth) set a
+        // generic return path and must NOT trigger the report modal.
+        const reportFlow = sessionStorage.getItem("report_issue_pending_intent") === "1";
+        sessionStorage.removeItem("report_issue_pending_intent");
+
+        const genericReturn = sessionStorage.getItem("auth_return_to");
+        sessionStorage.removeItem("auth_return_to");
+        const reportReturn = sessionStorage.getItem("report_issue_return_to");
         sessionStorage.removeItem("report_issue_return_to");
-        // Also set the sessionStorage flag as a belt-and-suspenders fallback.
-        sessionStorage.setItem("report_issue_pending", "1");
-        window.location.replace(returnTo);
+
+        if (reportFlow) {
+          // Default includes ?autoopen=report so the modal triggers even if sessionStorage was
+          // lost (e.g. Chrome Custom Tab / SFSafariViewController).
+          sessionStorage.setItem("report_issue_pending", "1");
+          window.location.replace(reportReturn ?? "/?autoopen=report");
+        } else {
+          window.location.replace(genericReturn ?? reportReturn ?? "/");
+        }
       } catch (err) {
         setError(`Failed to authenticate: ${err}`);
       }

@@ -15,10 +15,8 @@ export default function AuthWidget() {
   const loggedIn = typeof window !== "undefined" && isAuthenticated();
 
   function signIn() {
-    sessionStorage.setItem(
-      "report_issue_return_to",
-      window.location.pathname + window.location.search,
-    );
+    // Map sign-in: return to the map (home). Not the report flow.
+    sessionStorage.setItem("auth_return_to", "/");
     window.location.href = buildGoogleAuthUrl(
       GOOGLE_CLIENT_ID,
       `${window.location.origin}/auth/callback`,

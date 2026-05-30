@@ -111,6 +111,8 @@ export default function ReportIssueButton({ variant = "header" }: ReportIssueBut
     sessionStorage.setItem("report_perms_granted", "1");
     const returnTo = `${window.location.pathname}?autoopen=report`;
     sessionStorage.setItem("report_issue_return_to", returnTo);
+    // Mark this sign-in as the report flow so the callback re-opens the report modal.
+    sessionStorage.setItem("report_issue_pending_intent", "1");
     const redirectUri = `${window.location.origin}/auth/callback`;
     window.location.href = buildGoogleAuthUrl(GOOGLE_CLIENT_ID, redirectUri);
   }

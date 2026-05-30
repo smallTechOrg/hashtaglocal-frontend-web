@@ -35,10 +35,8 @@ export function FeedComposer({ onPosted, hashtag, isAdmin = false }: Props) {
   const loggedIn = typeof window !== "undefined" && isAuthenticated();
 
   function signIn() {
-    sessionStorage.setItem(
-      "report_issue_return_to",
-      window.location.pathname + window.location.search,
-    );
+    // Chat sign-in: return to the chat tab after auth. Not the report flow.
+    sessionStorage.setItem("auth_return_to", "/?tab=chat");
     const redirectUri = `${window.location.origin}/auth/callback`;
     window.location.href = buildGoogleAuthUrl(GOOGLE_CLIENT_ID, redirectUri);
   }

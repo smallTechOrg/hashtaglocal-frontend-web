@@ -58,6 +58,16 @@ export default function MapExplorer() {
   const [selected, setSelected] = useState<MapItem | null>(null);
   const [panelOpen, setPanelOpen] = useState(true);
 
+  // Open a specific tab when arrived via ?tab=… (e.g. returning from chat sign-in → ?tab=chat).
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const tab = new URLSearchParams(window.location.search).get("tab");
+    if (tab === "chat" || tab === "events" || tab === "issues") {
+      setActiveLayer(tab as LayerId);
+      setPanelOpen(true);
+    }
+  }, []);
+
   // Chat is NOT a map layer — when active it takes over the content area as a chat panel.
   const isChat = activeLayer === "chat";
   const allForLayer = datasetFor(activeLayer);
