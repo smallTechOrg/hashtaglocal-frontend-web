@@ -41,5 +41,6 @@ export const API_PATHS = {
   feedApprove: (id: number) => `${BASE_URL}/admin/feed/${id}/approve`,
   feedHide: (id: number) => `${BASE_URL}/admin/feed/${id}/hide`,
   feedPin: (id: number) => `${BASE_URL}/admin/feed/${id}`,
+  feedDelete: (id: number) => `${BASE_URL}/admin/feed/${id}`,
   feedAdminCreate: `${BASE_URL}/admin/feed`,
 };

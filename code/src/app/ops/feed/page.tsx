@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { Check, EyeOff, Loader2, RefreshCw } from "lucide-react";
+import { Check, EyeOff, Loader2, RefreshCw, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { adminFetch } from "../lib/api";
 import { API_PATHS } from "../../constants/api";
@@ -110,6 +110,22 @@ export default function OpsFeedModerationPage() {
     }
   }
 
+  async function deletePost(item: ModerationQueueItem) {
+    const id = item.post.id;
+    if (!window.confirm("Permanently delete this post? This cannot be undone.")) return;
+    setBusyId(id);
+    try {
+      const res = await adminFetch(API_PATHS.feedDelete(id), { method: "DELETE" });
+      if (!res.ok) throw new Error(`Failed: ${res.status}`);
+      toast.success("Post deleted");
+      setItems((prev) => prev.filter((i) => i.post.id !== id));
+    } catch (err) {
+      toast.error(`Delete failed: ${err}`);
+    } finally {
+      setBusyId(null);
+    }
+  }
+
   return (
     <div className="mx-auto max-w-3xl px-4 py-6">
       <div className="mb-4 flex items-center justify-between">
@@ -175,6 +191,7 @@ export default function OpsFeedModerationPage() {
               busy={busyId === item.post.id}
               onApprove={() => act(item, "approve")}
               onHide={() => act(item, "hide")}
+              onDelete={() => deletePost(item)}
             />
           ))}
 
@@ -207,11 +224,13 @@ function ModerationCard({
   busy,
   onApprove,
   onHide,
+  onDelete,
 }: {
   item: ModerationQueueItem;
   busy: boolean;
   onApprove: () => void;
   onHide: () => void;
+  onDelete: () => void;
 }) {
   const { post } = item;
   const isPublished = post.status === "PUBLISHED";
@@ -282,6 +301,14 @@ function ModerationCard({
             <EyeOff className="h-4 w-4" /> Hide
           </button>
         )}
+        <button
+          onClick={onDelete}
+          disabled={busy}
+          className="ml-auto flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium text-red-400 hover:bg-red-950/40 disabled:opacity-50"
+          title="Permanently delete this post"
+        >
+          <Trash2 className="h-4 w-4" /> Delete
+        </button>
       </div>
     </div>
   );
