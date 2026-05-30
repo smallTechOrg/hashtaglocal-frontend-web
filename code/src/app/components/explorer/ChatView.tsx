@@ -118,19 +118,41 @@ function ChatRow({
 /** Renders a message body by kind. Add a branch here for new rich kinds (POLL, QUIZ, …). */
 function ChatBody({ post }: { post: FeedPost }) {
   switch (post.kind) {
-    case "LINK":
+    case "LINK": {
+      const d = (post.data ?? {}) as Record<string, unknown>;
+      const siteName = typeof d.site_name === "string" ? d.site_name : undefined;
+      const favicon = typeof d.favicon_url === "string" ? d.favicon_url : undefined;
+      let host = "";
+      try {
+        host = post.url ? new URL(post.url).host.replace(/^www\./, "") : "";
+      } catch {
+        host = "";
+      }
+      const pending = post.scrape_status === "PENDING";
       return (
         <span className="xp-msg-body">
-          {post.text && <span className="xp-msg-text">{post.text} </span>}
-          <a className="xp-msg-link" href={post.url} target="_blank" rel="noopener noreferrer">
-            {post.title ?? (post.scrape_status === "PENDING" ? "link…" : post.url)}
+          {post.text && <span className="xp-msg-text">{post.text}</span>}
+          <a className="xp-linkcard" href={post.url} target="_blank" rel="noopener noreferrer">
+            {post.image_url && (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={post.image_url} alt="" className="xp-linkcard-img" />
+            )}
+            <span className="xp-linkcard-body">
+              <span className="xp-linkcard-site">
+                {favicon && (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={favicon} alt="" className="xp-linkcard-favicon" />
+                )}
+                {siteName ?? host}
+              </span>
+              <span className="xp-linkcard-title">
+                {post.title ?? (pending ? "Loading preview…" : post.url)}
+              </span>
+            </span>
           </a>
-          {post.image_url && (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={post.image_url} alt="" className="xp-msg-thumb" />
-          )}
         </span>
       );
+    }
     case "MEDIA":
       return (
         <span className="xp-msg-body">
