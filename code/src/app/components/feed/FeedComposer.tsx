@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Link2, Loader2, MapPin, Send } from "lucide-react";
+import { Link2, Loader2, MapPin, Send, ShieldCheck } from "lucide-react";
 import { API_PATHS } from "../../constants/api";
 import { getAccessToken, buildGoogleAuthUrl, isAuthenticated } from "../../ops/lib/auth";
 import { GOOGLE_CLIENT_ID } from "../../ops/lib/constants";
@@ -14,22 +14,31 @@ function firstUrl(text: string): string | null {
 }
 
 interface Props {
-  /** Called after a successful post so the page can refresh / show a hint. */
+  /** Called after a successful post so the page can refresh. */
   onPosted: () => void;
+  /**
+   * The hashtag channel being viewed. Admins post here directly (no location). Regular users
+   * always post via geolocation regardless of this value.
+   */
+  hashtag?: string;
+  /** When true (admin), post to {@link hashtag} with no geolocation. */
+  isAdmin?: boolean;
 }
 
 type Status = "idle" | "locating" | "posting";
 
-export function FeedComposer({ onPosted }: Props) {
+export function FeedComposer({ onPosted, hashtag, isAdmin = false }: Props) {
   const [text, setText] = useState("");
   const [status, setStatus] = useState<Status>("idle");
   const [error, setError] = useState<string | null>(null);
-  const [info, setInfo] = useState<string | null>(null);
 
   const loggedIn = typeof window !== "undefined" && isAuthenticated();
 
   function signIn() {
-    sessionStorage.setItem("report_issue_return_to", window.location.pathname + window.location.search);
+    sessionStorage.setItem(
+      "report_issue_return_to",
+      window.location.pathname + window.location.search,
+    );
     const redirectUri = `${window.location.origin}/auth/callback`;
     window.location.href = buildGoogleAuthUrl(GOOGLE_CLIENT_ID, redirectUri);
   }
@@ -58,28 +67,31 @@ export function FeedComposer({ onPosted }: Props) {
     }
 
     setError(null);
-    setInfo(null);
-    setStatus("locating");
-
-    let coords: { lat: number; lng: number };
-    try {
-      const pos = await getPosition();
-      coords = { lat: pos.coords.latitude, lng: pos.coords.longitude };
-    } catch {
-      setError("Location is required to post. Please allow location access and try again.");
-      setStatus("idle");
-      return;
-    }
 
     const url = firstUrl(trimmed);
     const kind: FeedPostKind = url ? "LINK" : "TEXT";
-    const payload: CreateFeedPostRequest = {
+    const base: CreateFeedPostRequest = {
       kind,
-      lat: coords.lat,
-      lng: coords.lng,
       text: trimmed,
       ...(url ? { link_url: url } : {}),
     };
+
+    // Admins post to the open hashtag directly; everyone else resolves locality from coordinates.
+    let payload: CreateFeedPostRequest;
+    if (isAdmin) {
+      const tag = (hashtag ?? "india").replace(/^#/, "");
+      payload = { ...base, hashtag: tag };
+    } else {
+      setStatus("locating");
+      try {
+        const pos = await getPosition();
+        payload = { ...base, lat: pos.coords.latitude, lng: pos.coords.longitude };
+      } catch {
+        setError("Location is required to post. Please allow location access and try again.");
+        setStatus("idle");
+        return;
+      }
+    }
 
     setStatus("posting");
     try {
@@ -94,12 +106,9 @@ export function FeedComposer({ onPosted }: Props) {
       }
       if (!res.ok) {
         const body = await res.json().catch(() => null);
-        const msg =
-          body?.error?.message ?? `Could not post (${res.status}). Please try again.`;
-        throw new Error(msg);
+        throw new Error(body?.error?.message ?? `Could not post (${res.status}).`);
       }
       setText("");
-      setInfo("Posted! It'll appear once it clears review.");
       onPosted();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Something went wrong.");
@@ -110,63 +119,64 @@ export function FeedComposer({ onPosted }: Props) {
 
   if (!loggedIn) {
     return (
-      <div className="flex items-center justify-between gap-3 rounded-xl border border-zinc-200 bg-white p-3">
-        <span className="text-sm text-zinc-500">Sign in to post to this hashtag</span>
-        <button
-          onClick={signIn}
-          className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700"
-        >
-          Sign in
-        </button>
-      </div>
+      <button onClick={signIn} className="xp-chat-signin">
+        Sign in to join the chat
+      </button>
     );
   }
 
   const busy = status !== "idle";
+  const hasLink = Boolean(firstUrl(text));
 
   return (
-    <div className="flex flex-col gap-2 rounded-xl border border-zinc-200 bg-white p-3">
-      <textarea
-        value={text}
-        onChange={(e) => setText(e.target.value)}
-        placeholder="Share something with your neighbourhood… (paste a link to share an article)"
-        rows={2}
-        maxLength={4000}
-        className="w-full resize-none rounded-lg border border-zinc-200 px-3 py-2 text-sm outline-none focus:border-emerald-400"
-        onKeyDown={(e) => {
-          if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) submit();
-        }}
-      />
-      {error && <p className="text-xs text-red-600">{error}</p>}
-      {info && <p className="text-xs text-emerald-600">{info}</p>}
-      <div className="flex items-center justify-between">
-        <span className="flex items-center gap-1 text-xs text-zinc-400">
-          <MapPin className="h-3 w-3" /> Location is used to post to the right hashtag
-        </span>
+    <div className="xp-compose">
+      {error && <p className="xp-compose-error">{error}</p>}
+      <div className="xp-compose-row">
+        <input
+          className="xp-compose-input"
+          value={text}
+          onChange={(e) => setText(e.target.value)}
+          placeholder={
+            isAdmin
+              ? `Post to ${hashtag ?? "#india"} as admin…`
+              : "Send a message…"
+          }
+          maxLength={4000}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" && !e.shiftKey) {
+              e.preventDefault();
+              submit();
+            }
+          }}
+        />
         <button
+          className="xp-compose-send"
           onClick={submit}
           disabled={busy || !text.trim()}
-          className="flex items-center gap-1.5 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700 disabled:opacity-50"
+          aria-label="Send"
         >
-          {status === "locating" ? (
-            <>
-              <Loader2 className="h-4 w-4 animate-spin" /> Locating…
-            </>
-          ) : status === "posting" ? (
-            <>
-              <Loader2 className="h-4 w-4 animate-spin" /> Posting…
-            </>
-          ) : firstUrl(text) ? (
-            <>
-              <Link2 className="h-4 w-4" /> Share link
-            </>
+          {busy ? (
+            <Loader2 className="xp-spin" />
+          ) : hasLink ? (
+            <Link2 className="xp-compose-icon" />
           ) : (
-            <>
-              <Send className="h-4 w-4" /> Post
-            </>
+            <Send className="xp-compose-icon" />
           )}
         </button>
       </div>
+      <span className="xp-compose-hint">
+        {isAdmin ? (
+          <>
+            <ShieldCheck className="xp-compose-hint-icon" /> Admin · posts to{" "}
+            {hashtag ?? "#india"}
+          </>
+        ) : (
+          <>
+            <MapPin className="xp-compose-hint-icon" /> Posts to your locality · reviewed before
+            it appears
+          </>
+        )}
+      </span>
     </div>
   );
 }

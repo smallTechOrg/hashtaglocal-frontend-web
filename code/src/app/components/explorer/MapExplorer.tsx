@@ -286,9 +286,9 @@ export default function MapExplorer() {
           />
         </div>
 
-        {/* Legend */}
+        {/* Legend — map layers only; Chat is a panel, not a map filter. */}
         <div className="xp-legend">
-          {LAYERS.map((l) => (
+          {LAYERS.filter((l) => l.id !== "chat").map((l) => (
             <span
               key={l.id}
               className={`xp-legend-item ${
@@ -346,7 +346,7 @@ export default function MapExplorer() {
         {panelOpen && (
           <div className="xp-panel-host">
             {isChat ? (
-              <ChatView />
+              <ChatView hashtag={decodeURIComponent(selectedCity).replace(/^#/, "")} />
             ) : (
               <DetailPanel
                 item={selected}

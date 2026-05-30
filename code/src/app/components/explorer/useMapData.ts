@@ -7,41 +7,12 @@ import { trackError } from "../../utils/analytics";
 import { toIssueSlug } from "../../../utils/issueSlug";
 import { MapItem } from "./types";
 import { isUpcoming, prettyType } from "./layerConfig";
-import type { FeedListResponse, FeedPost } from "../../models/feed";
 
 interface IssuesResponse {
   data?: { issues?: Issue[] };
 }
 
 const PLACEHOLDER = "https://via.placeholder.com/150";
-
-/** Center of India — fallback marker position for national (#india) chat posts with no locality. */
-const INDIA_CENTER = { lat: 22.5937, lng: 78.9629 };
-
-/** Maps a feed post to a map item. Uses the post's locality centroid; falls back to India center. */
-function feedPostToItem(post: FeedPost): MapItem {
-  const lat = post.locality_lat ?? INDIA_CENTER.lat;
-  const lng = post.locality_lng ?? INDIA_CENTER.lng;
-  const tag = post.hashtag ? post.hashtag.replace(/^#/, "") : undefined;
-  const images = post.media_url ? [{ url: post.media_url }] : [];
-  return {
-    layer: "chat",
-    id: post.id.toString(),
-    lat,
-    lng,
-    type: post.kind,
-    chatKind: post.kind,
-    title: post.title || post.text || `${post.kind} post`,
-    description: post.text || "",
-    images,
-    locationLabel: post.hashtag || "#india",
-    hashtags: tag ? [tag] : undefined,
-    timestamp: post.created_at,
-    author: post.author?.username,
-    chatUrl: post.url,
-    link: post.url,
-  };
-}
 
 function issueToItem(issue: Issue): MapItem {
   const images = (issue.media_urls || [])
@@ -109,7 +80,6 @@ interface MapData {
 export function useMapData(): MapData {
   const [issues, setIssues] = useState<MapItem[]>([]);
   const [events, setEvents] = useState<MapItem[]>([]);
-  const [chat, setChat] = useState<MapItem[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -148,26 +118,9 @@ export function useMapData(): MapData {
           return [] as MapItem[];
         });
 
-      // Combined home chat = the aggregated #india feed (its own posts + all child localities').
-      const chatP = fetch(API_PATHS.feedTimeline("india", undefined, 50) + "&aggregate=true", opts)
-        .then((r) => (r.ok ? r.json() : Promise.reject(r.status)))
-        .then((p: FeedListResponse) => {
-          const data = p.data ?? {};
-          const posts: FeedPost[] = [...(data.pinned ?? []), ...(data.posts ?? [])];
-          return posts.map(feedPostToItem);
-        })
-        .catch((err) => {
-          if (!controller.signal.aborted) {
-            trackError("api_load_error", String(err), "explorer_chat");
-          }
-          return [] as MapItem[];
-        });
-
-      const [issueItems, eventItems, chatItems] = await Promise.all([
-        issuesP,
-        eventsP,
-        chatP,
-      ]);
+      // Chat is NOT a map layer — the Chat tab's ChatView fetches its own feed. We don't load
+      // chat as map markers here.
+      const [issueItems, eventItems] = await Promise.all([issuesP, eventsP]);
       if (controller.signal.aborted) return;
 
       issueItems.sort(
@@ -180,16 +133,9 @@ export function useMapData(): MapData {
           new Date(a.timestamp || 0).getTime() -
           new Date(b.timestamp || 0).getTime(),
       );
-      // Chat: newest first (the API already returns newest-first; keep it explicit).
-      chatItems.sort(
-        (a, b) =>
-          new Date(b.timestamp || 0).getTime() -
-          new Date(a.timestamp || 0).getTime(),
-      );
 
       setIssues(issueItems);
       setEvents(eventItems);
-      setChat(chatItems);
       setLoading(false);
     }
 
@@ -197,5 +143,6 @@ export function useMapData(): MapData {
     return () => controller.abort();
   }, []);
 
-  return { issues, events, chat, loading };
+  // `chat` is kept (always empty) so map-layer machinery still typechecks; chat is panel-only.
+  return { issues, events, chat: [], loading };
 }

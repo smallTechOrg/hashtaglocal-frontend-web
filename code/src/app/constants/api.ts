@@ -8,6 +8,7 @@ export const API_PATHS = {
   issue: (id: number | string) => `${API_V1_BASE}/issue/${id}`,
   events: `${API_V1_BASE}/events`,
   polygons: `${API_ROOT}/localities/polygons`,
+  profile: `${BASE_URL}/account/profile`,
   reportIssue: `${API_V1_BASE}/issue`,
   mediaUploadUrl: (contentType: string) =>
     `${API_V1_BASE}/media/upload-url?content_type=${encodeURIComponent(contentType)}`,
