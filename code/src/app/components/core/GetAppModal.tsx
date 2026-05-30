@@ -7,9 +7,9 @@ import { EventCategory } from "../../utils/analytics";
 
 /* ── Replace these placeholders with the real URLs ── */
 const PLAY_STORE_URL = "https://play.google.com/store/apps/details?id=com.smalltech.hashtaglocal";
-const APP_STORE_URL = "https://docs.google.com/forms/d/e/1FAIpQLSdDjs6xd3nyzJKWtF3DEk1uQPnqVlpfYv8Ibnp8gZbRV5RV0Q/viewform?embedded=true";
+const APP_STORE_URL = "https://testflight.apple.com/join/svHDxNt1";
 const WHATSAPP_URL = "https://chat.whatsapp.com/EYaX2WwCuKZ0Q7r4Vt6Zsa";
-const FEEDBACK_FORM_URL =
+const JOINTHEMOMENT_URL =
   "https://docs.google.com/forms/d/e/1FAIpQLSdDjs6xd3nyzJKWtF3DEk1uQPnqVlpfYv8Ibnp8gZbRV5RV0Q/viewform?embedded=true";
 
 function GooglePlayBadge() {
@@ -150,13 +150,13 @@ export default function GetAppModal({ open, onClose }: Props) {
             </a>
           </div>
 
-          {/* Right column — feedback form */}
+          {/* Right column — join the moment form */}
           <div className="gam-right">
-            <p className="gam-feedback-title">Share your feedback</p>
+            <p className="gam-join-title">Join the moment</p>
             <iframe
-              src={FEEDBACK_FORM_URL}
-              title="Feedback form"
-              className="gam-feedback-frame"
+              src={JOINTHEMOMENT_URL}
+              title="Join the moment"
+              className="gam-join-frame"
               loading="lazy"
               referrerPolicy="no-referrer-when-downgrade"
             />

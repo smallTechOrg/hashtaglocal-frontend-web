@@ -5,6 +5,9 @@ import { useMapData } from "./useMapData";
 import { MapItem } from "./types";
 import MapControls, { CityOption } from "./MapControls";
 import DetailPanel from "./DetailPanel";
+import ChatView from "./ChatView";
+import AuthWidget from "./AuthWidget";
+import { useResizablePanel } from "./useResizablePanel";
 import {
   LAYER_BY_ID,
   LAYERS,
@@ -35,7 +38,11 @@ function cityMatches(item: MapItem, city: string): boolean {
 }
 
 export default function MapExplorer() {
-  const { issues, events, loading } = useMapData();
+  const { issues, events, chat, loading } = useMapData();
+
+  // Resolve the dataset for a layer id.
+  const datasetFor = (id: LayerId): MapItem[] =>
+    id === "issues" ? issues : id === "events" ? events : chat;
 
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<google.maps.Map | null>(null);
@@ -46,18 +53,32 @@ export default function MapExplorer() {
   const [subFilters, setSubFilters] = useState<Record<LayerId, Set<string>>>({
     issues: new Set(),
     events: new Set(),
+    chat: new Set(),
   });
   const [selectedCity, setSelectedCity] = useState("%23india");
   const [selected, setSelected] = useState<MapItem | null>(null);
   const [panelOpen, setPanelOpen] = useState(true);
+  const { size: panelSize, startDrag, dragging } = useResizablePanel();
 
-  const allForLayer = activeLayer === "issues" ? issues : events;
+  // Open a specific tab when arrived via ?tab=… (e.g. returning from chat sign-in → ?tab=chat).
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const tab = new URLSearchParams(window.location.search).get("tab");
+    if (tab === "chat" || tab === "events" || tab === "issues") {
+      setActiveLayer(tab as LayerId);
+      setPanelOpen(true);
+    }
+  }, []);
+
+  // Chat is NOT a map layer — when active it takes over the content area as a chat panel.
+  const isChat = activeLayer === "chat";
+  const allForLayer = datasetFor(activeLayer);
   const activeSubFilters = subFilters[activeLayer];
 
-  // City options derived from both datasets.
+  // City options derived from all datasets.
   const cities: CityOption[] = useMemo(() => {
     const set = new Set<string>();
-    [...issues, ...events].forEach((it) =>
+    [...issues, ...events, ...chat].forEach((it) =>
       (it.hashtags || []).forEach((h) => set.add(h.toLowerCase())),
     );
     return [
@@ -69,7 +90,7 @@ export default function MapExplorer() {
           value: encodeURIComponent(tag),
         })),
     ];
-  }, [issues, events]);
+  }, [issues, events, chat]);
 
   // Items filtered by city only — used for sub-filter counts.
   const cityItems = useMemo(
@@ -86,13 +107,36 @@ export default function MapExplorer() {
     return c;
   }, [cityItems]);
 
-  // Final visible items: city + sub-filter.
+  // How many issues / events exist for the selected hashtag (independent of the active layer).
+  const issueCityCount = useMemo(
+    () => issues.filter((it) => cityMatches(it, selectedCity)).length,
+    [issues, selectedCity],
+  );
+  const eventCityCount = useMemo(
+    () => events.filter((it) => cityMatches(it, selectedCity)).length,
+    [events, selectedCity],
+  );
+
+  // When the hashtag changes, land on a map tab that actually has content: if the current map
+  // layer is empty for this hashtag but the other has items, switch to the other. Never auto-
+  // switches the Chat tab (chat is a deliberate choice) or overrides a non-empty current tab.
+  useEffect(() => {
+    if (isChat) return;
+    if (activeLayer === "issues" && issueCityCount === 0 && eventCityCount > 0) {
+      setActiveLayer("events");
+    } else if (activeLayer === "events" && eventCityCount === 0 && issueCityCount > 0) {
+      setActiveLayer("issues");
+    }
+  }, [selectedCity, issueCityCount, eventCityCount, activeLayer, isChat]);
+
+  // Final visible items: city + sub-filter. Chat plots no markers.
   const visibleItems = useMemo(() => {
+    if (isChat) return [];
     if (activeSubFilters.size === 0) return cityItems;
     return cityItems.filter((it) =>
       activeSubFilters.has(normalizeType(it.type)),
     );
-  }, [cityItems, activeSubFilters]);
+  }, [isChat, cityItems, activeSubFilters]);
 
   // Clear selection if it falls out of view.
   useEffect(() => {
@@ -256,10 +300,16 @@ export default function MapExplorer() {
             <p>Loading the map…</p>
           </div>
         )}
+        {/* The map is always visible — every tab, including Chat. */}
         <div
           ref={mapRef}
           className={`xp-map ${isMapLoaded ? "is-ready" : ""}`}
         />
+
+        {/* Auth status — pinned to the map, always visible. */}
+        <div className="xp-auth-wrap">
+          <AuthWidget />
+        </div>
 
         <div className="xp-controls-wrap">
           <MapControls
@@ -277,9 +327,9 @@ export default function MapExplorer() {
           />
         </div>
 
-        {/* Legend — click to switch layer */}
+        {/* Legend — click to switch layer; Chat is a panel, not a map filter. */}
         <div className="xp-legend">
-          {LAYERS.map((l) => (
+          {LAYERS.filter((l) => l.id !== "chat").map((l) => (
             <button
               key={l.id}
               className={`xp-legend-item ${
@@ -295,7 +345,7 @@ export default function MapExplorer() {
               <span className="xp-legend-count">
                 {l.id === activeLayer
                   ? visibleItems.length
-                  : (l.id === "issues" ? issues : events).filter((it) =>
+                  : datasetFor(l.id).filter((it) =>
                       cityMatches(it, selectedCity),
                     ).length}
               </span>
@@ -310,7 +360,20 @@ export default function MapExplorer() {
 
       </div>
 
-      <aside className={`xp-panel-dock ${panelOpen ? "" : "is-collapsed"}`}>
+      <aside
+        className={`xp-panel-dock ${panelOpen ? "" : "is-collapsed"} ${dragging ? "is-dragging" : ""}`}
+        style={panelOpen ? panelSize : undefined}
+      >
+        {/* Drag handle to resize the panel (width on desktop, height on mobile). */}
+        {panelOpen && (
+          <div
+            className={`xp-resize-handle ${dragging ? "is-dragging" : ""}`}
+            onPointerDown={startDrag}
+            role="separator"
+            aria-label="Resize panel"
+          />
+        )}
+
         {/* Vertical tab rail — always visible, switches layer + toggles panel */}
         <div className="xp-tabs" role="tablist" aria-orientation="vertical">
           {LAYERS.map((layer) => {
@@ -342,14 +405,18 @@ export default function MapExplorer() {
 
         {panelOpen && (
           <div className="xp-panel-host">
-            <DetailPanel
-              item={selected}
-              list={visibleItems}
-              activeLayerLabel={LAYER_BY_ID[activeLayer].label}
-              onSelect={handleSelect}
-              onClear={() => setSelected(null)}
-              onClose={() => setPanelOpen(false)}
-            />
+            {isChat ? (
+              <ChatView hashtag={decodeURIComponent(selectedCity).replace(/^#/, "")} />
+            ) : (
+              <DetailPanel
+                item={selected}
+                list={visibleItems}
+                activeLayerLabel={LAYER_BY_ID[activeLayer].label}
+                onSelect={handleSelect}
+                onClear={() => setSelected(null)}
+                onClose={() => setPanelOpen(false)}
+              />
+            )}
           </div>
         )}
       </aside>

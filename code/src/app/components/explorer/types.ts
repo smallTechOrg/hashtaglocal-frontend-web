@@ -26,4 +26,12 @@ export interface MapItem {
   link?: string;
   /** Slug-based detail route, issues only. */
   detailHref?: string;
+
+  // --- chat only ---
+  /** Feed post kind (TEXT / LINK / MEDIA / ISSUE_REF / EVENT_REF). */
+  chatKind?: string;
+  /** Author username (chat posts). */
+  author?: string;
+  /** Shared link URL for LINK posts. */
+  chatUrl?: string;
 }

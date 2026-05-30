@@ -78,6 +78,9 @@ function ListCard({
           </span>
         </div>
         <p className="xp-card-title">{item.title}</p>
+        {item.layer === "chat" && item.author && (
+          <p className="xp-card-loc">@{item.author}</p>
+        )}
         <p className="xp-card-loc">
           <MapPin size={11} /> {item.locationLabel}
         </p>
@@ -166,12 +169,27 @@ function ItemDetail({
             <p className="xp-detail-row">
               <Clock size={14} /> {formatTimeAgo(item.timestamp)}
             </p>
+            {item.layer === "chat" && item.author && (
+              <p className="xp-detail-desc">
+                Posted by <strong>@{item.author}</strong>
+              </p>
+            )}
             {item.description && (
               <p className="xp-detail-desc">{item.description}</p>
             )}
             {item.detailHref && (
               <a className="xp-cta" href={item.detailHref}>
                 View full issue <ExternalLink size={15} />
+              </a>
+            )}
+            {item.layer === "chat" && item.chatUrl && (
+              <a
+                className="xp-cta"
+                href={item.chatUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                Open link <ExternalLink size={15} />
               </a>
             )}
           </>
