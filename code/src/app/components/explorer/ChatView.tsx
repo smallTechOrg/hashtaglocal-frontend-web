@@ -37,6 +37,21 @@ export default function ChatView({ hashtag }: { hashtag: string }) {
     bottomRef.current?.scrollIntoView({ behavior, block: "end" });
   }
 
+  // Is the viewer currently near the bottom of the stream? (Used to keep them pinned through
+  // layout changes without overriding a deliberate scroll-up to read history.)
+  function isNearBottom(): boolean {
+    const el = scrollRef.current;
+    if (!el) return true;
+    return el.scrollHeight - el.scrollTop - el.clientHeight < 120;
+  }
+
+  // Reset the "initial scroll" latch when the channel changes, so switching hashtags re-pins
+  // the new channel to the bottom.
+  useEffect(() => {
+    didInitialScrollRef.current = false;
+    newestSeenRef.current = null;
+  }, [hashtag]);
+
   // Older messages load when the user scrolls to the top (chat grows upward).
   useEffect(() => {
     const el = topSentinel.current;
@@ -49,16 +64,17 @@ export default function ChatView({ hashtag }: { hashtag: string }) {
     return () => obs.disconnect();
   }, [hasMore, loadMore, posts.length]);
 
-  // Auto-scroll to the newest message: once after first load, and whenever a NEW message arrives
-  // (e.g. after the viewer posts and we reload). Loading OLDER pages (scroll-up) must not yank down,
-  // so we only scroll when the newest post id changes — not when older posts are prepended.
+  // Auto-scroll to the newest message: once after first load (and after a channel switch), and
+  // whenever a NEW message arrives. Loading OLDER pages (scroll-up) must not yank down, so we only
+  // scroll when the newest post id changes — not when older posts are prepended.
   const newestId = posts.length > 0 ? posts[0].id : null; // API is newest-first
   useEffect(() => {
     if (loading) return;
     if (!didInitialScrollRef.current) {
       didInitialScrollRef.current = true;
       newestSeenRef.current = newestId;
-      scrollToBottom("auto");
+      // Defer so the just-rendered rows are measured before we jump to the end.
+      requestAnimationFrame(() => scrollToBottom("auto"));
       return;
     }
     if (newestId !== null && newestId !== newestSeenRef.current) {
@@ -66,6 +82,20 @@ export default function ChatView({ hashtag }: { hashtag: string }) {
       scrollToBottom("smooth");
     }
   }, [newestId, loading]);
+
+  // Keep pinned to the bottom through async layout shifts (images loading, panel resize) — but only
+  // when the viewer is already at the bottom, so reading history isn't interrupted.
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver(() => {
+      if (isNearBottom()) scrollToBottom("auto");
+    });
+    // Observe the stream and its content wrapper for height changes.
+    ro.observe(el);
+    Array.from(el.children).forEach((c) => ro.observe(c));
+    return () => ro.disconnect();
+  }, [posts.length, loading]);
 
   // Newest-at-bottom (chat convention): reverse the newest-first API order.
   const ordered = [...posts].reverse();

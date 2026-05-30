@@ -7,6 +7,7 @@ import MapControls, { CityOption } from "./MapControls";
 import DetailPanel from "./DetailPanel";
 import ChatView from "./ChatView";
 import AuthWidget from "./AuthWidget";
+import { useResizablePanel } from "./useResizablePanel";
 import {
   LAYER_BY_ID,
   LAYERS,
@@ -57,6 +58,7 @@ export default function MapExplorer() {
   const [selectedCity, setSelectedCity] = useState("%23india");
   const [selected, setSelected] = useState<MapItem | null>(null);
   const [panelOpen, setPanelOpen] = useState(true);
+  const { size: panelSize, startDrag, dragging } = useResizablePanel();
 
   // Open a specific tab when arrived via ?tab=… (e.g. returning from chat sign-in → ?tab=chat).
   useEffect(() => {
@@ -358,7 +360,20 @@ export default function MapExplorer() {
 
       </div>
 
-      <aside className={`xp-panel-dock ${panelOpen ? "" : "is-collapsed"}`}>
+      <aside
+        className={`xp-panel-dock ${panelOpen ? "" : "is-collapsed"} ${dragging ? "is-dragging" : ""}`}
+        style={panelOpen ? panelSize : undefined}
+      >
+        {/* Drag handle to resize the panel (width on desktop, height on mobile). */}
+        {panelOpen && (
+          <div
+            className={`xp-resize-handle ${dragging ? "is-dragging" : ""}`}
+            onPointerDown={startDrag}
+            role="separator"
+            aria-label="Resize panel"
+          />
+        )}
+
         {/* Vertical tab rail — always visible, switches layer + toggles panel */}
         <div className="xp-tabs" role="tablist" aria-orientation="vertical">
           {LAYERS.map((layer) => {
