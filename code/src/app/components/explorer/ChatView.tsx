@@ -27,6 +27,14 @@ export default function ChatView({ hashtag }: { hashtag: string }) {
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const topSentinel = useRef<HTMLDivElement | null>(null);
+  const bottomRef = useRef<HTMLDivElement | null>(null);
+  // Tracks the newest post id we've seen, to detect new messages (vs. older-page loads).
+  const newestSeenRef = useRef<number | null>(null);
+  const didInitialScrollRef = useRef(false);
+
+  function scrollToBottom(behavior: ScrollBehavior = "auto") {
+    bottomRef.current?.scrollIntoView({ behavior, block: "end" });
+  }
 
   // Older messages load when the user scrolls to the top (chat grows upward).
   useEffect(() => {
@@ -39,6 +47,24 @@ export default function ChatView({ hashtag }: { hashtag: string }) {
     obs.observe(el);
     return () => obs.disconnect();
   }, [hasMore, loadMore, posts.length]);
+
+  // Auto-scroll to the newest message: once after first load, and whenever a NEW message arrives
+  // (e.g. after the viewer posts and we reload). Loading OLDER pages (scroll-up) must not yank down,
+  // so we only scroll when the newest post id changes — not when older posts are prepended.
+  const newestId = posts.length > 0 ? posts[0].id : null; // API is newest-first
+  useEffect(() => {
+    if (loading) return;
+    if (!didInitialScrollRef.current) {
+      didInitialScrollRef.current = true;
+      newestSeenRef.current = newestId;
+      scrollToBottom("auto");
+      return;
+    }
+    if (newestId !== null && newestId !== newestSeenRef.current) {
+      newestSeenRef.current = newestId;
+      scrollToBottom("smooth");
+    }
+  }, [newestId, loading]);
 
   // Newest-at-bottom (chat convention): reverse the newest-first API order.
   const ordered = [...posts].reverse();
@@ -76,6 +102,8 @@ export default function ChatView({ hashtag }: { hashtag: string }) {
             ) : (
               ordered.map((p) => <ChatRow key={p.id} post={p} showTag={isRoot} />)
             )}
+            {/* Anchor for auto-scroll-to-newest. */}
+            <div ref={bottomRef} />
           </>
         )}
       </div>

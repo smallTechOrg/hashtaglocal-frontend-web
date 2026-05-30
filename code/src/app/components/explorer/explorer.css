@@ -930,7 +930,8 @@
   display: flex;
   flex-direction: column;
   height: 100%;
-  width: var(--xp-panel-w);
+  /* Fill the host: the 384px panel on desktop, full width on mobile. */
+  width: 100%;
   background: var(--xp-surface);
   color: var(--xp-text);
 }
