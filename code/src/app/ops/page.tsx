@@ -16,8 +16,8 @@ export default function OpsPage() {
     setMounted(true);
     const isAuthed = isAuthenticated();
     setAuthed(isAuthed);
-    // Authed users get the real routed dashboard (single shared nav from the layout, incl. Feed).
-    if (isAuthed) router.replace("/ops/feed");
+    // Authed users land on the primary tab (Review) — single shared nav from the layout.
+    if (isAuthed) router.replace("/ops/review");
   }, [router]);
 
   function handleGoogleLogin() {
@@ -27,7 +27,7 @@ export default function OpsPage() {
 
   if (!mounted) return null;
 
-  // Authed → redirecting to /ops/feed (handled in the effect); render nothing meanwhile.
+  // Authed → redirecting to /ops/review (handled in the effect); render nothing meanwhile.
   if (authed) return null;
 
   // ── Login view ────────────────────────────────────────────────────────────
