@@ -1,7 +1,14 @@
 import { IssueType } from "../../models/issue";
 import { EventType } from "../../models/event";
 
-export type LayerId = "issues" | "events" | "chat";
+/**
+ * Map filter — which markers are plotted. This is independent of the left panel, which shows Chat
+ * by default and swaps to an item's detail on marker click. "all" plots issues + events together.
+ */
+export type MapFilterId = "all" | "issues" | "events";
+
+/** A concrete dataset layer (no "all", no "chat" — chat is a panel mode, not a map layer). */
+export type LayerId = "issues" | "events";
 
 export interface SubFilter {
   value: string;
@@ -55,20 +62,22 @@ export const LAYERS: LayerDef[] = [
     color: "#6366F1",
     subFilters: EVENT_SUBFILTERS,
   },
-  {
-    id: "chat",
-    label: "Chat",
-    icon: "💬",
-    color: "#10B981",
-    subFilters: [],
-  },
 ];
 
 export const LAYER_BY_ID: Record<LayerId, LayerDef> = {
   issues: LAYERS[0],
   events: LAYERS[1],
-  chat: LAYERS[2],
 };
+
+/** Color used for the "All" map filter (mixed issues + events). */
+export const ALL_FILTER_COLOR = "#0ea5e9";
+
+/** The three map-filter segments shown on top: All / Issues / Events. */
+export const MAP_FILTERS: { id: MapFilterId; label: string }[] = [
+  { id: "all", label: "All" },
+  { id: "issues", label: "Issues" },
+  { id: "events", label: "Events" },
+];
 
 export const normalizeType = (type?: string) =>
   type ? type.toUpperCase() : "OTHER";

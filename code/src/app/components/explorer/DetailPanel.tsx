@@ -19,6 +19,8 @@ type Props = {
   onSelect: (item: MapItem) => void;
   onClear: () => void;
   onClose: () => void;
+  /** Text for the detail's back button, e.g. "issues" or "chat". Defaults to the layer label. */
+  backLabel?: string;
 };
 
 function ItemThumb({ item }: { item: MapItem }) {
@@ -78,9 +80,6 @@ function ListCard({
           </span>
         </div>
         <p className="xp-card-title">{item.title}</p>
-        {item.layer === "chat" && item.author && (
-          <p className="xp-card-loc">@{item.author}</p>
-        )}
         <p className="xp-card-loc">
           <MapPin size={11} /> {item.locationLabel}
         </p>
@@ -101,15 +100,18 @@ function ListCard({
 function ItemDetail({
   item,
   onClear,
+  backLabel,
 }: {
   item: MapItem;
   onClear: () => void;
+  backLabel: string;
 }) {
   const layer = LAYER_BY_ID[item.layer];
+  const isEvent = item.layer === "events";
   return (
     <div className="xp-detail">
       <button className="xp-back" onClick={onClear}>
-        <ArrowLeft size={15} /> Back to {layer.label.toLowerCase()}
+        <ArrowLeft size={15} /> Back to {backLabel}
       </button>
 
       {item.images.length > 0 ? (
@@ -133,15 +135,13 @@ function ItemDetail({
         </span>
 
         {/* Events have a real name; issues use description as title so skip the h3 */}
-        {item.layer === "events" && (
-          <h3 className="xp-detail-title">{item.title}</h3>
-        )}
+        {isEvent && <h3 className="xp-detail-title">{item.title}</h3>}
 
         <p className="xp-detail-row">
           <MapPin size={14} /> {item.locationLabel}
         </p>
 
-        {item.layer === "events" ? (
+        {isEvent ? (
           <>
             <p className="xp-detail-row">
               <Calendar size={14} /> {formatEventDate(item.timestamp)}
@@ -169,27 +169,12 @@ function ItemDetail({
             <p className="xp-detail-row">
               <Clock size={14} /> {formatTimeAgo(item.timestamp)}
             </p>
-            {item.layer === "chat" && item.author && (
-              <p className="xp-detail-desc">
-                Posted by <strong>@{item.author}</strong>
-              </p>
-            )}
             {item.description && (
               <p className="xp-detail-desc">{item.description}</p>
             )}
             {item.detailHref && (
               <a className="xp-cta" href={item.detailHref}>
                 View full issue <ExternalLink size={15} />
-              </a>
-            )}
-            {item.layer === "chat" && item.chatUrl && (
-              <a
-                className="xp-cta"
-                href={item.chatUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                Open link <ExternalLink size={15} />
               </a>
             )}
           </>
@@ -206,7 +191,10 @@ export default function DetailPanel({
   onSelect,
   onClear,
   onClose,
+  backLabel,
 }: Props) {
+  const detailBackLabel =
+    backLabel ?? (item ? LAYER_BY_ID[item.layer].label.toLowerCase() : "list");
   return (
     <div className="xp-panel">
       <div className="xp-panel-head">
@@ -227,9 +215,9 @@ export default function DetailPanel({
 
       <div className="xp-panel-scroll">
         {item ? (
-          <ItemDetail item={item} onClear={onClear} />
+          <ItemDetail item={item} onClear={onClear} backLabel={detailBackLabel} />
         ) : list.length === 0 ? (
-          <p className="xp-empty">Nothing here yet — try another layer or area.</p>
+          <p className="xp-empty">Nothing here yet — try another area.</p>
         ) : (
           <div className="xp-card-list">
             {list.map((it) => (

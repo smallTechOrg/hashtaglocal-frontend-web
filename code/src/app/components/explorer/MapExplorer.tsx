@@ -10,8 +10,8 @@ import AuthWidget from "./AuthWidget";
 import { useResizablePanel } from "./useResizablePanel";
 import {
   LAYER_BY_ID,
-  LAYERS,
   LayerId,
+  MapFilterId,
   normalizeType,
 } from "./layerConfig";
 import {
@@ -38,47 +38,41 @@ function cityMatches(item: MapItem, city: string): boolean {
 }
 
 export default function MapExplorer() {
-  const { issues, events, chat, loading } = useMapData();
-
-  // Resolve the dataset for a layer id.
-  const datasetFor = (id: LayerId): MapItem[] =>
-    id === "issues" ? issues : id === "events" ? events : chat;
+  const { issues, events, loading } = useMapData();
 
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<google.maps.Map | null>(null);
   const markersRef = useRef<Map<string, google.maps.Marker>>(new Map());
   const [isMapLoaded, setIsMapLoaded] = useState(false);
 
-  const [activeLayer, setActiveLayer] = useState<LayerId>("issues");
+  // What's plotted on the map. "all" = issues + events together (the default).
+  const [mapFilter, setMapFilter] = useState<MapFilterId>("all");
+  // Per-type category sub-filters (only used when mapFilter is issues/events).
   const [subFilters, setSubFilters] = useState<Record<LayerId, Set<string>>>({
     issues: new Set(),
     events: new Set(),
-    chat: new Set(),
   });
   const [selectedCity, setSelectedCity] = useState("%23india");
+  // The panel shows Chat by default; selecting an item swaps it to that item's detail.
+  // "Back" clears selection → returns to Chat.
   const [selected, setSelected] = useState<MapItem | null>(null);
   const [panelOpen, setPanelOpen] = useState(true);
   const { size: panelSize, startDrag, dragging } = useResizablePanel();
 
-  // Open a specific tab when arrived via ?tab=… (e.g. returning from chat sign-in → ?tab=chat).
+  // Returning from a chat sign-in (?tab=chat) just ensures the panel is open on Chat.
   useEffect(() => {
     if (typeof window === "undefined") return;
     const tab = new URLSearchParams(window.location.search).get("tab");
-    if (tab === "chat" || tab === "events" || tab === "issues") {
-      setActiveLayer(tab as LayerId);
+    if (tab === "chat") {
+      setSelected(null);
       setPanelOpen(true);
     }
   }, []);
 
-  // Chat is NOT a map layer — when active it takes over the content area as a chat panel.
-  const isChat = activeLayer === "chat";
-  const allForLayer = datasetFor(activeLayer);
-  const activeSubFilters = subFilters[activeLayer];
-
-  // City options derived from all datasets.
+  // City options derived from both datasets.
   const cities: CityOption[] = useMemo(() => {
     const set = new Set<string>();
-    [...issues, ...events, ...chat].forEach((it) =>
+    [...issues, ...events].forEach((it) =>
       (it.hashtags || []).forEach((h) => set.add(h.toLowerCase())),
     );
     return [
@@ -90,60 +84,57 @@ export default function MapExplorer() {
           value: encodeURIComponent(tag),
         })),
     ];
-  }, [issues, events, chat]);
+  }, [issues, events]);
 
-  // Items filtered by city only — used for sub-filter counts.
-  const cityItems = useMemo(
-    () => allForLayer.filter((it) => cityMatches(it, selectedCity)),
-    [allForLayer, selectedCity],
+  // Items in the selected city, per dataset.
+  const cityIssues = useMemo(
+    () => issues.filter((it) => cityMatches(it, selectedCity)),
+    [issues, selectedCity],
   );
+  const cityEvents = useMemo(
+    () => events.filter((it) => cityMatches(it, selectedCity)),
+    [events, selectedCity],
+  );
+
+  // Inline counts shown on the All/Issues/Events segment.
+  const filterCounts: Record<MapFilterId, number> = useMemo(
+    () => ({
+      all: cityIssues.length + cityEvents.length,
+      issues: cityIssues.length,
+      events: cityEvents.length,
+    }),
+    [cityIssues.length, cityEvents.length],
+  );
+
+  // Category sub-filter counts for the active single-type filter (issues/events only).
+  const activeLayer: LayerId | null =
+    mapFilter === "issues" ? "issues" : mapFilter === "events" ? "events" : null;
+  const activeSubFilters = activeLayer ? subFilters[activeLayer] : new Set<string>();
 
   const counts = useMemo(() => {
     const c: Record<string, number> = {};
-    cityItems.forEach((it) => {
+    const src = mapFilter === "events" ? cityEvents : cityIssues;
+    src.forEach((it) => {
       const t = normalizeType(it.type);
       c[t] = (c[t] || 0) + 1;
     });
     return c;
-  }, [cityItems]);
+  }, [mapFilter, cityIssues, cityEvents]);
 
-  // How many issues / events exist for the selected hashtag (independent of the active layer).
-  const issueCityCount = useMemo(
-    () => issues.filter((it) => cityMatches(it, selectedCity)).length,
-    [issues, selectedCity],
-  );
-  const eventCityCount = useMemo(
-    () => events.filter((it) => cityMatches(it, selectedCity)).length,
-    [events, selectedCity],
-  );
-
-  // When the hashtag *changes*, land on a map tab that actually has content: if the current map
-  // layer is empty for this hashtag but the other has items, switch to the other. Never auto-
-  // switches the Chat tab (chat is a deliberate choice) and — critically — only runs on an actual
-  // hashtag change, never on an activeLayer change, so a deliberate tab click is never overridden
-  // (otherwise clicking Events on a hashtag with 0 events would bounce straight back to Issues).
-  const lastCityRef = useRef(selectedCity);
-  useEffect(() => {
-    if (lastCityRef.current === selectedCity) return;
-    lastCityRef.current = selectedCity;
-    if (isChat) return;
-    if (activeLayer === "issues" && issueCityCount === 0 && eventCityCount > 0) {
-      setActiveLayer("events");
-    } else if (activeLayer === "events" && eventCityCount === 0 && issueCityCount > 0) {
-      setActiveLayer("issues");
-    }
-  }, [selectedCity, issueCityCount, eventCityCount, activeLayer, isChat]);
-
-  // Final visible items: city + sub-filter. Chat plots no markers.
+  // Final visible markers: city + map filter + (per-type) category sub-filter.
   const visibleItems = useMemo(() => {
-    if (isChat) return [];
-    if (activeSubFilters.size === 0) return cityItems;
-    return cityItems.filter((it) =>
-      activeSubFilters.has(normalizeType(it.type)),
-    );
-  }, [isChat, cityItems, activeSubFilters]);
+    let base: MapItem[];
+    if (mapFilter === "all") base = [...cityIssues, ...cityEvents];
+    else if (mapFilter === "issues") base = cityIssues;
+    else base = cityEvents;
 
-  // Clear selection if it falls out of view.
+    if (activeLayer && activeSubFilters.size > 0) {
+      base = base.filter((it) => activeSubFilters.has(normalizeType(it.type)));
+    }
+    return base;
+  }, [mapFilter, cityIssues, cityEvents, activeLayer, activeSubFilters]);
+
+  // Clear selection if the selected item falls out of the visible set.
   useEffect(() => {
     if (
       selected &&
@@ -193,19 +184,23 @@ export default function MapExplorer() {
     }
   }, [loading]);
 
-  const markerIcon = (selectedMarker: boolean): google.maps.Symbol => ({
+  // Per-item marker icon — keyed on the item's own layer (so issues + events differ on "All").
+  const markerIcon = (
+    item: MapItem,
+    selectedMarker: boolean,
+  ): google.maps.Symbol => ({
     path:
-      activeLayer === "events"
+      item.layer === "events"
         ? "M -8 -2 L 0 -10 L 8 -2 L 8 8 L -8 8 Z"
         : google.maps.SymbolPath.CIRCLE,
-    scale: activeLayer === "events" ? 1.1 : selectedMarker ? 13 : 10,
-    fillColor: LAYER_BY_ID[activeLayer].color,
+    scale: item.layer === "events" ? 1.1 : selectedMarker ? 13 : 10,
+    fillColor: LAYER_BY_ID[item.layer].color,
     fillOpacity: 1,
     strokeColor: "#ffffff",
     strokeWeight: selectedMarker ? 3 : 2,
   });
 
-  // Render markers + fit bounds — only when the visible set or layer changes.
+  // Render markers + fit bounds — only when the visible set changes.
   useEffect(() => {
     const map = mapInstanceRef.current;
     if (!map || !isMapLoaded) return;
@@ -220,7 +215,7 @@ export default function MapExplorer() {
         position: { lat: item.lat, lng: item.lng },
         map,
         title: item.title,
-        icon: markerIcon(false),
+        icon: markerIcon(item, false),
       });
       bounds.extend({ lat: item.lat, lng: item.lng });
 
@@ -240,8 +235,7 @@ export default function MapExplorer() {
         if (z && z > 14) map.setZoom(14);
       });
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [visibleItems, isMapLoaded, activeLayer]);
+  }, [visibleItems, isMapLoaded]);
 
   // Restyle markers for the selected item without rebuilding the set.
   useEffect(() => {
@@ -249,30 +243,20 @@ export default function MapExplorer() {
       const isSel = selected
         ? key === `${selected.layer}-${selected.id}`
         : false;
-      marker.setIcon(markerIcon(isSel));
+      const [layer] = key.split("-") as [LayerId];
+      marker.setIcon(
+        markerIcon({ layer } as MapItem, isSel),
+      );
       marker.setZIndex(isSel ? 999 : 1);
     });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selected, isMapLoaded]);
 
-  const handleLayerChange = (id: LayerId) => {
-    setActiveLayer(id);
-    setSelected(null);
-    setPanelOpen(true);
-  };
-
-  // Vertical tab rail: switch layer, or collapse if the active tab is re-clicked.
-  const handleTabClick = (id: LayerId) => {
-    if (id === activeLayer) {
-      setPanelOpen((open) => !open);
-      return;
-    }
-    setActiveLayer(id);
-    setSelected(null);
-    setPanelOpen(true);
+  const handleMapFilterChange = (id: MapFilterId) => {
+    setMapFilter(id);
   };
 
   const handleToggleSubFilter = (value: string) => {
+    if (!activeLayer) return;
     setSubFilters((prev) => {
       const next = new Set(prev[activeLayer]);
       if (next.has(value)) next.delete(value);
@@ -283,6 +267,7 @@ export default function MapExplorer() {
   };
 
   const handleClearSubFilters = () => {
+    if (!activeLayer) return;
     setSubFilters((prev) => ({ ...prev, [activeLayer]: new Set() }));
   };
 
@@ -296,6 +281,17 @@ export default function MapExplorer() {
     }
   };
 
+  const chatHashtag = decodeURIComponent(selectedCity).replace(/^#/, "");
+
+  // Collapsed-rail label/accent: Chat on "All", otherwise the active layer.
+  const panelLabel = activeLayer ? LAYER_BY_ID[activeLayer].label : "Chat";
+  const panelAccent = activeLayer ? LAYER_BY_ID[activeLayer].color : "#10B981";
+
+  // Switching tabs resets any open item detail so the panel reflects the new tab cleanly.
+  useEffect(() => {
+    setSelected(null);
+  }, [mapFilter]);
+
   return (
     <div className={`xp-shell ${panelOpen ? "xp-shell--panel" : ""}`}>
       <div className="xp-map-area">
@@ -305,7 +301,7 @@ export default function MapExplorer() {
             <p>Loading the map…</p>
           </div>
         )}
-        {/* The map is always visible — every tab, including Chat. */}
+        {/* The map is always visible. */}
         <div
           ref={mapRef}
           className={`xp-map ${isMapLoaded ? "is-ready" : ""}`}
@@ -318,9 +314,10 @@ export default function MapExplorer() {
 
         <div className="xp-controls-wrap">
           <MapControls
-            activeLayer={activeLayer}
-            onLayerChange={handleLayerChange}
-            subFilters={LAYER_BY_ID[activeLayer].subFilters}
+            mapFilter={mapFilter}
+            onMapFilterChange={handleMapFilterChange}
+            filterCounts={filterCounts}
+            subFilters={activeLayer ? LAYER_BY_ID[activeLayer].subFilters : []}
             activeSubFilters={activeSubFilters}
             onToggleSubFilter={handleToggleSubFilter}
             onClearSubFilters={handleClearSubFilters}
@@ -332,37 +329,10 @@ export default function MapExplorer() {
           />
         </div>
 
-        {/* Legend — click to switch layer; Chat is a panel, not a map filter. */}
-        <div className="xp-legend">
-          {LAYERS.filter((l) => l.id !== "chat").map((l) => (
-            <button
-              key={l.id}
-              className={`xp-legend-item ${
-                activeLayer === l.id ? "is-active" : ""
-              }`}
-              onClick={() => setActiveLayer(l.id)}
-            >
-              <span
-                className="xp-legend-dot"
-                style={{ background: l.color }}
-              />
-              {l.label}
-              <span className="xp-legend-count">
-                {l.id === activeLayer
-                  ? visibleItems.length
-                  : datasetFor(l.id).filter((it) =>
-                      cityMatches(it, selectedCity),
-                    ).length}
-              </span>
-            </button>
-          ))}
-        </div>
-
         {/* Report Issue — bottom-center CTA */}
         <div className={`xp-report-btn-bottom${panelOpen ? "" : " is-panel-collapsed"}`}>
           <ReportIssueButton variant="map-bottom" />
         </div>
-
       </div>
 
       <aside
@@ -379,44 +349,46 @@ export default function MapExplorer() {
           />
         )}
 
-        {/* Vertical tab rail — always visible, switches layer + toggles panel */}
-        <div className="xp-tabs" role="tablist" aria-orientation="vertical">
-          {LAYERS.map((layer) => {
-            const isActive = activeLayer === layer.id;
-            return (
-              <button
-                key={layer.id}
-                role="tab"
-                aria-selected={isActive && panelOpen}
-                className={`xp-tab ${
-                  isActive && panelOpen ? "is-active" : ""
-                }`}
-                onClick={() => handleTabClick(layer.id)}
-                style={
-                  isActive && panelOpen
-                    ? { color: layer.color }
-                    : undefined
-                }
-              >
-                <span
-                  className="xp-tab-bar"
-                  style={{ background: layer.color }}
-                />
-                <span className="xp-tab-label">{layer.label}</span>
-              </button>
-            );
-          })}
-        </div>
+        {/* Collapsed rail: a single toggle to reopen the panel. Label reflects the active tab —
+            Chat on "All", otherwise the layer name. */}
+        {!panelOpen && (
+          <div className="xp-tabs" role="tablist" aria-orientation="vertical">
+            <button
+              role="tab"
+              aria-selected={false}
+              className="xp-tab"
+              onClick={() => setPanelOpen(true)}
+              style={{ color: panelAccent }}
+            >
+              <span className="xp-tab-bar" style={{ background: panelAccent }} />
+              <span className="xp-tab-label">{panelLabel}</span>
+            </button>
+          </div>
+        )}
 
         {panelOpen && (
           <div className="xp-panel-host">
-            {isChat ? (
-              <ChatView hashtag={decodeURIComponent(selectedCity).replace(/^#/, "")} />
+            {mapFilter === "all" ? (
+              // "All" tab → Chat by default; a clicked marker swaps to its detail, Back → Chat.
+              selected ? (
+                <DetailPanel
+                  item={selected}
+                  list={[]}
+                  activeLayerLabel={LAYER_BY_ID[selected.layer].label}
+                  onSelect={handleSelect}
+                  onClear={() => setSelected(null)}
+                  onClose={() => setPanelOpen(false)}
+                  backLabel="chat"
+                />
+              ) : (
+                <ChatView hashtag={chatHashtag} onClose={() => setPanelOpen(false)} />
+              )
             ) : (
+              // "Issues"/"Events" tab → the list+detail panel for that type.
               <DetailPanel
                 item={selected}
                 list={visibleItems}
-                activeLayerLabel={LAYER_BY_ID[activeLayer].label}
+                activeLayerLabel={activeLayer ? LAYER_BY_ID[activeLayer].label : ""}
                 onSelect={handleSelect}
                 onClear={() => setSelected(null)}
                 onClose={() => setPanelOpen(false)}
