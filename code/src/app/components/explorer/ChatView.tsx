@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { Loader2 } from "lucide-react";
+import { Loader2, X } from "lucide-react";
 import { useFeed } from "../feed/useFeed";
 import { useProfile } from "../feed/useProfile";
 import { FeedComposer } from "../feed/FeedComposer";
@@ -17,7 +17,13 @@ import { formatTimeAgo } from "./layerConfig";
  * <p>Message bodies are routed by {@code kind} ({@link ChatBody}), so future rich kinds (POLL, QUIZ,
  * richer LINK/MEDIA cards) slot in by adding a branch — the row chrome stays the same.
  */
-export default function ChatView({ hashtag }: { hashtag: string }) {
+export default function ChatView({
+  hashtag,
+  onClose,
+}: {
+  hashtag: string;
+  onClose?: () => void;
+}) {
   // The root channel aggregates children; specific localities show just their own feed.
   const isRoot = hashtag.replace(/^#/, "").toLowerCase() === "india";
   const { pinned, posts, loading, loadingMore, error, hasMore, loadMore, reload } = useFeed(
@@ -28,13 +34,16 @@ export default function ChatView({ hashtag }: { hashtag: string }) {
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const topSentinel = useRef<HTMLDivElement | null>(null);
-  const bottomRef = useRef<HTMLDivElement | null>(null);
   // Tracks the newest post id we've seen, to detect new messages (vs. older-page loads).
   const newestSeenRef = useRef<number | null>(null);
   const didInitialScrollRef = useRef(false);
 
   function scrollToBottom(behavior: ScrollBehavior = "auto") {
-    bottomRef.current?.scrollIntoView({ behavior, block: "end" });
+    const el = scrollRef.current;
+    if (!el) return;
+    // Scroll the container itself to its full height. Relying on a zero-height anchor's
+    // scrollIntoView left the stream a hair short of the bottom (flex gap + sub-pixel rounding).
+    el.scrollTo({ top: el.scrollHeight, behavior });
   }
 
   // Is the viewer currently near the bottom of the stream? (Used to keep them pinned through
@@ -104,10 +113,21 @@ export default function ChatView({ hashtag }: { hashtag: string }) {
   return (
     <div className="xp-chat">
       <div className="xp-chat-header">
-        <span className="xp-chat-title">{label}</span>
-        <span className="xp-chat-sub">
-          {isRoot ? "All localities + national updates" : "Locality chat"}
-        </span>
+        <div className="xp-chat-header-text">
+          <span className="xp-chat-title">{label}</span>
+          <span className="xp-chat-sub">
+            {isRoot ? "All localities + national updates" : "Locality chat"}
+          </span>
+        </div>
+        {onClose && (
+          <button
+            className="xp-icon-btn xp-panel-close"
+            onClick={onClose}
+            aria-label="Close panel"
+          >
+            <X size={18} />
+          </button>
+        )}
       </div>
 
       <div className="xp-chat-stream" ref={scrollRef}>
@@ -133,8 +153,6 @@ export default function ChatView({ hashtag }: { hashtag: string }) {
             ) : (
               ordered.map((p) => <ChatRow key={p.id} post={p} showTag={isRoot} />)
             )}
-            {/* Anchor for auto-scroll-to-newest. */}
-            <div ref={bottomRef} />
           </>
         )}
       </div>

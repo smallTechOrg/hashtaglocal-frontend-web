@@ -250,6 +250,21 @@
 .xp-segment-btn.is-active .xp-segment-dot {
   box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.85);
 }
+/* Inline count on each All/Issues/Events segment (replaces the old bottom number strip). */
+.xp-segment-count {
+  font-size: 11px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: var(--xp-surface-2);
+  color: var(--xp-text-soft);
+  line-height: 1.4;
+}
+.xp-segment-btn.is-active .xp-segment-count {
+  background: rgba(255, 255, 255, 0.22);
+  color: #ffffff;
+}
 
 /* ---------- Dropdown menus ---------- */
 .xp-menu {
@@ -953,6 +968,15 @@
     min-height: 0;
   }
 
+  /* Chat fills the whole bottom sheet — no gap under the compose bar. The compose bar hugs the
+     sheet's bottom edge and clears the iOS home indicator via the safe-area inset. */
+  .xp-chat {
+    height: 100%;
+  }
+  .xp-chat-compose {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+
   .xp-panel-head {
     padding: 12px 16px;
   }
@@ -989,9 +1013,16 @@
 }
 .xp-chat-header {
   flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
   padding: 10px 14px;
   border-bottom: 1px solid var(--xp-border);
   background: var(--xp-surface-2);
+}
+.xp-chat-header-text {
+  min-width: 0;
 }
 .xp-chat-title {
   font-weight: 700;
