@@ -7,7 +7,13 @@ import {
   Search,
   MapPin,
 } from "lucide-react";
-import { LAYERS, LayerId, SubFilter } from "./layerConfig";
+import {
+  ALL_FILTER_COLOR,
+  LAYER_BY_ID,
+  MAP_FILTERS,
+  MapFilterId,
+  SubFilter,
+} from "./layerConfig";
 import { API_PATHS } from "../../constants/api";
 
 export interface CityOption {
@@ -16,8 +22,9 @@ export interface CityOption {
 }
 
 type Props = {
-  activeLayer: LayerId;
-  onLayerChange: (id: LayerId) => void;
+  mapFilter: MapFilterId;
+  onMapFilterChange: (id: MapFilterId) => void;
+  filterCounts: Record<MapFilterId, number>;
   subFilters: SubFilter[];
   activeSubFilters: Set<string>;
   onToggleSubFilter: (value: string) => void;
@@ -28,6 +35,11 @@ type Props = {
   onCityChange: (value: string) => void;
   citiesLoading: boolean;
 };
+
+function filterColor(id: MapFilterId): string {
+  if (id === "all") return ALL_FILTER_COLOR;
+  return LAYER_BY_ID[id].color;
+}
 
 function useOutside<T extends HTMLElement>(onClose: () => void) {
   const ref = useRef<T>(null);
@@ -42,8 +54,9 @@ function useOutside<T extends HTMLElement>(onClose: () => void) {
 }
 
 export default function MapControls({
-  activeLayer,
-  onLayerChange,
+  mapFilter,
+  onMapFilterChange,
+  filterCounts,
   subFilters,
   activeSubFilters,
   onToggleSubFilter,
@@ -215,28 +228,28 @@ export default function MapControls({
         )}
       </div>
 
-      {/* Layer segmented toggle */}
+      {/* Map filter segmented toggle: All / Issues / Events, with inline counts */}
       <div className="xp-segment">
-        {LAYERS.map((layer) => (
-          <button
-            key={layer.id}
-            className={`xp-segment-btn ${
-              activeLayer === layer.id ? "is-active" : ""
-            }`}
-            onClick={() => onLayerChange(layer.id)}
-            style={
-              activeLayer === layer.id
-                ? { background: layer.color }
-                : undefined
-            }
-          >
-            <span className="xp-segment-dot" style={{ background: layer.color }} />
-            {layer.label}
-          </button>
-        ))}
+        {MAP_FILTERS.map((f) => {
+          const color = filterColor(f.id);
+          const isActive = mapFilter === f.id;
+          return (
+            <button
+              key={f.id}
+              className={`xp-segment-btn ${isActive ? "is-active" : ""}`}
+              onClick={() => onMapFilterChange(f.id)}
+              style={isActive ? { background: color } : undefined}
+            >
+              <span className="xp-segment-dot" style={{ background: color }} />
+              {f.label}
+              <span className="xp-segment-count">{filterCounts[f.id] ?? 0}</span>
+            </button>
+          );
+        })}
       </div>
 
-      {/* Sub-filter dropdown */}
+      {/* Sub-filter dropdown — only for a single type (Issues/Events), hidden on All */}
+      {mapFilter !== "all" && (
       <div className="xp-control" ref={filterRef}>
         <button
           className={`xp-pill ${activeCount > 0 ? "is-active" : ""}`}
@@ -287,6 +300,7 @@ export default function MapControls({
           </div>
         )}
       </div>
+      )}
     </div>
   );
 }

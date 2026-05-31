@@ -73,7 +73,6 @@ function eventToItem(ev: ApiEvent): MapItem | null {
 interface MapData {
   issues: MapItem[];
   events: MapItem[];
-  chat: MapItem[];
   loading: boolean;
 }
 
@@ -118,8 +117,7 @@ export function useMapData(): MapData {
           return [] as MapItem[];
         });
 
-      // Chat is NOT a map layer — the Chat tab's ChatView fetches its own feed. We don't load
-      // chat as map markers here.
+      // Chat is NOT a map layer — the Chat panel fetches its own feed. No chat markers here.
       const [issueItems, eventItems] = await Promise.all([issuesP, eventsP]);
       if (controller.signal.aborted) return;
 
@@ -143,6 +141,5 @@ export function useMapData(): MapData {
     return () => controller.abort();
   }, []);
 
-  // `chat` is kept (always empty) so map-layer machinery still typechecks; chat is panel-only.
-  return { issues, events, chat: [], loading };
+  return { issues, events, loading };
 }
