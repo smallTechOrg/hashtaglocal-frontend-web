@@ -37,6 +37,12 @@ export default function ChatView({
   // Tracks the newest post id we've seen, to detect new messages (vs. older-page loads).
   const newestSeenRef = useRef<number | null>(null);
   const didInitialScrollRef = useRef(false);
+  // While true, the stream auto-pins to the bottom through every async layout shift (images
+  // loading after first paint, panel resize). It starts true and only flips off when the user
+  // deliberately scrolls up — so initial load stays glued to the newest message even as images
+  // below the fold load and grow the height (the old isNearBottom() check failed here, because
+  // each late-loading image pushed the real bottom out of the 120px window).
+  const stickToBottomRef = useRef(true);
 
   function scrollToBottom(behavior: ScrollBehavior = "auto") {
     const el = scrollRef.current;
@@ -46,8 +52,6 @@ export default function ChatView({
     el.scrollTo({ top: el.scrollHeight, behavior });
   }
 
-  // Is the viewer currently near the bottom of the stream? (Used to keep them pinned through
-  // layout changes without overriding a deliberate scroll-up to read history.)
   function isNearBottom(): boolean {
     const el = scrollRef.current;
     if (!el) return true;
@@ -59,7 +63,20 @@ export default function ChatView({
   useEffect(() => {
     didInitialScrollRef.current = false;
     newestSeenRef.current = null;
+    stickToBottomRef.current = true;
   }, [hashtag]);
+
+  // Track whether the user is at the bottom: any deliberate scroll-up releases the auto-pin;
+  // scrolling back down re-engages it. Updated on every scroll event.
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const onScroll = () => {
+      stickToBottomRef.current = isNearBottom();
+    };
+    el.addEventListener("scroll", onScroll, { passive: true });
+    return () => el.removeEventListener("scroll", onScroll);
+  }, [loading]);
 
   // Older messages load when the user scrolls to the top (chat grows upward).
   useEffect(() => {
@@ -92,19 +109,35 @@ export default function ChatView({
     }
   }, [newestId, loading]);
 
-  // Keep pinned to the bottom through async layout shifts (images loading, panel resize) — but only
-  // when the viewer is already at the bottom, so reading history isn't interrupted.
+  // Keep pinned to the bottom through async layout shifts (panel resize, text reflow, content
+  // growth) while the user hasn't scrolled up — so reading history isn't interrupted, but the
+  // newest message stays glued through reflows.
   useEffect(() => {
     const el = scrollRef.current;
     if (!el) return;
     const ro = new ResizeObserver(() => {
-      if (isNearBottom()) scrollToBottom("auto");
+      if (stickToBottomRef.current) scrollToBottom("auto");
     });
-    // Observe the stream and its content wrapper for height changes.
     ro.observe(el);
     Array.from(el.children).forEach((c) => ro.observe(c));
     return () => ro.disconnect();
   }, [posts.length, loading]);
+
+  // Images (feed media, link cards, issue-ref thumbnails) load async and grow the stream height
+  // AFTER layout — a ResizeObserver alone misses some of these, and on first load each late image
+  // pushes the real bottom past the isNearBottom() window. Catch every descendant image's load in
+  // the capture phase (load doesn't bubble) and re-pin while we're sticking to the bottom.
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const onLoadCapture = (e: Event) => {
+      if ((e.target as HTMLElement)?.tagName === "IMG" && stickToBottomRef.current) {
+        scrollToBottom("auto");
+      }
+    };
+    el.addEventListener("load", onLoadCapture, true);
+    return () => el.removeEventListener("load", onLoadCapture, true);
+  }, []);
 
   // Newest-at-bottom (chat convention): reverse the newest-first API order.
   const ordered = [...posts].reverse();
