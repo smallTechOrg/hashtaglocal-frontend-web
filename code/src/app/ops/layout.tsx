@@ -73,6 +73,17 @@ export default function OpsLayout({ children }: { children: React.ReactNode }) {
 
         <div className="flex items-center gap-1">
           <Link
+            href="/ops/review"
+            className={`flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-md transition ${
+              pathname === "/ops/review"
+                ? "bg-zinc-800 text-white"
+                : "text-zinc-400 hover:text-white hover:bg-zinc-800/50"
+            }`}
+          >
+            <Shield className="w-4 h-4" />
+            <span className="hidden sm:inline">Review</span>
+          </Link>
+          <Link
             href="/ops/feed"
             className={`flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-md transition ${
               pathname === "/ops/feed"
@@ -84,15 +95,15 @@ export default function OpsLayout({ children }: { children: React.ReactNode }) {
             <span className="hidden sm:inline">Feed</span>
           </Link>
           <Link
-            href="/ops/review"
+            href="/ops/events"
             className={`flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-md transition ${
-              pathname === "/ops/review"
+              pathname === "/ops/events"
                 ? "bg-zinc-800 text-white"
                 : "text-zinc-400 hover:text-white hover:bg-zinc-800/50"
             }`}
           >
-            <Shield className="w-4 h-4" />
-            <span className="hidden sm:inline">Review</span>
+            <Calendar className="w-4 h-4" />
+            <span className="hidden sm:inline">Events</span>
           </Link>
           <Link
             href="/ops/list"
@@ -115,17 +126,6 @@ export default function OpsLayout({ children }: { children: React.ReactNode }) {
           >
             <History className="w-4 h-4" />
             <span className="hidden sm:inline">History</span>
-          </Link>
-          <Link
-            href="/ops/events"
-            className={`flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-md transition ${
-              pathname === "/ops/events"
-                ? "bg-zinc-800 text-white"
-                : "text-zinc-400 hover:text-white hover:bg-zinc-800/50"
-            }`}
-          >
-            <Calendar className="w-4 h-4" />
-            <span className="hidden sm:inline">Events</span>
           </Link>
           <button
             onClick={handleLogout}

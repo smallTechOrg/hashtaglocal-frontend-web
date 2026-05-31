@@ -1060,6 +1060,24 @@
   background: rgba(16, 185, 129, 0.08);
   box-shadow: inset 2px 0 0 #10b981;
 }
+/* The viewer's own not-yet-approved message: greyed + an "under review" badge. Only the author
+   ever receives these rows from the API. */
+.xp-msg.is-under-review {
+  opacity: 0.6;
+}
+.xp-msg-review {
+  display: inline-block;
+  font-size: 0.6rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: #b45309;
+  background: rgba(245, 158, 11, 0.16);
+  border-radius: 4px;
+  padding: 0 5px;
+  margin-right: 5px;
+  vertical-align: middle;
+}
 .xp-msg-author {
   font-weight: 700;
   font-size: 0.78rem;

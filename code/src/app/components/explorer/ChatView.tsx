@@ -43,6 +43,8 @@ export default function ChatView({
   // below the fold load and grow the height (the old isNearBottom() check failed here, because
   // each late-loading image pushed the real bottom out of the 120px window).
   const stickToBottomRef = useRef(true);
+  // Last observed scrollTop, used to tell a real upward scroll from layout-induced scroll events.
+  const lastScrollTopRef = useRef(0);
 
   function scrollToBottom(behavior: ScrollBehavior = "auto") {
     const el = scrollRef.current;
@@ -64,15 +66,29 @@ export default function ChatView({
     didInitialScrollRef.current = false;
     newestSeenRef.current = null;
     stickToBottomRef.current = true;
+    lastScrollTopRef.current = 0;
   }, [hashtag]);
 
-  // Track whether the user is at the bottom: any deliberate scroll-up releases the auto-pin;
-  // scrolling back down re-engages it. Updated on every scroll event.
+  // Track the user's scroll *intent*, not raw position. Only a deliberate scroll UP releases the
+  // auto-pin; scrolling back to the bottom re-engages it. Critically, we must NOT release on
+  // layout-induced scroll events: when content grows (map finishing, images loading) the browser
+  // fires a scroll event with the old scrollTop against the new scrollHeight, which makes
+  // isNearBottom() momentarily false — that used to flip stick-to-bottom off on initial load and
+  // leave the stream stuck mid-way. Comparing against the last scrollTop tells real upward scrolls
+  // (scrollTop decreased) apart from growth (scrollTop unchanged, only scrollHeight grew).
   useEffect(() => {
     const el = scrollRef.current;
     if (!el) return;
     const onScroll = () => {
-      stickToBottomRef.current = isNearBottom();
+      const prev = lastScrollTopRef.current;
+      lastScrollTopRef.current = el.scrollTop;
+      if (el.scrollTop < prev - 1) {
+        // User scrolled up — release the pin.
+        stickToBottomRef.current = false;
+      } else if (isNearBottom()) {
+        // Back at the bottom (or never left) — keep/re-engage the pin.
+        stickToBottomRef.current = true;
+      }
     };
     el.addEventListener("scroll", onScroll, { passive: true });
     return () => el.removeEventListener("scroll", onScroll);
@@ -99,8 +115,14 @@ export default function ChatView({
     if (!didInitialScrollRef.current) {
       didInitialScrollRef.current = true;
       newestSeenRef.current = newestId;
-      // Defer so the just-rendered rows are measured before we jump to the end.
-      requestAnimationFrame(() => scrollToBottom("auto"));
+      // On first load the stream height isn't settled in a single frame (map co-rendering, fonts,
+      // late images). Re-pin to the bottom across a short settle window — but only while we're
+      // still sticking, so a user who scrolls up immediately isn't yanked back down.
+      const pin = () => {
+        if (stickToBottomRef.current) scrollToBottom("auto");
+      };
+      requestAnimationFrame(pin);
+      [60, 150, 300, 600].forEach((ms) => window.setTimeout(pin, ms));
       return;
     }
     if (newestId !== null && newestId !== newestSeenRef.current) {
@@ -214,12 +236,18 @@ function ChatRow({
   const name = isSystem ? "#local" : post.author?.username ?? "member";
   const tag = post.hashtag?.replace(/^#/, "");
 
+  // The backend only ever returns a non-PUBLISHED post to its own author, so any such row in the
+  // viewer's stream is their own message awaiting moderation. Show it greyed with an "under review"
+  // tag so they know it isn't public yet (others won't see it at all).
+  const underReview = post.status !== "PUBLISHED";
+
   return (
-    <div className={`xp-msg ${pinned ? "is-pinned" : ""}`}>
+    <div className={`xp-msg ${pinned ? "is-pinned" : ""} ${underReview ? "is-under-review" : ""}`}>
       <span className={`xp-msg-author ${isSystem ? "is-system" : ""}`}>{name}</span>
       {showTag && tag && <span className="xp-msg-tag">#{tag}</span>}
       <span className="xp-msg-time">{formatTimeAgo(post.created_at)}</span>
       {pinned && <span className="xp-msg-pin">📌</span>}
+      {underReview && <span className="xp-msg-review">under review</span>}
       <ChatBody post={post} />
     </div>
   );
