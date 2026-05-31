@@ -477,6 +477,10 @@
   border-left: 1px solid var(--xp-border);
   background: var(--xp-surface);
 }
+/* Collapsed: only the 46px tab rail shows — don't reserve the full panel width (white gap). */
+.xp-panel-dock.is-collapsed {
+  width: 46px;
+}
 
 /* Vertical tab rail — always visible */
 .xp-tabs {

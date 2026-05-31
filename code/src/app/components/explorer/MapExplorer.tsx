@@ -1,5 +1,6 @@
 "use client";
 import React, { useEffect, useMemo, useRef, useState } from "react";
+import { Loader2 } from "lucide-react";
 import "./explorer.css";
 import { useMapData } from "./useMapData";
 import { MapItem } from "./types";
@@ -19,6 +20,7 @@ import {
   trackIssueFilter,
 } from "../../utils/analytics";
 import ReportIssueButton from "../report-issue/ReportIssueButton";
+import { API_PATHS } from "../../constants/api";
 
 const GOOGLE_MAPS_SRC =
   "https://maps.googleapis.com/maps/api/js?key=AIzaSyCzJVwEPi_lq4CeiuafySI8-QKGEnDK3-o";
@@ -28,6 +30,19 @@ const MAP_STYLES: google.maps.MapTypeStyle[] = [
   { featureType: "transit", elementType: "labels", stylers: [{ visibility: "off" }] },
   { featureType: "road", elementType: "labels.icon", stylers: [{ visibility: "off" }] },
 ];
+
+// Persist the chosen hashtag across pages and sessions, so returning users land on their city
+// instantly (no geolocation round-trip) and the experience stays consistent.
+const CITY_STORAGE_KEY = "htl_selected_city";
+
+function readSavedCity(): string | null {
+  if (typeof window === "undefined") return null;
+  try {
+    return window.localStorage.getItem(CITY_STORAGE_KEY);
+  } catch {
+    return null;
+  }
+}
 
 function cityMatches(item: MapItem, city: string): boolean {
   if (city === "%23india") return true;
@@ -53,11 +68,66 @@ export default function MapExplorer() {
     events: new Set(),
   });
   const [selectedCity, setSelectedCity] = useState("%23india");
+  // True until we've had a brief chance to resolve the viewer's nearby city, so the Chat panel
+  // doesn't load #india first and then visibly reload to e.g. #bengaluru. We hold the chat behind a
+  // light "locating" state, then commit to nearby (if resolved) or #india (timeout/denied) — one
+  // load, no flicker. The map markers are unaffected (they show #india until a city is chosen).
+  const [locating, setLocating] = useState(true);
+  const cityResolvedRef = useRef(false);
   // The panel shows Chat by default; selecting an item swaps it to that item's detail.
   // "Back" clears selection → returns to Chat.
   const [selected, setSelected] = useState<MapItem | null>(null);
   const [panelOpen, setPanelOpen] = useState(true);
   const { size: panelSize, startDrag, dragging } = useResizablePanel();
+
+  // Resolve the initial city up-front (once) so the first chat load targets the right place:
+  //   1. a saved city from a previous visit (instant — no geolocation, no flicker), else
+  //   2. the viewer's nearby city via geolocation, else
+  //   3. #india (on denial/timeout/error).
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    // Returning user: honour their last choice immediately, skip the locating hold entirely.
+    const saved = readSavedCity();
+    if (saved) {
+      cityResolvedRef.current = true;
+      setSelectedCity(saved);
+      setLocating(false);
+      return;
+    }
+
+    let settled = false;
+    const commit = (city?: string) => {
+      if (settled || cityResolvedRef.current) return;
+      settled = true;
+      cityResolvedRef.current = true;
+      if (city) setSelectedCity(city);
+      setLocating(false);
+    };
+    // Hard cap so we never hang the chat behind a slow/blocked geolocation prompt.
+    const timer = window.setTimeout(() => commit(), 1500);
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        async (pos) => {
+          try {
+            const res = await fetch(
+              API_PATHS.localityByCoords(pos.coords.latitude, pos.coords.longitude),
+            );
+            const json = res.ok ? await res.json() : null;
+            const tag: string | undefined = json?.data?.hashtag;
+            commit(tag ? encodeURIComponent(tag.toLowerCase()) : undefined);
+          } catch {
+            commit();
+          }
+        },
+        () => commit(),
+        { timeout: 1400 },
+      );
+    } else {
+      commit();
+    }
+    return () => window.clearTimeout(timer);
+  }, []);
 
   // Returning from a chat sign-in (?tab=chat) just ensures the panel is open on Chat.
   useEffect(() => {
@@ -255,6 +325,17 @@ export default function MapExplorer() {
     setMapFilter(id);
   };
 
+  // User picked a city from the dropdown — apply it and remember it across pages/sessions.
+  const handleCityChange = (city: string) => {
+    setSelectedCity(city);
+    cityResolvedRef.current = true; // a deliberate choice wins over any pending auto-resolve
+    try {
+      window.localStorage.setItem(CITY_STORAGE_KEY, city);
+    } catch {
+      /* storage unavailable (private mode) — selection still applies for this session */
+    }
+  };
+
   const handleToggleSubFilter = (value: string) => {
     if (!activeLayer) return;
     setSubFilters((prev) => {
@@ -324,7 +405,7 @@ export default function MapExplorer() {
             counts={counts}
             cities={cities}
             selectedCity={selectedCity}
-            onCityChange={setSelectedCity}
+            onCityChange={handleCityChange}
             citiesLoading={loading}
           />
         </div>
@@ -380,6 +461,13 @@ export default function MapExplorer() {
                   onClose={() => setPanelOpen(false)}
                   backLabel="chat"
                 />
+              ) : locating ? (
+                // Brief "locating" hold so chat loads the resolved city once (no #india flicker).
+                <div className="xp-chat">
+                  <div className="xp-chat-loading">
+                    <Loader2 className="xp-spin" /> Finding your area…
+                  </div>
+                </div>
               ) : (
                 <ChatView hashtag={chatHashtag} onClose={() => setPanelOpen(false)} />
               )
