@@ -73,8 +73,6 @@ export default function MapControls({
   const [nearbyCity, setNearbyCity] = useState<CityOption | null>(null);
   const [nearbyHashtag, setNearbyHashtag] = useState<string | null>(null);
   const nearbyFetchedRef = useRef(false);
-  // Ensures the nearby hashtag auto-selects at most once (so a manual switch sticks).
-  const autoSelectedRef = useRef(false);
 
   const filterRef = useOutside<HTMLDivElement>(() => setFilterOpen(false));
   const cityRef = useOutside<HTMLDivElement>(() => {
@@ -124,15 +122,11 @@ export default function MapControls({
       (c) => c.label.toLowerCase().replace(/^#/, "") === nearbyHashtag,
     );
     if (!match) return;
+    // Only surface the "Near you" entry in the city menu. Initial city selection is owned by
+    // MapExplorer (resolved up-front before the chat loads), so we no longer auto-select here —
+    // doing both caused a visible #india → nearby reload.
     setNearbyCity(match);
-    // Auto-select the user's nearby hashtag ONLY once, and only if they haven't already
-    // navigated away from the default (#india). Without this guard the effect re-fires and
-    // snaps the selection back, making it impossible to switch to another hashtag.
-    if (!autoSelectedRef.current && selectedCity === "%23india") {
-      autoSelectedRef.current = true;
-      onCityChange(match.value);
-    }
-  }, [nearbyHashtag, cities, selectedCity, onCityChange]);
+  }, [nearbyHashtag, cities]);
 
   const queryLower = query.toLowerCase();
   const filteredCities = cities.filter((c) =>
