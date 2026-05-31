@@ -117,10 +117,15 @@ export default function MapExplorer() {
     [events, selectedCity],
   );
 
-  // When the hashtag changes, land on a map tab that actually has content: if the current map
+  // When the hashtag *changes*, land on a map tab that actually has content: if the current map
   // layer is empty for this hashtag but the other has items, switch to the other. Never auto-
-  // switches the Chat tab (chat is a deliberate choice) or overrides a non-empty current tab.
+  // switches the Chat tab (chat is a deliberate choice) and — critically — only runs on an actual
+  // hashtag change, never on an activeLayer change, so a deliberate tab click is never overridden
+  // (otherwise clicking Events on a hashtag with 0 events would bounce straight back to Issues).
+  const lastCityRef = useRef(selectedCity);
   useEffect(() => {
+    if (lastCityRef.current === selectedCity) return;
+    lastCityRef.current = selectedCity;
     if (isChat) return;
     if (activeLayer === "issues" && issueCityCount === 0 && eventCityCount > 0) {
       setActiveLayer("events");
