@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useEffect, useState, useCallback } from "react";
 import { adminFetch } from "../lib/api";
@@ -8,8 +8,11 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
+  Check,
+  X,
   Loader2,
   RefreshCw,
+  PartyPopper,
   Calendar,
   CheckCircle2,
   XCircle,
@@ -28,7 +31,6 @@ function formatDate(dateStr: string | null) {
   });
 }
 
-// datetime-local needs "YYYY-MM-DDTHH:mm"
 function toDatetimeLocal(iso: string | null): string {
   if (!iso) return "";
   return iso.slice(0, 16);
@@ -46,8 +48,10 @@ const EVENT_TYPES = [
 ];
 
 export default function EventsPage() {
+  const [view, setView] = useState<"pending" | "history">("pending");
   const [events, setEvents] = useState<AdminEvent[]>([]);
   const [loading, setLoading] = useState(true);
+  const [processing, setProcessing] = useState<Set<number>>(new Set());
 
   // ── Create form ──
   const [showCreateForm, setShowCreateForm] = useState(false);
@@ -72,7 +76,8 @@ export default function EventsPage() {
   const loadEvents = useCallback(async (signal?: AbortSignal) => {
     setLoading(true);
     try {
-      const res = await adminFetch(ADMIN_API.eventHistory, { signal });
+      const url = view === "pending" ? ADMIN_API.pendingEvents : ADMIN_API.eventHistory;
+      const res = await adminFetch(url, { signal });
       if (!res.ok) throw new Error(`Failed: ${res.status}`);
       const json = await res.json();
       const list: AdminEvent[] = json.data?.events ?? [];
@@ -83,7 +88,7 @@ export default function EventsPage() {
     } finally {
       if (!signal?.aborted) setLoading(false);
     }
-  }, []);
+  }, [view]);
 
   useEffect(() => {
     setEvents([]);
@@ -92,10 +97,48 @@ export default function EventsPage() {
     return () => controller.abort();
   }, [loadEvents]);
 
+  function setProcessingState(id: number, active: boolean) {
+    setProcessing((prev) => {
+      const next = new Set(prev);
+      if (active) { next.add(id); } else { next.delete(id); }
+      return next;
+    });
+  }
+
   // datetime-local gives "YYYY-MM-DDTHH:mm" — backend needs seconds
   function toLocalDateTime(val: string): string | null {
     if (!val) return null;
     return val.length === 16 ? val + ":00" : val;
+  }
+
+  // ── Approve ──
+  async function handleApprove(event: AdminEvent) {
+    setProcessingState(event.id, true);
+    try {
+      const res = await adminFetch(ADMIN_API.approveEvent(event.id), { method: "PUT" });
+      if (!res.ok) throw new Error(`${res.status}`);
+      toast.success(`Approved: ${event.display_name ?? event.name}`);
+      setEvents((prev) => prev.filter((e) => e.id !== event.id));
+    } catch (err) {
+      toast.error(`Failed to approve: ${err}`);
+    } finally {
+      setProcessingState(event.id, false);
+    }
+  }
+
+  // ── Reject ──
+  async function handleReject(eventId: number) {
+    setProcessingState(eventId, true);
+    try {
+      const res = await adminFetch(ADMIN_API.rejectEvent(eventId), { method: "PUT" });
+      if (!res.ok) throw new Error(`${res.status}`);
+      toast.success("Event rejected");
+      setEvents((prev) => prev.filter((e) => e.id !== eventId));
+    } catch (err) {
+      toast.error(`Failed to reject: ${err}`);
+    } finally {
+      setProcessingState(eventId, false);
+    }
   }
 
   // ── Create ──
@@ -132,6 +175,7 @@ export default function EventsPage() {
       toast.success("Event created and live");
       setShowCreateForm(false);
       setCreateForm({ name: "", organisation: "", address: "", start_time: "", end_time: "", link: "", type: "OTHER", image_url: "" });
+      setView("history");
       loadEvents();
     } catch (err) {
       toast.error(`Failed to create event: ${err}`);
@@ -211,8 +255,30 @@ export default function EventsPage() {
       {/* Header */}
       <div className="flex flex-wrap items-center gap-3 mb-5">
         <h1 className="text-lg font-semibold text-zinc-200 mr-auto">
-          Events ({events.length})
+          {view === "pending"
+            ? `Pending Events (${events.length})`
+            : `Event History (${events.length})`}
         </h1>
+
+        {/* View toggle */}
+        <div className="flex items-center gap-1 bg-zinc-800 rounded-lg p-1">
+          <button
+            onClick={() => setView("pending")}
+            className={`px-3 py-1 text-xs rounded-md transition ${
+              view === "pending" ? "bg-zinc-700 text-white" : "text-zinc-400 hover:text-white"
+            }`}
+          >
+            Pending
+          </button>
+          <button
+            onClick={() => setView("history")}
+            className={`px-3 py-1 text-xs rounded-md transition ${
+              view === "history" ? "bg-zinc-700 text-white" : "text-zinc-400 hover:text-white"
+            }`}
+          >
+            History
+          </button>
+        </div>
 
         <Button
           onClick={() => setShowCreateForm(true)}
@@ -276,8 +342,8 @@ export default function EventsPage() {
                 </select>
               </div>
               <div>
-                <label className="text-xs text-zinc-400 mb-1 block">Image URL *</label>
-                <Input required type="url" value={createForm.image_url} onChange={(e) => setCreateField("image_url", e.target.value)}
+                <label className="text-xs text-zinc-400 mb-1 block">Image URL</label>
+                <Input type="url" value={createForm.image_url} onChange={(e) => setCreateField("image_url", e.target.value)}
                   placeholder="https://cdn.example.com/banner.jpg" className="h-8 text-sm bg-zinc-800 border-zinc-700 text-zinc-200" />
               </div>
               <div className="flex justify-end gap-2 pt-2">
@@ -383,8 +449,17 @@ export default function EventsPage() {
         </div>
       ) : events.length === 0 ? (
         <div className="flex flex-col items-center justify-center min-h-[60vh] gap-3">
-          <Calendar className="w-12 h-12 text-zinc-500" />
-          <p className="text-zinc-400 font-medium">No events yet</p>
+          {view === "pending" ? (
+            <>
+              <PartyPopper className="w-12 h-12 text-zinc-500" />
+              <p className="text-zinc-400 font-medium">All caught up — no pending events</p>
+            </>
+          ) : (
+            <>
+              <Calendar className="w-12 h-12 text-zinc-500" />
+              <p className="text-zinc-400 font-medium">No reviewed events yet</p>
+            </>
+          )}
         </div>
       ) : (
         <div className="overflow-x-auto rounded-lg border border-zinc-800">
@@ -396,12 +471,13 @@ export default function EventsPage() {
                 <th className="px-4 py-3">Type</th>
                 <th className="px-4 py-3">Date</th>
                 <th className="px-4 py-3">Location</th>
-                <th className="px-4 py-3">Status</th>
+                {view === "history" && <th className="px-4 py-3">Status</th>}
                 <th className="px-4 py-3 text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-zinc-800">
               {events.map((event) => {
+                const busy = processing.has(event.id);
                 return (
                   <tr key={event.id} className="bg-zinc-950 hover:bg-zinc-900/60 transition">
                     {/* Name */}
@@ -442,31 +518,51 @@ export default function EventsPage() {
                       )}
                     </td>
 
-                    {/* Status */}
-                    <td className="px-4 py-3">
-                      <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium ${STATUS_STYLES[event.approval_status ?? "PENDING"]}`}>
-                        {event.approval_status === "APPROVED" ? (
-                          <CheckCircle2 className="w-3 h-3" />
-                        ) : (
-                          <XCircle className="w-3 h-3" />
-                        )}
-                        {event.approval_status}
-                      </span>
-                    </td>
+                    {/* History: status badge */}
+                    {view === "history" && (
+                      <td className="px-4 py-3">
+                        <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium ${STATUS_STYLES[event.approval_status ?? "PENDING"]}`}>
+                          {event.approval_status === "APPROVED" ? (
+                            <CheckCircle2 className="w-3 h-3" />
+                          ) : (
+                            <XCircle className="w-3 h-3" />
+                          )}
+                          {event.approval_status}
+                        </span>
+                      </td>
+                    )}
 
                     {/* Actions */}
                     <td className="px-4 py-3 text-right whitespace-nowrap">
                       <div className="flex items-center justify-end gap-1">
+                        {/* Edit — available in both views */}
                         <Button size="sm" variant="ghost" onClick={() => openEdit(event)}
+                          disabled={busy}
                           title="Edit event"
                           className="h-7 px-2 text-zinc-400 hover:text-blue-400 hover:bg-zinc-800 text-xs">
                           <Pencil className="w-3 h-3" />
                         </Button>
-                        <Button size="sm" variant="ghost" onClick={() => setDeletingEvent(event)}
-                          title="Delete event"
-                          className="h-7 px-2 text-zinc-400 hover:text-red-400 hover:bg-zinc-800 text-xs">
-                          <Trash2 className="w-3 h-3" />
-                        </Button>
+
+                        {view === "pending" ? (
+                          <>
+                            <Button size="sm" onClick={() => handleApprove(event)} disabled={busy}
+                              className="h-7 px-3 bg-emerald-700 hover:bg-emerald-600 text-white text-xs">
+                              {busy ? <Loader2 className="w-3 h-3 animate-spin" /> : <Check className="w-3 h-3" />}
+                              <span className="ml-1">Approve</span>
+                            </Button>
+                            <Button size="sm" variant="ghost" onClick={() => handleReject(event.id)} disabled={busy}
+                              className="h-7 px-3 text-zinc-400 hover:text-red-400 hover:bg-zinc-800 text-xs">
+                              <X className="w-3 h-3" />
+                              <span className="ml-1">Reject</span>
+                            </Button>
+                          </>
+                        ) : (
+                          <Button size="sm" variant="ghost" onClick={() => setDeletingEvent(event)}
+                            title="Delete event"
+                            className="h-7 px-2 text-zinc-400 hover:text-red-400 hover:bg-zinc-800 text-xs">
+                            <Trash2 className="w-3 h-3" />
+                          </Button>
+                        )}
                       </div>
                     </td>
                   </tr>
@@ -479,5 +575,3 @@ export default function EventsPage() {
     </div>
   );
 }
-
-
