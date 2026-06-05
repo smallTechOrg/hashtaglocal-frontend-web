@@ -59,7 +59,4 @@ export const ADMIN_API = {
 
   /** Edit an existing event */
   editEvent: (eventId: number) => `${BASE_URL}/admin/event/${eventId}`,
-
-  /** Permanently delete an event */
-  deleteEvent: (eventId: number) => `${BASE_URL}/admin/event/${eventId}`,
 };

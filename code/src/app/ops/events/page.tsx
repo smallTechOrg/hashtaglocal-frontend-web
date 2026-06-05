@@ -18,7 +18,6 @@ import {
   XCircle,
   Plus,
   Pencil,
-  Trash2,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -69,9 +68,6 @@ export default function EventsPage() {
     start_time: "", end_time: "", link: "", type: "OTHER", display_name: "",
   });
 
-  // ── Delete confirm ──
-  const [deletingEvent, setDeletingEvent] = useState<AdminEvent | null>(null);
-  const [deleting, setDeleting] = useState(false);
 
   const loadEvents = useCallback(async (signal?: AbortSignal) => {
     setLoading(true);
@@ -233,20 +229,23 @@ export default function EventsPage() {
     }
   }
 
-  // ── Delete ──
-  async function handleConfirmDelete() {
-    if (!deletingEvent) return;
-    setDeleting(true);
+  // ── History toggle (reject approved / approve rejected) ──
+  async function handleHistoryToggle(event: AdminEvent) {
+    const isApproved = event.approval_status === "APPROVED";
+    setProcessingState(event.id, true);
     try {
-      const res = await adminFetch(ADMIN_API.deleteEvent(deletingEvent.id), { method: "DELETE" });
+      const url = isApproved ? ADMIN_API.rejectEvent(event.id) : ADMIN_API.approveEvent(event.id);
+      const res = await adminFetch(url, { method: "PUT" });
       if (!res.ok) throw new Error(`${res.status}`);
-      toast.success(`Deleted: ${deletingEvent.name}`);
-      setDeletingEvent(null);
-      setEvents((prev) => prev.filter((e) => e.id !== deletingEvent.id));
+      const newStatus = isApproved ? "REJECTED" : "APPROVED";
+      toast.success(isApproved ? "Event rejected" : "Event approved");
+      setEvents((prev) =>
+        prev.map((e) => (e.id === event.id ? { ...e, approval_status: newStatus } : e))
+      );
     } catch (err) {
-      toast.error(`Failed to delete: ${err}`);
+      toast.error(`Failed: ${err}`);
     } finally {
-      setDeleting(false);
+      setProcessingState(event.id, false);
     }
   }
 
@@ -422,25 +421,6 @@ export default function EventsPage() {
         </div>
       )}
 
-      {/* ── Delete confirm modal ── */}
-      {deletingEvent && (
-        <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4">
-          <div className="bg-zinc-900 border border-zinc-800 rounded-xl w-full max-w-sm p-6">
-            <h2 className="text-base font-semibold text-zinc-200 mb-2">Delete Event?</h2>
-            <p className="text-sm text-zinc-400 mb-5">
-              Permanently delete <span className="text-zinc-200 font-medium">{deletingEvent.name}</span>? This cannot be undone.
-            </p>
-            <div className="flex justify-end gap-2">
-              <Button variant="ghost" size="sm" onClick={() => setDeletingEvent(null)} className="text-zinc-400">Cancel</Button>
-              <Button size="sm" disabled={deleting} onClick={handleConfirmDelete}
-                className="bg-red-700 hover:bg-red-600 text-white">
-                {deleting ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : <Trash2 className="w-3 h-3 mr-1" />}
-                Delete
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
 
       {loading ? (
         <div className="flex flex-col items-center justify-center min-h-[60vh] gap-3">
@@ -557,11 +537,19 @@ export default function EventsPage() {
                             </Button>
                           </>
                         ) : (
-                          <Button size="sm" variant="ghost" onClick={() => setDeletingEvent(event)}
-                            title="Delete event"
-                            className="h-7 px-2 text-zinc-400 hover:text-red-400 hover:bg-zinc-800 text-xs">
-                            <Trash2 className="w-3 h-3" />
-                          </Button>
+                          event.approval_status === "APPROVED" ? (
+                            <Button size="sm" variant="ghost" onClick={() => handleHistoryToggle(event)}
+                              disabled={busy} title="Reject event"
+                              className="h-7 px-2 text-zinc-400 hover:text-red-400 hover:bg-zinc-800">
+                              {busy ? <Loader2 className="w-3 h-3 animate-spin" /> : <X className="w-3 h-3" />}
+                            </Button>
+                          ) : (
+                            <Button size="sm" variant="ghost" onClick={() => handleHistoryToggle(event)}
+                              disabled={busy} title="Approve event"
+                              className="h-7 px-2 text-zinc-400 hover:text-emerald-400 hover:bg-zinc-800">
+                              {busy ? <Loader2 className="w-3 h-3 animate-spin" /> : <Check className="w-3 h-3" />}
+                            </Button>
+                          )
                         )}
                       </div>
                     </td>
