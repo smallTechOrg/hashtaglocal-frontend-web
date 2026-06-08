@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { LogOut, MapPin } from "lucide-react";
 import { useProfile } from "../feed/useProfile";
 import { clearTokens, isAuthenticated, buildGoogleAuthUrl } from "../../ops/lib/auth";
@@ -12,7 +13,13 @@ import { GOOGLE_CLIENT_ID } from "../../ops/lib/constants";
  */
 export default function AuthWidget() {
   const { profile, isAdmin, loading } = useProfile();
-  const loggedIn = typeof window !== "undefined" && isAuthenticated();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  const loggedIn = mounted && isAuthenticated();
 
   function signIn() {
     // Map sign-in: return to the map (home). Not the report flow.
