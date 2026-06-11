@@ -1,4 +1,5 @@
 import { BASE_URL } from "../../constants/api";
+import { getOrCreateDeviceId } from "./auth";
 
 export const GOOGLE_CLIENT_ID = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID ?? "";
 
@@ -11,7 +12,7 @@ export const GOOGLE_REDIRECT_URI =
 export const ADMIN_API = {
   /** Exchange Google auth code for backend tokens */
   googleCallback: (code: string) =>
-    `${BASE_URL}/auth/google/callback?code=${encodeURIComponent(code)}&redirect_uri=${encodeURIComponent(GOOGLE_REDIRECT_URI)}`,  
+    `${BASE_URL}/auth/google/callback?code=${encodeURIComponent(code)}&redirect_uri=${encodeURIComponent(GOOGLE_REDIRECT_URI)}&platform=WEB&device_id=${encodeURIComponent(getOrCreateDeviceId())}`,
 
   /** Refresh access token */
   refreshToken: `${BASE_URL}/auth/refresh`,

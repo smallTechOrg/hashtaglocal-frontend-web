@@ -2,6 +2,7 @@ const TOKEN_KEY = "ops_access_token";
 const TOKEN_EXPIRY_KEY = "ops_access_token_expiry";
 const REFRESH_KEY = "ops_refresh_token";
 const REFRESH_EXPIRY_KEY = "ops_refresh_token_expiry";
+const DEVICE_ID_KEY = "hl_device_id";
 
 export interface TokenPair {
   accessToken: { value: string; expiry: number };
@@ -54,6 +55,16 @@ export function clearTokens() {
   localStorage.removeItem(TOKEN_EXPIRY_KEY);
   localStorage.removeItem(REFRESH_KEY);
   localStorage.removeItem(REFRESH_EXPIRY_KEY);
+}
+
+/** Get or create a persistent device ID for this browser */
+export function getOrCreateDeviceId(): string {
+  let id = localStorage.getItem(DEVICE_ID_KEY);
+  if (!id) {
+    id = crypto.randomUUID();
+    localStorage.setItem(DEVICE_ID_KEY, id);
+  }
+  return id;
 }
 
 /** Build the Google OAuth consent URL */
