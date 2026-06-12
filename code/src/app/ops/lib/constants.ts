@@ -59,4 +59,45 @@ export const ADMIN_API = {
 
   /** Edit an existing event */
   editEvent: (eventId: number) => `${BASE_URL}/admin/event/${eventId}`,
+
+  // ---- City bulletin: quizzes (manual entry, one per locality per date) ----
+
+  /** List quizzes; optional ?locality_id= & ?date=YYYY-MM-DD filters */
+  quizzes: (localityId?: number | null, date?: string | null) => {
+    const params = new URLSearchParams();
+    if (localityId) params.set("locality_id", String(localityId));
+    if (date) params.set("date", date);
+    const qs = params.toString();
+    return `${BASE_URL}/admin/quiz${qs ? `?${qs}` : ""}`;
+  },
+
+  /** Create a quiz for a locality + date (Groq generates the explanation) */
+  createQuiz: `${BASE_URL}/admin/quiz`,
+
+  /** Edit a quiz (explanation editable; regenerate_explanation=true re-calls Groq) */
+  editQuiz: (quizId: number) => `${BASE_URL}/admin/quiz/${quizId}`,
+
+  /** Delete a quiz (blocked once users have attempted it) */
+  deleteQuiz: (quizId: number) => `${BASE_URL}/admin/quiz/${quizId}`,
+
+  /** Localities with saved users — the dropdown options for quiz/bulletin pages */
+  quizLocalities: `${BASE_URL}/admin/quiz/localities`,
+
+  // ---- City bulletin: bulletins (weather + editable AI summary) ----
+
+  /** List bulletins; optional ?locality_id= & ?date=YYYY-MM-DD filters */
+  bulletins: (localityId?: number | null, date?: string | null) => {
+    const params = new URLSearchParams();
+    if (localityId) params.set("locality_id", String(localityId));
+    if (date) params.set("date", date);
+    const qs = params.toString();
+    return `${BASE_URL}/admin/bulletin${qs ? `?${qs}` : ""}`;
+  },
+
+  /** Edit a bulletin's AI weather summary */
+  editBulletinSummary: (bulletinId: number) =>
+    `${BASE_URL}/admin/bulletin/${bulletinId}/summary`,
+
+  /** Manually run the daily weather generation (same as the 8 AM cron) */
+  generateBulletins: `${BASE_URL}/admin/bulletin/generate`,
 };
