@@ -205,3 +205,49 @@ export function getTransitionInfo(
       };
   }
 }
+
+// ---- City bulletin (quizzes + bulletins) ----
+
+/** Locality option for the quiz/bulletin dropdowns (saved-user localities only). */
+export interface AdminLocalityOption {
+  id: number;
+  name: string;
+  hashtag: string;
+}
+
+/** A quiz as managed in the ops portal (full answer key visible to admins). */
+export interface AdminQuiz {
+  id: number;
+  locality_id: number;
+  locality_name: string;
+  hashtag: string;
+  /** Serving date (from the linked bulletin row); YYYY-MM-DD. */
+  date: string | null;
+  question: string;
+  options: string[];
+  /** 1-based index of the correct option. */
+  answer_option_index: number;
+  explanation: string | null;
+  /** Once true, the quiz can no longer be deleted. */
+  has_attempts: boolean;
+}
+
+/** A generated daily bulletin (weather + editable AI summary). */
+export interface AdminBulletin {
+  id: number;
+  locality_id: number;
+  locality_name: string;
+  hashtag: string;
+  date: string;
+  weather: {
+    min_temp: number | null;
+    max_temp: number | null;
+    humidity: number | null;
+    rain_probability: number | null;
+    avg_aqi: number | null;
+    pollen: number | null;
+  } | null;
+  weather_source: string | null;
+  summary: string | null;
+  quiz_id: number | null;
+}
