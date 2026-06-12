@@ -57,13 +57,29 @@ export function clearTokens() {
   localStorage.removeItem(REFRESH_EXPIRY_KEY);
 }
 
-/** Get or create a persistent device ID for this browser */
+const DEVICE_ID_COOKIE_MAX_AGE = 2 * 365 * 24 * 60 * 60; // 2 years in seconds
+
+function readDeviceIdCookie(): string | null {
+  const match = document.cookie.match(
+    new RegExp(`(?:^|;\\s*)${DEVICE_ID_KEY}=([^;]+)`),
+  );
+  return match ? match[1] : null;
+}
+
+function writeDeviceIdCookie(id: string) {
+  document.cookie = `${DEVICE_ID_KEY}=${id}; max-age=${DEVICE_ID_COOKIE_MAX_AGE}; path=/; SameSite=Strict`;
+}
+
+/** Get or create a persistent device ID for this browser.
+ *  Dual-written to localStorage + a long-lived cookie so either can survive being cleared. */
 export function getOrCreateDeviceId(): string {
-  let id = localStorage.getItem(DEVICE_ID_KEY);
+  if (typeof window === "undefined") return "";
+  let id = localStorage.getItem(DEVICE_ID_KEY) ?? readDeviceIdCookie();
   if (!id) {
     id = crypto.randomUUID();
-    localStorage.setItem(DEVICE_ID_KEY, id);
   }
+  localStorage.setItem(DEVICE_ID_KEY, id);
+  writeDeviceIdCookie(id);
   return id;
 }
 
