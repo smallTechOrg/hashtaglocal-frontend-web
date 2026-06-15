@@ -1,5 +1,5 @@
 import { ADMIN_API } from "./constants";
-import { getAccessToken, getRefreshToken, saveTokens, clearTokens } from "./auth";
+import { getAccessToken, getRefreshToken, saveTokens, clearTokens, getOrCreateDeviceId } from "./auth";
 
 /**
  * Authenticated fetch wrapper for admin API calls.
@@ -53,7 +53,7 @@ async function tryRefreshToken(): Promise<boolean> {
     const res = await fetch(ADMIN_API.refreshToken, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ refresh_token: refreshToken }),
+      body: JSON.stringify({ refresh_token: refreshToken, device_id: getOrCreateDeviceId() }),
     });
 
     if (!res.ok) return false;

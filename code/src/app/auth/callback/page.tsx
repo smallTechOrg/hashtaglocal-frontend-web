@@ -5,7 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { Suspense } from "react";
 import Link from "next/link";
 import { BASE_URL } from "../../constants/api";
-import { saveTokens } from "../../ops/lib/auth";
+import { saveTokens, getOrCreateDeviceId } from "../../ops/lib/auth";
 import { Loader2, AlertCircle } from "lucide-react";
 
 const REDIRECT_URI =
@@ -30,7 +30,7 @@ function CallbackHandler() {
 
     async function exchangeCode(authCode: string) {
       try {
-        const callbackUrl = `${BASE_URL}/auth/google/callback?code=${encodeURIComponent(authCode)}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}`;
+        const callbackUrl = `${BASE_URL}/auth/google/callback?code=${encodeURIComponent(authCode)}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&platform=WEB&device_id=${encodeURIComponent(getOrCreateDeviceId())}`;
         const res = await fetch(callbackUrl);
         if (!res.ok) {
           const text = await res.text();
