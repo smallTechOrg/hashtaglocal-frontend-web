@@ -18,6 +18,7 @@ import {
   XCircle,
   Plus,
   Pencil,
+  MapPin,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -51,6 +52,7 @@ export default function EventsPage() {
   const [events, setEvents] = useState<AdminEvent[]>([]);
   const [loading, setLoading] = useState(true);
   const [processing, setProcessing] = useState<Set<number>>(new Set());
+  const [geocoding, setGeocoding] = useState(false);
 
   // ── Create form ──
   const [showCreateForm, setShowCreateForm] = useState(false);
@@ -249,6 +251,22 @@ export default function EventsPage() {
     }
   }
 
+  async function handleGeocode() {
+    setGeocoding(true);
+    try {
+      const res = await adminFetch(ADMIN_API.triggerGeocode, { method: "POST" });
+      if (!res.ok) throw new Error(`${res.status}`);
+      const json = await res.json();
+      const r = json.data;
+      toast.success(`Geocoding done — ${r.success}/${r.total} succeeded, ${r.failed} failed`);
+      loadEvents();
+    } catch (err) {
+      toast.error(`Geocoding failed: ${err}`);
+    } finally {
+      setGeocoding(false);
+    }
+  }
+
   return (
     <div className="px-4 py-6 max-w-7xl mx-auto">
       {/* Header */}
@@ -278,6 +296,22 @@ export default function EventsPage() {
             History
           </button>
         </div>
+
+        {view === "pending" && (
+          <Button
+            onClick={handleGeocode}
+            disabled={geocoding}
+            size="sm"
+            className="bg-zinc-700 hover:bg-zinc-600 text-white text-xs"
+          >
+            {geocoding ? (
+              <Loader2 className="w-3 h-3 mr-1 animate-spin" />
+            ) : (
+              <MapPin className="w-3 h-3 mr-1" />
+            )}
+            Run Geocoding
+          </Button>
+        )}
 
         <Button
           onClick={() => setShowCreateForm(true)}
@@ -451,6 +485,7 @@ export default function EventsPage() {
                 <th className="px-4 py-3">Type</th>
                 <th className="px-4 py-3">Date</th>
                 <th className="px-4 py-3">Location</th>
+                <th className="px-4 py-3">CREATED AT</th>
                 {view === "history" && <th className="px-4 py-3">Status</th>}
                 <th className="px-4 py-3 text-right">Actions</th>
               </tr>
@@ -496,6 +531,14 @@ export default function EventsPage() {
                       {event.location?.locality?.hashtags?.[0] && (
                         <span className="text-xs text-zinc-600">#{event.location.locality.hashtags[0]}</span>
                       )}
+                      {!event.location && (
+                        <span className="text-xs text-amber-500/80 mt-0.5 block">geocoding pending</span>
+                      )}
+                    </td>
+
+                    {/* Created at */}
+                    <td className="px-4 py-3 whitespace-nowrap text-zinc-400">
+                      {formatDate(event.created_at)}
                     </td>
 
                     {/* History: status badge */}

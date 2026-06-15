@@ -18,6 +18,7 @@ export interface AdminEvent {
   link: string;
   image_url: string | null;
   approval_status: "PENDING" | "APPROVED" | "REJECTED" | null;
+  created_at: string | null;
 }
 
 /** A recently reviewed (approved or rejected) action */
