@@ -61,6 +61,9 @@ export const ADMIN_API = {
   /** Edit an existing event */
   editEvent: (eventId: number) => `${BASE_URL}/admin/event/${eventId}`,
 
+  /** Manually trigger the geocoding pass for events awaiting a location */
+  triggerGeocode: `${BASE_URL}/admin/event/geocode`,
+
   // ---- City bulletin: quizzes (manual entry, one per locality per date) ----
 
   /** List quizzes; optional ?locality_id= & ?date=YYYY-MM-DD filters */
