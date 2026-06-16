@@ -15,6 +15,7 @@ import {
   Calendar,
   HelpCircle,
   Newspaper,
+  Megaphone,
 } from "lucide-react";
 import { Toaster } from "sonner";
 
@@ -128,6 +129,17 @@ export default function OpsLayout({ children }: { children: React.ReactNode }) {
           >
             <Newspaper className="w-4 h-4" />
             <span className="hidden sm:inline">Bulletins</span>
+          </Link>
+          <Link
+            href="/ops/notification"
+            className={`flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-md transition ${
+              pathname === "/ops/notification"
+                ? "bg-zinc-800 text-white"
+                : "text-zinc-400 hover:text-white hover:bg-zinc-800/50"
+            }`}
+          >
+            <Megaphone className="w-4 h-4" />
+            <span className="hidden sm:inline">Notification</span>
           </Link>
           <Link
             href="/ops/list"

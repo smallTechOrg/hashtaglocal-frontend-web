@@ -104,4 +104,9 @@ export const ADMIN_API = {
 
   /** Manually run the daily weather generation (same as the 8 AM cron) */
   generateBulletins: `${BASE_URL}/admin/bulletin/generate`,
+
+  // ---- Broadcast ----
+
+  /** Send a push notification to every user with an active device token */
+  notification: `${BASE_URL}/admin/notification`,
 };
