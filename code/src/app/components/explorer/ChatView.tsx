@@ -241,6 +241,8 @@ function ChatRow({
   // tag so they know it isn't public yet (others won't see it at all).
   const underReview = post.status !== "PUBLISHED";
 
+  if (post.kind === "BULLETIN") return null;
+
   return (
     <div className={`xp-msg ${pinned ? "is-pinned" : ""} ${underReview ? "is-under-review" : ""}`}>
       <span className={`xp-msg-author ${isSystem ? "is-system" : ""}`}>{name}</span>
