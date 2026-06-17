@@ -7,6 +7,7 @@ import { AdminBulletin, AdminLocalityOption } from "../lib/types";
 import { Button } from "@/components/ui/button";
 import { Loader2, RefreshCw, Newspaper, Pencil, Play, Check, X } from "lucide-react";
 import { toast } from "sonner";
+import AiPromptBox from "../components/AiPromptBox";
 
 function todayISO(): string {
   return new Date().toISOString().slice(0, 10);
@@ -119,6 +120,7 @@ export default function BulletinsPage() {
 
   return (
     <div className="px-4 py-6 max-w-7xl mx-auto">
+      <AiPromptBox promptKey="WEATHER_SUMMARY" />
       {/* Header + filters */}
       <div className="flex flex-wrap items-center gap-3 mb-5">
         <h1 className="text-lg font-semibold text-zinc-200 mr-auto">

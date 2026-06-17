@@ -18,6 +18,10 @@ import {
   CircleDashed,
 } from "lucide-react";
 import { toast } from "sonner";
+import AiPromptBox from "../components/AiPromptBox";
+
+const QUESTION_MAX = 120;
+const OPTION_MAX = 60;
 
 function todayISO(): string {
   return new Date().toISOString().slice(0, 10);
@@ -219,6 +223,7 @@ export default function QuizzesPage() {
 
   return (
     <div className="px-4 py-6 max-w-7xl mx-auto">
+      <AiPromptBox promptKey="QUIZ_EXPLANATION" />
       {/* Header */}
       <div className="flex flex-wrap items-center gap-3 mb-5">
         <div className="mr-auto">
@@ -255,10 +260,16 @@ export default function QuizzesPage() {
             </h2>
             <form onSubmit={handleSave} className="space-y-3">
               <div>
-                <label className="text-xs text-zinc-400 mb-1 block">Question *</label>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="text-xs text-zinc-400">Question *</label>
+                  <span className={`text-xs ${form.question.length > QUESTION_MAX * 0.85 ? "text-amber-400" : "text-zinc-500"}`}>
+                    {form.question.length}/{QUESTION_MAX}
+                  </span>
+                </div>
                 <textarea
                   required
                   rows={2}
+                  maxLength={QUESTION_MAX}
                   value={form.question}
                   onChange={(e) => setForm((p) => ({ ...p, question: e.target.value }))}
                   placeholder="e.g. Which lake is Bengaluru's largest?"
@@ -276,13 +287,19 @@ export default function QuizzesPage() {
                     onChange={() => setForm((p) => ({ ...p, answer_option_index: i + 1 }))}
                     className="accent-emerald-600"
                   />
-                  <Input
-                    required
-                    value={option}
-                    onChange={(e) => setOption(i, e.target.value)}
-                    placeholder={`Option ${i + 1}`}
-                    className="h-8 text-sm bg-zinc-800 border-zinc-700 text-zinc-200"
-                  />
+                  <div className="flex-1 relative">
+                    <Input
+                      required
+                      maxLength={OPTION_MAX}
+                      value={option}
+                      onChange={(e) => setOption(i, e.target.value)}
+                      placeholder={`Option ${i + 1}`}
+                      className="h-8 text-sm bg-zinc-800 border-zinc-700 text-zinc-200 pr-10"
+                    />
+                    <span className={`absolute right-2 top-1/2 -translate-y-1/2 text-[10px] pointer-events-none ${option.length > OPTION_MAX * 0.85 ? "text-amber-400" : "text-zinc-600"}`}>
+                      {option.length}/{OPTION_MAX}
+                    </span>
+                  </div>
                 </div>
               ))}
               <p className="text-xs text-zinc-500">Select the radio next to the correct option.</p>
