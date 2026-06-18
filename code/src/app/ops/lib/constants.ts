@@ -109,4 +109,8 @@ export const ADMIN_API = {
 
   /** Send a push notification to every user with an active device token */
   notification: `${BASE_URL}/admin/notification`,
+  // ---- AI prompts (read-only view of GroqClient templates) ----
+
+  /** Read the Groq prompt templates currently in use */
+  aiPrompts: `${BASE_URL}/admin/ai-prompts`,
 };
