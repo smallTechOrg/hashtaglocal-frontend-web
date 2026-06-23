@@ -8,6 +8,20 @@ import { Input } from "@/components/ui/input";
 import { Loader2, Send } from "lucide-react";
 import { toast } from "sonner";
 
+type NotificationType = "BROADCAST" | "CHAT" | "ISSUE_DETAIL";
+
+const TYPE_LABELS: Record<NotificationType, string> = {
+  BROADCAST: "Broadcast",
+  CHAT: "Chat",
+  ISSUE_DETAIL: "Issue Detail",
+};
+
+const TYPE_DESCRIPTIONS: Record<NotificationType, string> = {
+  BROADCAST: "Opens the map screen on tap.",
+  CHAT: "Opens the community chat screen on tap.",
+  ISSUE_DETAIL: "Opens a specific issue detail page on tap.",
+};
+
 async function errorMessage(res: Response): Promise<string> {
   try {
     const body = await res.json();
@@ -18,23 +32,32 @@ async function errorMessage(res: Response): Promise<string> {
 }
 
 export default function NotificationPage() {
+  const [type, setType] = useState<NotificationType>("BROADCAST");
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
+  const [issueId, setIssueId] = useState("");
   const [sending, setSending] = useState(false);
 
   async function handleSend(e: React.FormEvent) {
     e.preventDefault();
     if (!title.trim() || !body.trim()) return;
-    if (!window.confirm("Send this notification to every user with the app installed?")) return;
+    if (type === "ISSUE_DETAIL" && !issueId.trim()) return;
+
+    const confirmMsg =
+      type === "ISSUE_DETAIL"
+        ? `Send issue #${issueId} notification to every user?`
+        : "Send this notification to every user with the app installed?";
+    if (!window.confirm(confirmMsg)) return;
+
+    const payload: Record<string, string> = { title, body };
+    if (type === "ISSUE_DETAIL") payload.issue_id = issueId.trim();
 
     setSending(true);
     try {
       const res = await adminFetch(ADMIN_API.notification, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          notification: { type: "BROADCAST", payload: { title, body } },
-        }),
+        body: JSON.stringify({ notification: { type, payload } }),
       });
       if (!res.ok) throw new Error(await errorMessage(res));
       const json = await res.json();
@@ -42,8 +65,9 @@ export default function NotificationPage() {
       toast.success(`Sent to ${delivered} device${delivered === 1 ? "" : "s"}`);
       setTitle("");
       setBody("");
+      setIssueId("");
     } catch (err) {
-      toast.error(`Failed to send broadcast: ${err}`);
+      toast.error(`Failed to send notification: ${err}`);
     } finally {
       setSending(false);
     }
@@ -62,6 +86,42 @@ export default function NotificationPage() {
         onSubmit={handleSend}
         className="space-y-3 bg-zinc-900 border border-zinc-800 rounded-xl p-5"
       >
+        <div>
+          <label className="text-xs text-zinc-400 mb-1 block">Type *</label>
+          <div className="flex gap-2">
+            {(Object.keys(TYPE_LABELS) as NotificationType[]).map((t) => (
+              <button
+                key={t}
+                type="button"
+                onClick={() => setType(t)}
+                className={`px-3 py-1.5 rounded-md text-xs font-medium border transition-colors ${
+                  type === t
+                    ? "bg-emerald-700 border-emerald-600 text-white"
+                    : "bg-zinc-800 border-zinc-700 text-zinc-400 hover:text-zinc-200"
+                }`}
+              >
+                {TYPE_LABELS[t]}
+              </button>
+            ))}
+          </div>
+          <p className="text-xs text-zinc-500 mt-1.5">{TYPE_DESCRIPTIONS[type]}</p>
+        </div>
+
+        {type === "ISSUE_DETAIL" && (
+          <div>
+            <label className="text-xs text-zinc-400 mb-1 block">Issue ID *</label>
+            <Input
+              required
+              type="number"
+              min="1"
+              value={issueId}
+              onChange={(e) => setIssueId(e.target.value)}
+              placeholder="e.g. 42"
+              className="bg-zinc-800 border-zinc-700 text-zinc-200"
+            />
+          </div>
+        )}
+
         <div>
           <label className="text-xs text-zinc-400 mb-1 block">Title *</label>
           <Input
