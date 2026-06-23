@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { adminFetch } from "../lib/api";
 import { ADMIN_API } from "../lib/constants";
-import { AdminLocalityOption, AdminQuiz } from "../lib/types";
+import { AdminLocalityOption, AdminQuiz, QuizWeekCoverage } from "../lib/types";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -60,11 +60,30 @@ export default function QuizzesPage() {
   const [editingQuiz, setEditingQuiz] = useState<AdminQuiz | null>(null);
   const [form, setForm] = useState<QuizForm>(EMPTY_FORM);
   const [saving, setSaving] = useState(false);
-  const [regenerating, setRegenerating] = useState(false);
   const [deletingId, setDeletingId] = useState<number | null>(null);
+  const [generating, setGenerating] = useState(false);
+  const [coverage, setCoverage] = useState<QuizWeekCoverage | null>(null);
 
   // index by locality_id for O(1) row lookup
   const quizByLocality = Object.fromEntries(quizzes.map((q) => [q.locality_id, q]));
+
+  const loadCoverage = useCallback(async () => {
+    const today = new Date();
+    const dayOfWeek = today.getDay(); // 0=Sun
+    const daysUntilSunday = dayOfWeek === 0 ? 0 : 7 - dayOfWeek;
+    const sunday = new Date(today);
+    sunday.setDate(today.getDate() + daysUntilSunday);
+    const from = today.toISOString().slice(0, 10);
+    const to = sunday.toISOString().slice(0, 10);
+    try {
+      const res = await adminFetch(ADMIN_API.quizCoverage(from, to));
+      if (!res.ok) return;
+      const json = await res.json();
+      setCoverage(json.data ?? null);
+    } catch {
+      // non-fatal
+    }
+  }, []);
 
   const loadQuizzes = useCallback(
     async (signal?: AbortSignal) => {
@@ -90,6 +109,8 @@ export default function QuizzesPage() {
     loadQuizzes(controller.signal);
     return () => controller.abort();
   }, [loadQuizzes]);
+
+  useEffect(() => { loadCoverage(); }, [loadCoverage]);
 
   useEffect(() => {
     (async () => {
@@ -177,29 +198,21 @@ export default function QuizzesPage() {
     }
   }
 
-  async function handleRegenerate() {
-    if (!editingQuiz) return;
-    setRegenerating(true);
+  async function handleGenerateNow() {
+    if (!window.confirm("This will generate AI quizzes for all localities from today through this Sunday. Continue?")) return;
+    setGenerating(true);
     try {
-      const res = await adminFetch(ADMIN_API.editQuiz(editingQuiz.id), {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          question: form.question,
-          options: form.options,
-          answer_option_index: form.answer_option_index,
-          regenerate_explanation: true,
-        }),
-      });
+      const res = await adminFetch(ADMIN_API.generateQuizzes, { method: "POST" });
       if (!res.ok) throw new Error(await errorMessage(res));
       const json = await res.json();
-      setForm((prev) => ({ ...prev, explanation: json.data?.explanation ?? "" }));
-      toast.success("Explanation regenerated");
+      const { generated, skipped, failed } = json.data ?? {};
+      toast.success(`Generated ${generated} quizzes, skipped ${skipped}, failed ${failed}`);
       loadQuizzes();
+      loadCoverage();
     } catch (err) {
-      toast.error(`Failed to regenerate: ${err}`);
+      toast.error(`Generation failed: ${err}`);
     } finally {
-      setRegenerating(false);
+      setGenerating(false);
     }
   }
 
@@ -223,7 +236,55 @@ export default function QuizzesPage() {
 
   return (
     <div className="px-4 py-6 max-w-7xl mx-auto">
-      <AiPromptBox promptKey="QUIZ_EXPLANATION" />
+      {/* AI prompt boxes */}
+      <div className="mb-6 space-y-2">
+        <AiPromptBox
+          promptKey="QUIZ_GENERATION"
+          label="Quiz Generation prompt — weekly cron & Generate Now (question + options + answer + explanation)"
+        />
+      </div>
+
+      {/* Week coverage panel */}
+      {coverage && (
+        coverage.total_missing === 0 ? (
+          <div className="mb-5 rounded-lg border border-emerald-800 bg-emerald-950/30 px-4 py-3 flex items-center gap-2">
+            <span className="text-emerald-400 text-sm">✓</span>
+            <span className="text-sm text-emerald-400 font-medium">
+              All {coverage.total_ready} quizzes generated successfully
+            </span>
+            <span className="text-xs text-zinc-500 ml-1">({coverage.from} → {coverage.to})</span>
+          </div>
+        ) : (
+          <div className="mb-5 rounded-lg border border-amber-700 bg-amber-950/40 px-4 py-3">
+            <div className="flex flex-wrap items-center gap-2 mb-2">
+              <span className="text-sm font-medium text-amber-400">
+                {coverage.total_missing} quiz{coverage.total_missing > 1 ? "zes" : ""} failed to generate
+              </span>
+              <span className="text-xs text-zinc-500">({coverage.from} → {coverage.to})</span>
+              <span className="text-xs text-amber-400/70 ml-auto">→ Click Generate Now to retry</span>
+            </div>
+            <div className="flex flex-col gap-1">
+              {coverage.localities
+                .filter((loc) => loc.missing_count > 0)
+                .map((loc) => (
+                  <div key={loc.id} className="flex items-center gap-2 text-xs">
+                    <span className="text-zinc-300 w-28 shrink-0">{loc.name}</span>
+                    <div className="flex flex-wrap gap-1">
+                      {loc.dates
+                        .filter((d) => !d.has_quiz)
+                        .map((d) => (
+                          <span key={d.date} className="px-1.5 py-0.5 rounded bg-amber-900/50 text-amber-400 border border-amber-800">
+                            {new Date(d.date + "T00:00:00").toLocaleDateString("en-IN", { day: "numeric", month: "short" })}
+                          </span>
+                        ))}
+                    </div>
+                  </div>
+                ))}
+            </div>
+          </div>
+        )
+      )}
+
       {/* Header */}
       <div className="flex flex-wrap items-center gap-3 mb-5">
         <div className="mr-auto">
@@ -236,6 +297,20 @@ export default function QuizzesPage() {
             </p>
           )}
         </div>
+
+        <Button
+          onClick={handleGenerateNow}
+          disabled={generating}
+          size="sm"
+          className="bg-violet-700 hover:bg-violet-600 text-white"
+        >
+          {generating ? (
+            <Loader2 className="w-3 h-3 animate-spin mr-1.5" />
+          ) : (
+            <Sparkles className="w-3 h-3 mr-1.5" />
+          )}
+          Generate Now
+        </Button>
 
         <input
           type="date"
@@ -305,28 +380,7 @@ export default function QuizzesPage() {
               <p className="text-xs text-zinc-500">Select the radio next to the correct option.</p>
 
               <div>
-                <div className="flex items-center justify-between mb-1">
-                  <label className="text-xs text-zinc-400 block">
-                    Explanation {editingQuiz ? "" : "(blank = Groq generates one)"}
-                  </label>
-                  {editingQuiz && (
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      onClick={handleRegenerate}
-                      disabled={regenerating}
-                      className="h-6 px-2 text-xs text-violet-400 hover:text-violet-300"
-                    >
-                      {regenerating ? (
-                        <Loader2 className="w-3 h-3 animate-spin mr-1" />
-                      ) : (
-                        <Sparkles className="w-3 h-3 mr-1" />
-                      )}
-                      Regenerate
-                    </Button>
-                  )}
-                </div>
+                <label className="text-xs text-zinc-400 block mb-1">Explanation</label>
                 <textarea
                   rows={3}
                   value={form.explanation}

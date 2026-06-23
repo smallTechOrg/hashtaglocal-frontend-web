@@ -105,6 +105,13 @@ export const ADMIN_API = {
   /** Manually run the daily weather generation (same as the 8 AM cron) */
   generateBulletins: `${BASE_URL}/admin/bulletin/generate`,
 
+  /** Manually run the weekly AI quiz generation (same as the Sunday 7 AM cron) */
+  generateQuizzes: `${BASE_URL}/admin/quiz/generate`,
+
+  /** Coverage grid: which localities have a quiz for each date in [from, to] */
+  quizCoverage: (from: string, to: string) =>
+    `${BASE_URL}/admin/quiz/coverage?from=${from}&to=${to}`,
+
   // ---- Broadcast ----
 
   /** Send a push notification to every user with an active device token */

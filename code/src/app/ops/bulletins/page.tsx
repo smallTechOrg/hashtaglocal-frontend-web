@@ -120,7 +120,12 @@ export default function BulletinsPage() {
 
   return (
     <div className="px-4 py-6 max-w-7xl mx-auto">
-      <AiPromptBox promptKey="WEATHER_SUMMARY" />
+      <div className="mb-6">
+        <AiPromptBox
+          promptKey="WEATHER_SUMMARY"
+          label="Weather Summary prompt — daily 8 AM cron & Generate Now (one-line advice shown in the bulletin)"
+        />
+      </div>
       {/* Header + filters */}
       <div className="flex flex-wrap items-center gap-3 mb-5">
         <h1 className="text-lg font-semibold text-zinc-200 mr-auto">
@@ -152,7 +157,7 @@ export default function BulletinsPage() {
           size="sm"
           disabled={generating}
           title="Run the daily weather generation now (same as the 8 AM cron)"
-          className="bg-zinc-700 hover:bg-zinc-600 text-white text-xs"
+          className="bg-emerald-700 hover:bg-emerald-600 text-white text-xs"
         >
           {generating ? (
             <Loader2 className="w-3 h-3 animate-spin mr-1" />

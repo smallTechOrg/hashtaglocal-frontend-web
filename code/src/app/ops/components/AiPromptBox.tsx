@@ -8,8 +8,9 @@ import { ADMIN_API } from "../lib/constants";
  * Collapsible inline view of a single Groq prompt template.
  * Pass the key ("WEATHER_SUMMARY" or "QUIZ_EXPLANATION") and it fetches + renders the template.
  */
-export default function AiPromptBox({ promptKey }: { promptKey: string }) {
+export default function AiPromptBox({ promptKey, label }: { promptKey: string; label?: string }) {
   const [template, setTemplate] = useState<string | null>(null);
+  const [open, setOpen] = useState(false);
 
   useEffect(() => {
     adminFetch(ADMIN_API.aiPrompts)
@@ -26,14 +27,22 @@ export default function AiPromptBox({ promptKey }: { promptKey: string }) {
   if (!template) return null;
 
   return (
-    <details className="mb-5 group">
-      <summary className="cursor-pointer text-sm text-zinc-400 hover:text-zinc-200 transition select-none list-none flex items-center gap-1.5">
-        <span className="group-open:rotate-90 inline-block transition-transform">▶</span>
-        Current AI prompt
-      </summary>
-      <pre className="mt-2 text-sm text-zinc-200 whitespace-pre-wrap leading-relaxed bg-zinc-800 rounded-md px-3 py-2.5 border border-zinc-700">
-        {template}
-      </pre>
-    </details>
+    <div className="rounded-lg border border-zinc-700 bg-zinc-900 overflow-hidden">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className="w-full flex items-center justify-between px-4 py-2.5 text-left hover:bg-zinc-800 transition"
+      >
+        <span className="text-sm font-medium text-zinc-200">
+          {label ?? "AI prompt"}
+        </span>
+        <span className={`text-zinc-400 text-xs transition-transform duration-200 ${open ? "rotate-180" : ""}`}>▼</span>
+      </button>
+      {open && (
+        <pre className="px-4 py-3 text-sm text-zinc-300 whitespace-pre-wrap leading-relaxed border-t border-zinc-700 bg-zinc-950">
+          {template}
+        </pre>
+      )}
+    </div>
   );
 }

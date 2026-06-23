@@ -233,6 +233,22 @@ export interface AdminQuiz {
   has_attempts: boolean;
 }
 
+/** Quiz coverage grid returned by GET /admin/quiz/coverage */
+export interface QuizWeekCoverage {
+  from: string;
+  to: string;
+  total_expected: number;
+  total_ready: number;
+  total_missing: number;
+  localities: {
+    id: number;
+    name: string;
+    hashtag: string;
+    missing_count: number;
+    dates: { date: string; has_quiz: boolean }[];
+  }[];
+}
+
 /** A generated daily bulletin (weather + editable AI summary). */
 export interface AdminBulletin {
   id: number;
