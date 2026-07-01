@@ -113,4 +113,15 @@ export const ADMIN_API = {
 
   /** Read the Groq prompt templates currently in use */
   aiPrompts: `${BASE_URL}/admin/ai-prompts`,
+
+  // ---- Metrics dashboard ----
+
+  /** Weekly computed metrics; accepts fromWeekYear/fromWeekNumber/toWeekYear/toWeekNumber query params */
+  metrics: `${BASE_URL}/admin/metrics`,
+
+  /** Drill-down detail for a metric; accepts metric/weekYear/weekNumber query params */
+  metricsDetail: `${BASE_URL}/admin/metrics/detail`,
+
+  /** Pending action counts for the ops summary section */
+  metricsOpsSummary: `${BASE_URL}/admin/metrics/ops-summary`,
 };
