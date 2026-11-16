@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 export const metadata: Metadata = {
+  alternates: { canonical: "/privacy" },
   title: "Privacy Policy | #local by smallTech",
   description: "Privacy Policy for #local by madhyamakist pvt ltd (smallTech). Learn how we collect, use, and protect your personal data.",
 };
