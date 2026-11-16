@@ -6,5 +6,9 @@ Disallow: /dashboard
 Disallow: /polygons
 Disallow: /api/
 Disallow: /auth
+Disallow: /report
+Disallow: /update/
+Disallow: /issue/index
+Disallow: /static
 
 Sitemap: https://local.smalltech.in/sitemap.xml

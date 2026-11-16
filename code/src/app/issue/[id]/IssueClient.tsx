@@ -1,7 +1,6 @@
 "use client";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { useSearchParams, useRouter } from "next/navigation";
 import "../issue.css";
 import { Issue } from "../../models/issue";
 import ImageSlideshow from "../../components/ImageSlideshow";
@@ -43,6 +42,7 @@ function parseDate(dateString: string): Date {
 function formatTimeAgo(dateString?: string): string {
   if (!dateString) return "Unknown date";
   const date = parseDate(dateString);
+  if (Number.isNaN(date.getTime())) return "Unknown date";
   const now = new Date();
   const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
   const diffInMinutes = Math.floor(diffInSeconds / 60);
@@ -59,11 +59,13 @@ function formatTimeAgo(dateString?: string): string {
 }
 
 function formatDate(dateString?: string): string {
-  if (!dateString) return "";
+  if (!dateString || Number.isNaN(parseDate(dateString).getTime())) return "";
+  // Fixed time zone so the build-time HTML and the browser render the same text (hydration).
   return parseDate(dateString).toLocaleDateString("en-IN", {
     day: "numeric",
     month: "short",
     year: "numeric",
+    timeZone: "Asia/Kolkata",
   });
 }
 
@@ -71,6 +73,7 @@ function daysBetween(from?: string, to?: string): number | null {
   if (!from) return null;
   const start = new Date(from);
   const end = to ? new Date(to) : new Date();
+  if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) return null;
   return Math.max(1, Math.floor((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)));
 }
 
@@ -84,21 +87,51 @@ const TYPE_META: Record<string, { emoji: string; color: string }> = {
   OTHER:     { emoji: "📌", color: "#5b3000" },
 };
 
-export default function IssueClient({ issueId: propIssueId }: { issueId: string }) {
-  const [issueId, setIssueId] = useState<string>(propIssueId);
-  const searchParams = useSearchParams();
-  const router = useRouter();
-  const isNewReport = searchParams.get("new") === "1";
-  const [showNewBanner, setShowNewBanner] = useState(isNewReport);
+/**
+ * "Your issue has been submitted" banner for `?new=1`. Reads the flag from window.location after
+ * mount instead of useSearchParams: search params in this component would make Next skip
+ * pre-rendering the whole issue page, leaving only "Loading…" in the HTML search engines read.
+ */
+function NewReportBanner() {
+  const [showNewBanner, setShowNewBanner] = useState(false);
 
-  // Silently remove ?new=1 from the URL so refresh doesn't re-show the banner
   useEffect(() => {
-    if (isNewReport) {
-      const url = window.location.pathname;
-      router.replace(url, { scroll: false });
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("new") !== "1") return;
+    setShowNewBanner(true);
+    // Silently remove ?new=1 from the URL so refresh doesn't re-show the banner
+    params.delete("new");
+    const query = params.toString();
+    window.history.replaceState(
+      window.history.state,
+      "",
+      window.location.pathname + (query ? `?${query}` : "") + window.location.hash,
+    );
   }, []);
+
+  // Banner stays visible for the entire session — user closes it themselves (no auto-hide)
+  if (!showNewBanner) return null;
+  return (
+    <div className="story-new-banner">
+      🎉 Your issue has been submitted! It is under review. Once approved by our team, it will be visible to everyone.
+      <button className="story-new-banner-close" onClick={() => setShowNewBanner(false)} aria-label="Dismiss">✕</button>
+    </div>
+  );
+}
+
+export default function IssueClient({
+  issueId: propIssueId,
+  initialIssue,
+}: {
+  issueId: string;
+  /** Build-time data from the issues list, so the exported HTML carries the issue's content. */
+  initialIssue?: Issue;
+}) {
+  const [issueId, setIssueId] = useState<string>(propIssueId);
+  // Time-relative text ("3 days ago", days active) depends on "now": render it only after
+  // hydration so the build-time HTML and the first client render match.
+  const [hydrated, setHydrated] = useState(false);
+  useEffect(() => setHydrated(true), []);
 
   useEffect(() => {
     if (propIssueId && propIssueId !== 'index') {
@@ -116,8 +149,8 @@ export default function IssueClient({ issueId: propIssueId }: { issueId: string 
     }
   }, [propIssueId]);
   
-  const [issue, setIssue] = useState<Issue | null>(null);
-  const [status, setStatus] = useState<"loading" | "error" | "ready">("loading");
+  const [issue, setIssue] = useState<Issue | null>(initialIssue ?? null);
+  const [status, setStatus] = useState<"loading" | "error" | "ready">(initialIssue ? "ready" : "loading");
   const [editingIssue, setEditingIssue] = useState<Issue | null>(null);
   const [canEdit, setCanEdit] = useState(false);
   const [activeSlide, setActiveSlide] = useState(0);
@@ -134,7 +167,8 @@ export default function IssueClient({ issueId: propIssueId }: { issueId: string 
 
   const fetchIssue = useCallback(async (signal?: AbortSignal) => {
     if (!issueId) return;
-    setStatus("loading");
+    // Keep showing what is already on screen (build-time data or a previous load) while refreshing.
+    setStatus((prev) => (prev === "ready" ? prev : "loading"));
     try {
       const numericId = extractIssueId(issueId);
       const token = getAccessToken();
@@ -152,7 +186,7 @@ export default function IssueClient({ issueId: propIssueId }: { issueId: string 
       if (signal?.aborted) return;
       console.error("Failed to load issue", err);
       trackError('api_load_error', String(err), `issue_${issueId}`);
-      setStatus("error");
+      setStatus((prev) => (prev === "ready" ? prev : "error"));
     }
   }, [issueId, trackJourneyStep]);
 
@@ -163,8 +197,6 @@ export default function IssueClient({ issueId: propIssueId }: { issueId: string 
     return () => controller.abort();
   }, [fetchIssue, issueId]);
 
-
-  // Banner stays visible for the entire session — user closes it themselves (no auto-hide)
 
   const mediaImages = useMemo(() => allMediaImages(issue || undefined), [issue]);
   const hashtags = issue?.location?.locality?.hashtags || [];
@@ -179,16 +211,11 @@ export default function IssueClient({ issueId: propIssueId }: { issueId: string 
   const statusDisplay = STATUS_DISPLAY[(issue?.status || "").toUpperCase()] ?? { label: issue?.status || "Unknown", className: "story-badge-open" };
   const typeMeta = TYPE_META[(issue?.type || "OTHER").toUpperCase()] || TYPE_META.OTHER;
   const portal = issue?.gov_portal_data?.[0];
-  const daysActive = daysBetween(issue?.created_at);
+  const daysActive = hydrated ? daysBetween(issue?.created_at) : null;
 
   return (
     <main className="story-page">
-      {showNewBanner && (
-        <div className="story-new-banner">
-          🎉 Your issue has been submitted! It is under review. Once approved by our team, it will be visible to everyone.
-          <button className="story-new-banner-close" onClick={() => setShowNewBanner(false)} aria-label="Dismiss">✕</button>
-        </div>
-      )}
+      <NewReportBanner />
       {/* Top nav */}
       <nav className="story-nav">
         <Link className="story-back" href="/" onClick={() => trackClick('Back to Home', EventCategory.NAVIGATION)}>
@@ -267,7 +294,7 @@ export default function IssueClient({ issueId: propIssueId }: { issueId: string 
                   <span className="story-meta-item">👤 {issue.user.username.split("@")[0]}</span>
                 )}
                 <span className="story-meta-item">📅 {formatDate(issue.created_at)}</span>
-                <span className="story-meta-item">⏱️ {formatTimeAgo(issue.created_at)}</span>
+                {hydrated && <span className="story-meta-item">⏱️ {formatTimeAgo(issue.created_at)}</span>}
               </div>
               {hashtags.length > 0 && (
                 <div className="story-tags">
