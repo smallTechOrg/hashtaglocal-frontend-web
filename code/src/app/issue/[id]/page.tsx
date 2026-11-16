@@ -28,10 +28,7 @@ export async function generateStaticParams() {
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
   const { id } = await params;
-  const issue =
-    id === "index"
-      ? undefined
-      : (await fetchAllIssues()).find((i) => String(i.id) === extractIssueId(id));
+  const issue = await findIssue(id);
 
   if (!issue) {
     // The client-side fallback shell: never index it.
@@ -72,8 +69,14 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
   };
 }
 
+async function findIssue(id: string) {
+  if (id === "index") return undefined;
+  return (await fetchAllIssues()).find((i) => String(i.id) === extractIssueId(id));
+}
+
 export default async function IssueDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
+  const issue = await findIssue(id);
   return (
     <Suspense
       fallback={
@@ -82,7 +85,7 @@ export default async function IssueDetailPage({ params }: { params: Promise<{ id
         </div>
       }
     >
-      <IssueClient issueId={id} />
+      <IssueClient issueId={id} initialIssue={issue} />
     </Suspense>
   );
 }
