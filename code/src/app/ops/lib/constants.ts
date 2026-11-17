@@ -87,6 +87,33 @@ export const ADMIN_API = {
   /** Localities with saved users — the dropdown options for quiz/bulletin pages */
   quizLocalities: `${BASE_URL}/admin/quiz/localities`,
 
+  // ---- Quiz automation: AI generation and review ----
+
+  /** Generate quizzes with Claude: one hashtag, or every saved-user locality when omitted */
+  generateQuizzes: (hashtag?: string | null) =>
+    `${BASE_URL}/admin/quiz/generate${hashtag ? `?hashtag=${encodeURIComponent(hashtag)}` : ""}`,
+
+  /** Quizzes waiting for review */
+  pendingQuizzes: `${BASE_URL}/admin/quiz/pending`,
+
+  /** Approve pending quizzes (body: { quiz_ids }) */
+  approveQuizzes: `${BASE_URL}/admin/quiz/approve`,
+
+  /** Reject a pending quiz (body: { reason, note }); a replacement is generated */
+  rejectQuiz: (quizId: number) => `${BASE_URL}/admin/quiz/${quizId}/reject`,
+
+  /** Rejected quizzes; optional ?hashtag= & ?reason= filters */
+  rejectedQuizzes: (hashtag?: string | null, reason?: string | null) => {
+    const params = new URLSearchParams();
+    if (hashtag) params.set("hashtag", hashtag);
+    if (reason) params.set("reason", reason);
+    const qs = params.toString();
+    return `${BASE_URL}/admin/quiz/rejected${qs ? `?${qs}` : ""}`;
+  },
+
+  /** Queued quiz count per hashtag (0 when none) */
+  queuedCounts: `${BASE_URL}/admin/quiz/queued-counts`,
+
   // ---- City bulletin: bulletins (weather + editable AI summary) ----
 
   /** List bulletins; optional ?locality_id= & ?date=YYYY-MM-DD filters */

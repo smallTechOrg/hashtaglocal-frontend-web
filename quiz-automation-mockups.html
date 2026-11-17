@@ -1,0 +1,173 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Quiz Automation Mockups</title>
+<style>
+  :root { --bg:#09090b; --card:#18181b; --line:#27272a; --text:#e4e4e7; --mute:#a1a1aa; --green:#10b981; --amber:#f59e0b; --red:#ef4444; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--text); font:14px/1.4 system-ui,sans-serif; padding:16px; }
+  .wrap { max-width:1000px; margin:auto; }
+  h1 { font-size:18px; } h2 { font-size:14px; margin:0 0 6px; }
+  .tabs { display:flex; gap:4px; border-bottom:1px solid var(--line); margin-bottom:16px; }
+  .tabs button { background:none; border:0; border-bottom:2px solid transparent; color:var(--mute); padding:8px 16px; cursor:pointer; font-size:14px; }
+  .tabs button.on { color:#fff; border-color:var(--green); }
+  .panel { display:none; } .panel.on { display:block; }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:8px; padding:16px; }
+  .grid { display:grid; gap:12px; grid-template-columns:repeat(auto-fill,minmax(300px,1fr)); }
+  table { width:100%; border-collapse:collapse; border:1px solid var(--line); }
+  th { background:var(--card); color:var(--mute); font-size:11px; text-transform:uppercase; text-align:left; padding:10px 12px; }
+  td { padding:10px 12px; border-top:1px solid var(--line); }
+  input,select,textarea { background:#27272a; border:1px solid #3f3f46; color:var(--text); border-radius:6px; padding:6px 10px; font:inherit; }
+  textarea { width:100%; } select { width:100%; margin-bottom:10px; }
+  button.btn { background:#047857; color:#fff; border:0; border-radius:6px; padding:7px 14px; cursor:pointer; }
+  button.btn:disabled { opacity:.4; cursor:default; }
+  button.ghost { background:none; border:0; color:var(--mute); cursor:pointer; padding:4px 8px; }
+  button.ghost:hover { color:#fff; }
+  .badge { font-size:11px; border:1px solid; border-radius:99px; padding:1px 8px; }
+  .ok { color:#34d399; border-color:#065f46; background:#064e3b66; }
+  .warn { color:#fbbf24; border-color:#92400e; background:#78350f66; }
+  .bad { color:#f87171; border-color:#991b1b; background:#7f1d1d66; }
+  .mute { color:var(--mute); font-size:12px; }
+  .opt { font-size:12px; padding:3px 8px; border-radius:4px; color:var(--mute); }
+  .opt.right { background:#064e3b66; color:#34d399; }
+  .bar { height:8px; background:#27272a; border-radius:4px; overflow:hidden; } .bar i { display:block; height:100%; }
+  .row { display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:12px; }
+  .modal { display:none; position:fixed; inset:0; background:#000b; align-items:center; justify-content:center; padding:16px; }
+  .modal.on { display:flex; } .modal .card { width:100%; max-width:420px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Quiz generation <span class="badge" style="color:var(--mute);border-color:var(--line)">Mock data</span></h1>
+  <div class="tabs">
+    <button class="on" data-tab="gen">Generate</button>
+    <button data-tab="rev">Review (<span id="pcount">3</span>)</button>
+    <button data-tab="que">Queue</button>
+  </div>
+
+  <!-- Generate -->
+  <div class="panel on" id="gen">
+    <div class="card" style="max-width:480px;margin-bottom:20px">
+      <h2>Generate quizzes</h2>
+      <p class="mute">Creates N new quizzes for each of the 5 active hashtags. They land in Review as Pending.</p>
+      <div class="row">
+        <label class="mute">Quizzes per hashtag (N)<br><input id="n" type="number" value="5" min="1" max="30" style="width:90px"></label>
+        <button class="btn" id="genbtn" style="align-self:flex-end">Generate</button>
+      </div>
+      <p class="mute" id="total">Total this run: 25 quizzes.</p>
+    </div>
+    <h2>Generation runs</h2>
+    <table id="runs">
+      <tr><th>Run</th><th>Started by</th><th>Started</th><th>N</th><th>Status</th><th>Made</th><th>Dropped</th></tr>
+      <tr><td>#14</td><td>ops</td><td>2026-11-12 10:05</td><td>5</td><td><span class="badge warn">PARTIAL</span></td><td>13</td><td>2</td></tr>
+      <tr><td>#13</td><td>ops</td><td>2026-11-05 16:40</td><td>10</td><td><span class="badge ok">DONE</span></td><td>30</td><td>0</td></tr>
+      <tr><td>#12</td><td>ops</td><td>2026-11-01 09:12</td><td>10</td><td><span class="badge bad">FAILED</span></td><td>0</td><td>0</td></tr>
+    </table>
+  </div>
+
+  <!-- Review -->
+  <div class="panel" id="rev">
+    <div class="row">
+      <select id="filter" style="width:auto;margin:0"><option>All hashtags</option><option>#indiranagar</option><option>#koramangala</option></select>
+      <button class="ghost" id="selall">Select all shown</button>
+      <span style="margin-left:auto" class="mute"><span id="sel">0</span> selected</span>
+      <button class="btn" id="approve" disabled>Approve selected</button>
+    </div>
+    <div class="grid" id="cards"></div>
+  </div>
+
+  <!-- Queue -->
+  <div class="panel" id="que">
+    <p class="mute">Target: 30 queued quizzes per hashtag. Empty queues mean no quiz in that day's bulletin.</p>
+    <table id="qtable"><tr><th>Hashtag</th><th>Queued</th><th style="width:240px">Days of cover</th><th>Last served</th><th>Health</th></tr></table>
+  </div>
+</div>
+
+<div class="modal" id="modal">
+  <div class="card">
+    <h2>Reject quiz</h2>
+    <p class="mute" id="mq"></p>
+    <label class="mute">Category</label>
+    <select id="cat"><option>Wrong answer</option><option>Duplicate / repeat</option><option>Too easy or vague</option><option>Not local enough</option><option>Bad options</option><option>Other</option></select>
+    <label class="mute">Reason</label>
+    <textarea id="reason" rows="3" placeholder="Fed back to the AI prompt for this hashtag"></textarea>
+    <div class="row" style="justify-content:flex-end;margin:12px 0 0">
+      <button class="ghost" id="cancel">Cancel</button>
+      <button class="btn" id="reject" style="background:#991b1b">Reject</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const quizzes = [
+  {id:1,tag:"#indiranagar",q:"Which metro line serves Indiranagar station?",o:["Purple Line","Green Line","Yellow Line","Pink Line"],e:"Indiranagar is on the Purple Line."},
+  {id:2,tag:"#indiranagar",q:"Which lake is closest to Indiranagar?",o:["Ulsoor Lake","Hebbal Lake","Bellandur Lake","Sankey Tank"],e:"Ulsoor Lake lies just south-west."},
+  {id:3,tag:"#koramangala",q:"Koramangala is divided into how many blocks?",o:["Eight","Five","Ten","Three"],e:"It has eight numbered blocks."},
+];
+const queue = [["#indiranagar",31],["#koramangala",18],["#jayanagar",6],["#hsr-layout",0],["#whitefield",24]];
+const sel = new Set(); let rejectId = null;
+const $ = id => document.getElementById(id);
+
+document.querySelectorAll(".tabs button").forEach(b => b.onclick = () => {
+  document.querySelectorAll(".tabs button,.panel").forEach(x => x.classList.remove("on"));
+  b.classList.add("on"); $(b.dataset.tab).classList.add("on");
+});
+$("n").oninput = () => $("total").textContent = "Total this run: " + (+$("n").value * 5) + " quizzes.";
+$("genbtn").onclick = () => {
+  $("genbtn").disabled = true; $("genbtn").textContent = "Generating…";
+  setTimeout(() => { $("genbtn").disabled = false; $("genbtn").textContent = "Generate"; alert("Generated (mock). See Review tab."); }, 1200);
+};
+
+function renderCards() {
+  const f = $("filter").value;
+  $("cards").innerHTML = quizzes.filter(x => f === "All hashtags" || x.tag === f).map(x => `
+    <div class="card" style="${sel.has(x.id) ? "border-color:#047857" : ""}">
+      <div class="row" style="margin-bottom:6px">
+        <input type="checkbox" data-id="${x.id}" ${sel.has(x.id) ? "checked" : ""}>
+        <span class="badge" style="color:var(--mute);border-color:var(--line)">${x.tag}</span>
+      </div>
+      <p style="font-weight:600;margin:0 0 8px">${x.q}</p>
+      ${x.o.map((t,i) => `<div class="opt ${i===0?"right":""}">${i===0?"✓ ":""}${t}</div>`).join("")}
+      <p class="mute">${x.e}</p>
+      <button class="ghost" data-regen="${x.id}">↻ Regenerate</button>
+      <button class="ghost" data-rej="${x.id}">✕ Reject</button>
+    </div>`).join("") || '<p class="mute">Nothing waiting for review.</p>';
+  $("pcount").textContent = quizzes.length;
+  $("sel").textContent = sel.size; $("approve").disabled = !sel.size;
+}
+$("cards").onclick = e => {
+  const t = e.target;
+  if (t.dataset.id) { sel.has(+t.dataset.id) ? sel.delete(+t.dataset.id) : sel.add(+t.dataset.id); renderCards(); }
+  if (t.dataset.rej) { rejectId = +t.dataset.rej; $("mq").textContent = quizzes.find(x => x.id === rejectId).q; $("modal").classList.add("on"); }
+  if (t.dataset.regen) alert("Regenerated (mock)");
+};
+$("filter").onchange = renderCards;
+$("selall").onclick = () => { quizzes.forEach(x => sel.add(x.id)); renderCards(); };
+$("approve").onclick = () => {
+  quizzes.filter(x => sel.has(x.id)).forEach(x => { const r = queue.find(q => q[0] === x.tag); if (r) r[1]++; });
+  for (let i = quizzes.length - 1; i >= 0; i--) if (sel.has(quizzes[i].id)) quizzes.splice(i, 1);
+  sel.clear(); renderCards(); renderQueue();
+};
+$("cancel").onclick = () => $("modal").classList.remove("on");
+$("reject").onclick = () => {
+  if (!$("reason").value.trim()) return alert("Please enter a reason");
+  quizzes.splice(quizzes.findIndex(x => x.id === rejectId), 1); sel.delete(rejectId);
+  $("reason").value = ""; $("modal").classList.remove("on"); renderCards();
+};
+
+function renderQueue() {
+  $("qtable").innerHTML = "<tr><th>Hashtag</th><th>Queued</th><th style='width:240px'>Days of cover</th><th>Last served</th><th>Health</th></tr>" +
+    queue.map(([tag, n]) => {
+      const pct = Math.min(100, Math.round(n / 30 * 100));
+      const cls = n === 0 ? "bad" : n < 10 ? "bad" : pct < 100 ? "warn" : "ok";
+      const col = cls === "bad" ? "var(--red)" : cls === "warn" ? "var(--amber)" : "var(--green)";
+      const label = n === 0 ? "Empty" : n < 10 ? "Low" : "Healthy";
+      return `<tr><td><b>${tag}</b></td><td>${n}</td><td><div class="bar"><i style="width:${pct}%;background:${col}"></i></div></td><td class="mute">${n ? "2026-11-13" : "2026-11-09"}</td><td><span class="badge ${cls}">${label}</span></td></tr>`;
+    }).join("");
+}
+renderCards(); renderQueue();
+</script>
+</body>
+</html>
