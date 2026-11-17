@@ -17,11 +17,11 @@ export const REJECT_REASONS: { value: QuizRejectReason; label: string }[] = [
   { value: "WRONG_ANSWER", label: "Wrong answer" },
   { value: "UNCLEAR_QUESTION", label: "Unclear question" },
   { value: "POOR_OPTIONS", label: "Poor options" },
-  { value: "NOT_LOCAL", label: "Not local enough" },
+  { value: "NOT_LOCAL", label: "Not local" },
   { value: "TOO_EASY", label: "Too easy" },
   { value: "TOO_HARD", label: "Too hard" },
   { value: "REPEAT", label: "Repeat" },
-  { value: "OTHER", label: "Other (note required)" },
+  { value: "OTHER", label: "Other" },
 ];
 
 /** A generated quiz in review (AdminQuizData on the backend). */
