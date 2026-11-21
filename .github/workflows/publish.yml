@@ -89,8 +89,8 @@ jobs:
           echo "url=$(vercel deploy --prod --yes \
             --build-env NEXT_PUBLIC_BASE_URL=${NEXT_PUBLIC_BASE_URL} \
             --build-env NEXT_PUBLIC_GOOGLE_CLIENT_ID=${NEXT_PUBLIC_GOOGLE_CLIENT_ID} \
-            --token=${{ vars.VERCEL_TOKEN }})" >> $GITHUB_OUTPUT
+            --token=${{ secrets.VERCEL_TOKEN }})" >> $GITHUB_OUTPUT
         working-directory: ./code
       - name: Alias to Staging Domain 🔗
-        run: vercel alias set ${{ steps.deploy.outputs.url }} ${{ vars.STAGING_DOMAIN }} --token=${{ vars.VERCEL_TOKEN }}
+        run: vercel alias set ${{ steps.deploy.outputs.url }} ${{ vars.STAGING_DOMAIN }} --token=${{ secrets.VERCEL_TOKEN }}
         working-directory: ./code
