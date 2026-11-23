@@ -87,7 +87,9 @@ export default function QuizGenerationPage() {
         <h1 className="text-lg font-semibold text-zinc-200 mr-auto">Quiz generation</h1>
       </div>
 
-      <div role="tablist" className="flex gap-1 mb-5 border-b border-zinc-800 overflow-x-auto">
+      {/* overflow-y-hidden: the tabs' -mb-px underline overlaps the border by 1px, which would
+          otherwise show a tiny vertical scrollbar (overflow-x-auto makes overflow-y auto too). */}
+      <div role="tablist" className="flex gap-1 mb-5 border-b border-zinc-800 overflow-x-auto overflow-y-hidden">
         {(
           [
             ["generate", "Generate"],

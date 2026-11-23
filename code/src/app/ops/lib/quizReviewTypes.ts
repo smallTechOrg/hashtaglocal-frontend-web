@@ -3,24 +3,19 @@
 
 export type QuizReviewStatus = "PENDING" | "QUEUED" | "REJECTED" | "PUBLISHED";
 
+// Must match the backend enum QuizRejectReason.
 export type QuizRejectReason =
-  | "WRONG_ANSWER"
-  | "UNCLEAR_QUESTION"
-  | "POOR_OPTIONS"
+  | "INACCURATE"
   | "NOT_LOCAL"
-  | "TOO_EASY"
-  | "TOO_HARD"
-  | "REPEAT"
+  | "LOW_QUALITY"
+  | "DUPLICATE"
   | "OTHER";
 
 export const REJECT_REASONS: { value: QuizRejectReason; label: string }[] = [
-  { value: "WRONG_ANSWER", label: "Wrong answer" },
-  { value: "UNCLEAR_QUESTION", label: "Unclear question" },
-  { value: "POOR_OPTIONS", label: "Poor options" },
+  { value: "INACCURATE", label: "Inaccurate" },
   { value: "NOT_LOCAL", label: "Not local" },
-  { value: "TOO_EASY", label: "Too easy" },
-  { value: "TOO_HARD", label: "Too hard" },
-  { value: "REPEAT", label: "Repeat" },
+  { value: "LOW_QUALITY", label: "Low quality" },
+  { value: "DUPLICATE", label: "Duplicate" },
   { value: "OTHER", label: "Other" },
 ];
 
