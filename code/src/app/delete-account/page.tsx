@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import DeleteAccountClient from "./DeleteAccountClient";
 
 export const metadata: Metadata = {
+  alternates: { canonical: "/delete-account" },
   title: "Delete Account | #local by smallTech",
   description:
     "Learn how to request deletion of your #local account and associated data. Submit a deletion request by emailing smallTech.",

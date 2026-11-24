@@ -33,7 +33,6 @@ export const metadata: Metadata = {
   openGraph: {
     type: "website",
     locale: "en_US",
-    url: siteUrl,
     siteName: "#local",
     title: "#local - Connect with Your Community on Civic Issues",
     description: "Discover and engage with local community issues on #local. A location-based platform connecting neighbors to discuss and resolve community challenges together.",
@@ -62,10 +61,8 @@ export const metadata: Metadata = {
     // Image to show in Twitter card preview
     images: [`${siteUrl}/logo-green.png`],
   },
-  // Alternative URLs (canonical alternate) - helps with multi-regional content
-  alternates: {
-    canonical: siteUrl,
-  },
+  // No canonical here: a root-layout canonical is inherited by every page that sets none, which
+  // tells search engines every page is a duplicate of the home page. Each page sets its own.
   // Set metadata base URL for Next.js to properly construct absolute URLs for meta tags
   metadataBase: new URL(siteUrl),
 };
