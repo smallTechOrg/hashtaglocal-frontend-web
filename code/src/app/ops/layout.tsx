@@ -18,6 +18,7 @@ import {
   Megaphone,
   BarChart2,
   Sparkles,
+  KeyRound,
 } from "lucide-react";
 import { Toaster } from "sonner";
 
@@ -63,8 +64,8 @@ export default function OpsLayout({ children }: { children: React.ReactNode }) {
     <div className="ops-portal min-h-screen bg-zinc-950 text-zinc-100 flex flex-col">
       <Toaster richColors position="top-center" />
       {/* Nav bar */}
-      <nav className="bg-zinc-900 border-b border-zinc-800 px-4 py-3 flex items-center justify-between">
-        <div className="flex items-center gap-4">
+      <nav className="bg-zinc-900 border-b border-zinc-800 px-4 py-3 flex items-center justify-between gap-4">
+        <div className="flex items-center gap-4 shrink-0">
           <Link
             href="/"
             className="text-zinc-500 hover:text-zinc-300 transition"
@@ -76,7 +77,8 @@ export default function OpsLayout({ children }: { children: React.ReactNode }) {
           </span>
         </div>
 
-        <div className="flex items-center gap-1">
+        {/* Scrolls sideways when the links outgrow the screen, instead of widening the page. */}
+        <div className="flex items-center gap-1 overflow-x-auto min-w-0 [&>*]:shrink-0">
           <Link
             href="/ops/review"
             className={`flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-md transition ${
@@ -131,6 +133,17 @@ export default function OpsLayout({ children }: { children: React.ReactNode }) {
           >
             <Sparkles className="w-4 h-4" />
             <span className="hidden sm:inline">Quiz Gen</span>
+          </Link>
+          <Link
+            href="/ops/ai-provider"
+            className={`flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-md transition ${
+              pathname === "/ops/ai-provider"
+                ? "bg-zinc-800 text-white"
+                : "text-zinc-400 hover:text-white hover:bg-zinc-800/50"
+            }`}
+          >
+            <KeyRound className="w-4 h-4" />
+            <span className="hidden sm:inline">AI Provider</span>
           </Link>
           <Link
             href="/ops/bulletins"

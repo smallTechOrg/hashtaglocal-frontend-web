@@ -141,6 +141,14 @@ export const ADMIN_API = {
   /** Read the Groq prompt templates currently in use */
   aiPrompts: `${BASE_URL}/admin/ai-prompts`,
 
+  // ---- AI provider for quiz generation (admin only; the key is never returned) ----
+
+  /** GET current config, PUT to save (blank api_key keeps the saved key), DELETE to reset to .env */
+  aiProvider: `${BASE_URL}/admin/ai-provider`,
+
+  /** One minimal call with the submitted values; blank fields use the saved config */
+  aiProviderTest: `${BASE_URL}/admin/ai-provider/test`,
+
   // ---- Metrics dashboard ----
 
   /** Weekly computed metrics; accepts fromWeekYear/fromWeekNumber/toWeekYear/toWeekNumber query params */
