@@ -143,12 +143,29 @@ export default function ReviewCard({
 
   // Selected photo for preview
   const [selectedPhoto, setSelectedPhoto] = useState(0);
-  const photos = issue?.media_urls ?? [];
+  // issue.media_urls holds media from every action on the issue in no guaranteed order,
+  // so put the photo submitted with THIS action (e.g. the verification photo) first.
+  // Signed URLs differ per request, so de-duplicate on the object path (before "?").
+  const stripQuery = (u?: string) => (u ?? "").split("?")[0];
+  const actionMedia = action.media ?? null;
+  const photos = actionMedia
+    ? [
+        {
+          url: actionMedia.url,
+          url_thumbnail: actionMedia.url_thumbnail,
+          type: actionMedia.type ?? "image",
+          description: actionMedia.description ?? null,
+        },
+        ...(issue?.media_urls ?? []).filter(
+          (p) => stripQuery(p.url) !== stripQuery(actionMedia.url),
+        ),
+      ]
+    : issue?.media_urls ?? [];
 
-  // Reset selected photo when issue changes
+  // Reset selected photo when issue or action changes
   useEffect(() => {
     setSelectedPhoto(0);
-  }, [issue?.id]);
+  }, [issue?.id, action.action_id]);
 
   const [showGovPortalForm, setShowGovPortalForm] = useState(false);
   const metadata = govPortalMetadata;
