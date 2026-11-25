@@ -1,8 +1,9 @@
 "use client";
 
-// AI provider for quiz generation: provider, endpoint, model and API key, changed at runtime.
-// Talks to the backend /admin/ai-provider API (ADMIN only, enforced by the backend). The saved key
-// is never sent back; the page only shows whether one is set and its last 4 characters.
+// AI connection for quiz generation: a name the admin chooses plus an OpenAI-compatible endpoint,
+// a model and an API key, changed at runtime. Talks to the backend /admin/ai-provider API (ADMIN
+// only, enforced by the backend). The saved key is never sent back; the page only shows whether
+// one is set and its last 4 characters.
 
 import { FormEvent, useCallback, useEffect, useState } from "react";
 import { adminFetch } from "../lib/api";
@@ -11,6 +12,7 @@ import {
   AiConnectionTestResult,
   AiProviderConfig,
   AiProviderConfigRequest,
+  ENDPOINT_EXAMPLES,
 } from "../lib/aiProviderTypes";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -23,7 +25,7 @@ const JSON_HEADERS = { "Content-Type": "application/json" };
 async function readData<T>(res: Response): Promise<T> {
   const body = await res.json().catch(() => ({}));
   if (!res.ok) {
-    if (res.status === 403) throw new Error("Only administrators can manage the AI provider.");
+    if (res.status === 403) throw new Error("Only administrators can manage the AI connection.");
     const detail = body?.error?.errors?.[0]?.message;
     throw new Error(detail ?? body?.error?.message ?? body?.message ?? `Request failed (${res.status})`);
   }
@@ -56,7 +58,7 @@ export default function AiProviderPage() {
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
 
-  const [provider, setProvider] = useState("");
+  const [name, setName] = useState("");
   const [endpoint, setEndpoint] = useState("");
   const [model, setModel] = useState("");
   const [apiKey, setApiKey] = useState("");
@@ -69,7 +71,7 @@ export default function AiProviderPage() {
   /** Puts the saved values (never the key) into the form. */
   const fillForm = useCallback((data: AiProviderConfig) => {
     setConfig(data);
-    setProvider(data.provider ?? data.available_providers[0]?.name ?? "");
+    setName(data.name ?? "");
     setEndpoint(data.endpoint ?? "");
     setModel(data.model ?? "");
     setApiKey("");
@@ -81,7 +83,7 @@ export default function AiProviderPage() {
     try {
       fillForm(await readData<AiProviderConfig>(await adminFetch(ADMIN_API.aiProvider)));
     } catch (e) {
-      setLoadError(errorText(e, "Could not load the AI provider settings"));
+      setLoadError(errorText(e, "Could not load the AI connection settings"));
     } finally {
       setLoading(false);
     }
@@ -92,37 +94,48 @@ export default function AiProviderPage() {
   }, [load]);
 
   const saved = config?.source === "DATABASE";
-  const providerChanged = saved && provider !== config?.provider;
-  const selected = config?.available_providers.find((p) => p.name === provider);
   const busy = saving || testing || resetting;
-  /** Providers with no default (openai-compatible) need the endpoint entered. */
-  const endpointRequired = !!selected && !selected.default_endpoint;
   // The backend only sends the saved key to the server it was saved for, so a new host needs the
   // key typed again. Mirrored here so the form says so before the request is made.
-  const effectiveEndpoint = endpoint.trim() || selected?.default_endpoint || "";
   const hostChanged =
     saved &&
-    !providerChanged &&
     !!config?.endpoint &&
-    originOf(effectiveEndpoint) !== originOf(config.endpoint);
-  const canKeepKey = saved && !providerChanged && !hostChanged;
+    endpoint.trim() !== "" &&
+    originOf(endpoint.trim()) !== originOf(config.endpoint);
+  const canKeepKey = saved && !hostChanged;
   const keyTyped = apiKey.trim() !== "";
   /** Save stays disabled until something differs from what is saved. */
   const dirty =
     !saved ||
-    provider !== config?.provider ||
+    name.trim() !== (config?.name ?? "") ||
     endpoint.trim() !== (config?.endpoint ?? "") ||
     model.trim() !== (config?.model ?? "") ||
     keyTyped;
 
   function requestBody(): AiProviderConfigRequest {
-    return { provider, endpoint: endpoint.trim(), model: model.trim(), api_key: apiKey.trim() };
+    return {
+      name: name.trim(),
+      endpoint: endpoint.trim(),
+      model: model.trim(),
+      api_key: apiKey.trim(),
+    };
+  }
+
+  /** Fills the endpoint from a suggestion, and the name too if it is still empty. */
+  function applyExample(label: string, url: string) {
+    setEndpoint(url);
+    if (!name.trim()) setName(label);
+    setTestResult(null);
   }
 
   async function handleSave(e: FormEvent) {
     e.preventDefault();
-    if (endpointRequired && !endpoint.trim()) {
-      toast.error("Enter the API endpoint for this provider.");
+    if (!name.trim()) {
+      toast.error("Enter a name for this connection.");
+      return;
+    }
+    if (!endpoint.trim()) {
+      toast.error("Enter the API endpoint.");
       return;
     }
     if (!model.trim()) {
@@ -133,9 +146,7 @@ export default function AiProviderPage() {
       toast.error(
         hostChanged
           ? "Enter the API key again to use a different endpoint host."
-          : providerChanged
-            ? "Enter the API key for the new provider."
-            : "Enter the API key.",
+          : "Enter the API key.",
       );
       return;
     }
@@ -150,7 +161,7 @@ export default function AiProviderPage() {
       );
       fillForm(data);
       setTestResult(null);
-      toast.success("Saved. The next quiz generation uses this provider.");
+      toast.success("Saved. The next quiz generation uses this connection.");
     } catch (err) {
       toast.error(errorText(err, "Could not save"));
     } finally {
@@ -181,7 +192,7 @@ export default function AiProviderPage() {
   async function handleReset() {
     if (
       !window.confirm(
-        "Remove the saved key and provider? Quiz generation goes back to the .env settings.",
+        "Remove the saved connection and key? Quiz generation goes back to the .env settings.",
       )
     ) {
       return;
@@ -194,9 +205,9 @@ export default function AiProviderPage() {
         ),
       );
       setTestResult(null);
-      toast.success("Reset. Quiz generation uses the .env settings.");
+      toast.success("Removed. Quiz generation uses the .env settings.");
     } catch (err) {
-      toast.error(errorText(err, "Could not reset"));
+      toast.error(errorText(err, "Could not remove"));
     } finally {
       setResetting(false);
     }
@@ -216,8 +227,9 @@ export default function AiProviderPage() {
         </button>
       </div>
       <p className="text-sm text-zinc-400">
-        The provider, model and key used to generate quizzes. Changes apply to the next quiz
-        generation; no restart needed.
+        The AI used to generate quizzes: any OpenAI-compatible endpoint, which covers Claude,
+        ChatGPT, Gemini and most others. Changes apply to the next quiz generation; no restart
+        needed.
       </p>
 
       {loading && !config ? (
@@ -235,7 +247,7 @@ export default function AiProviderPage() {
             {saved ? (
               <>
                 <p className="text-zinc-200">
-                  Using <span className="font-medium">{config.provider}</span> /{" "}
+                  Using <span className="font-medium">{config.name}</span> /{" "}
                   <span className="font-medium">{config.model}</span>, saved here.
                 </p>
                 <p className="text-xs text-zinc-500">
@@ -273,46 +285,61 @@ export default function AiProviderPage() {
             autoComplete="off"
           >
             <div>
-              <label htmlFor="ai-provider" className="text-xs text-zinc-400 mb-1 block">
-                Provider *
+              <label htmlFor="ai-name" className="text-xs text-zinc-400 mb-1 block">
+                Name *
               </label>
-              <select
-                id="ai-provider"
-                value={provider}
-                onChange={(e) => {
-                  setProvider(e.target.value);
-                  // The saved endpoint belongs to the saved provider; use the new one's default.
-                  setEndpoint(e.target.value === config.provider ? (config.endpoint ?? "") : "");
-                  setTestResult(null);
-                }}
-                className="h-9 w-full rounded-md border border-zinc-700 bg-zinc-800 px-3 text-sm text-zinc-200"
-              >
-                {config.available_providers.map((p) => (
-                  <option key={p.name} value={p.name}>
-                    {p.display_name}
-                  </option>
-                ))}
-              </select>
+              <Input
+                id="ai-name"
+                required
+                maxLength={100}
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="e.g. Claude"
+                className="bg-zinc-800 border-zinc-700 text-zinc-200"
+              />
+              <p className="text-xs text-zinc-500 mt-1">
+                Your own label for this connection. It&apos;s recorded on each quiz it writes.
+              </p>
             </div>
 
             <div>
               <label htmlFor="ai-endpoint" className="text-xs text-zinc-400 mb-1 block">
-                API endpoint {endpointRequired ? "*" : ""}
+                Endpoint *
               </label>
               <Input
                 id="ai-endpoint"
                 type="url"
+                required
                 value={endpoint}
-                onChange={(e) => setEndpoint(e.target.value)}
-                required={endpointRequired}
-                placeholder={selected?.default_endpoint ?? "e.g. https://openrouter.ai/api/v1"}
+                onChange={(e) => {
+                  setEndpoint(e.target.value);
+                  setTestResult(null);
+                }}
+                placeholder="e.g. https://api.anthropic.com/v1"
                 className="bg-zinc-800 border-zinc-700 text-zinc-200"
               />
               <p className="text-xs text-zinc-500 mt-1">
-                {endpointRequired
-                  ? "The server's OpenAI-style base URL (…/v1) or full …/chat/completions URL. Must be https and publicly reachable."
-                  : "Leave blank for the provider's default. Must be https and publicly reachable."}
+                The OpenAI-compatible base URL (…/v1) or full …/chat/completions URL. Must be https
+                and publicly reachable.
               </p>
+              <div className="flex flex-wrap items-center gap-1.5 mt-2">
+                <span className="text-xs text-zinc-500">Use:</span>
+                {ENDPOINT_EXAMPLES.map((ex) => (
+                  <button
+                    key={ex.url}
+                    type="button"
+                    onClick={() => applyExample(ex.label, ex.url)}
+                    title={ex.url}
+                    className={`text-xs px-2 py-0.5 rounded-md border transition ${
+                      endpoint.trim() === ex.url
+                        ? "border-emerald-700 bg-emerald-950/40 text-emerald-300"
+                        : "border-zinc-700 text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800"
+                    }`}
+                  >
+                    {ex.label}
+                  </button>
+                ))}
+              </div>
             </div>
 
             <div>
@@ -324,13 +351,7 @@ export default function AiProviderPage() {
                 required
                 value={model}
                 onChange={(e) => setModel(e.target.value)}
-                placeholder={
-                  provider === "openai"
-                    ? "e.g. gpt-5"
-                    : endpointRequired
-                      ? "e.g. deepseek/deepseek-r1"
-                      : "e.g. claude-sonnet-5-5"
-                }
+                placeholder="e.g. claude-sonnet-5-5"
                 className="bg-zinc-800 border-zinc-700 text-zinc-200"
               />
             </div>
@@ -360,10 +381,6 @@ export default function AiProviderPage() {
                   <span className="text-amber-400">
                     New endpoint host: enter the key again. The saved key is only sent to{" "}
                     {originOf(config.endpoint ?? "")?.replace(/:443$/, "")}.
-                  </span>
-                ) : providerChanged ? (
-                  <span className="text-amber-400">
-                    The saved key belongs to {config.provider}; enter a key for this provider.
                   </span>
                 ) : (
                   <span className="flex items-center gap-1">
@@ -397,7 +414,7 @@ export default function AiProviderPage() {
                 ) : (
                   <XCircle className="w-4 h-4 mt-0.5 shrink-0" />
                 )}
-                <span className="break-words">
+                <span className="break-words min-w-0">
                   {testResult.message}
                   <span className="text-xs opacity-70"> ({testResult.latency_ms} ms)</span>
                 </span>
