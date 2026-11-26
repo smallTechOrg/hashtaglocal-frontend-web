@@ -1,0 +1,50 @@
+# Staging: Vercel (the STAGING_DOMAIN alias). Runs on every push to staging, and can be run by hand
+# from ANY branch to put that branch on staging (Actions -> deploy-staging -> Run workflow -> pick
+# the branch). The branch must contain this file. Settings come from the GitHub Environment "staging".
+name: deploy-staging
+on:
+  push:
+    branches: [staging]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-staging
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    environment: staging
+    runs-on: ubuntu-latest
+    env:
+      VERCEL_ORG_ID: ${{ vars.VERCEL_ORG_ID }}
+      VERCEL_PROJECT_ID: ${{ vars.VERCEL_PROJECT_ID }}
+      NEXT_PUBLIC_BASE_URL: ${{ vars.NEXT_PUBLIC_BASE_URL }}
+      NEXT_PUBLIC_GOOGLE_CLIENT_ID: ${{ vars.NEXT_PUBLIC_GOOGLE_CLIENT_ID }}
+    steps:
+      - name: Checkout 🛎️
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js ⚙️ - Cache dependencies ⚡ - Install dependencies 🔧
+        uses: ./.github/workflows/setup-node
+
+      - name: Install Vercel CLI ⚙️
+        run: npm install --global vercel@latest
+
+      - name: Deploy ${{ github.ref_name }} to Vercel 🚀
+        id: deploy
+        run: |
+          echo "url=$(vercel deploy --prod --yes \
+            --build-env NEXT_PUBLIC_BASE_URL=${NEXT_PUBLIC_BASE_URL} \
+            --build-env NEXT_PUBLIC_GOOGLE_CLIENT_ID=${NEXT_PUBLIC_GOOGLE_CLIENT_ID} \
+            --token=${{ secrets.VERCEL_TOKEN }})" >> $GITHUB_OUTPUT
+        working-directory: ./code
+
+      - name: Alias to Staging Domain 🔗
+        run: vercel alias set ${{ steps.deploy.outputs.url }} ${{ vars.STAGING_DOMAIN }} --token=${{ secrets.VERCEL_TOKEN }}
+        working-directory: ./code
+
+      - name: Summary
+        run: echo "Deployed \`${{ github.ref_name }}\` (${GITHUB_SHA::7}) to staging" >> "$GITHUB_STEP_SUMMARY"
