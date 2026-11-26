@@ -34,11 +34,6 @@ type WeekPoint = {
   issuesVerified: number;
   dailyAvgQuiz: number;
   uniqueQuizUsers: number;
-  // App version: users whose app reported a version that week. Null when there is no data.
-  latestAppVersion: string | null;
-  onLatestVersionPct: number | null;
-  outdatedUsers: number | null;
-  outdatedPct: number | null;
 };
 
 type OpsSummary = {
@@ -53,13 +48,9 @@ type DetailItem = {
   platform?: string;
   date?: string;
   issueKey?: string;
-  appVersion?: string;
 };
 
-type MetricKey = keyof Omit<
-  WeekPoint,
-  "weekLabel" | "weekYear" | "weekNumber" | "startDate" | "endDate" | "isCurrentWeek" | "latestAppVersion"
->;
+type MetricKey = keyof Omit<WeekPoint, "weekLabel" | "weekYear" | "weekNumber" | "startDate" | "endDate" | "isCurrentWeek">;
 
 type WeekRef = { year: number; week: number };
 
@@ -70,7 +61,6 @@ const TARGETS: Partial<Record<MetricKey, number>> = {
   activeUsers: 10,
   issuesReported: 10,
   issuesVerified: 5,
-  onLatestVersionPct: 70,
 };
 
 const METRIC_LABELS: Record<MetricKey, string> = {
@@ -81,24 +71,7 @@ const METRIC_LABELS: Record<MetricKey, string> = {
   issuesVerified: "Issues Verified",
   dailyAvgQuiz: "Daily Avg Quiz",
   uniqueQuizUsers: "Unique Quiz Users",
-  onLatestVersionPct: "On Latest Version",
-  outdatedUsers: "Outdated Users",
-  outdatedPct: "Outdated %",
 };
-
-// Shorter names for the table rows and chart legend, where they differ from the card label.
-const METRIC_ROW_LABELS: Partial<Record<MetricKey, string>> = {
-  onLatestVersionPct: "On Latest %",
-};
-
-// Shown on hover over the row name.
-const METRIC_HINTS: Partial<Record<MetricKey, string>> = {
-  onLatestVersionPct: "Share of this week's app users on the newest version reported so far",
-  outdatedUsers: "App users 2 or more releases behind the newest version",
-  outdatedPct: "Share of this week's app users 2 or more releases behind the newest version",
-};
-
-const PERCENT_METRICS: MetricKey[] = ["onLatestVersionPct", "outdatedPct"];
 
 const METRIC_COLORS: Record<MetricKey, string> = {
   newUsers: "#34d399",
@@ -108,9 +81,6 @@ const METRIC_COLORS: Record<MetricKey, string> = {
   issuesVerified: "#fb923c",
   dailyAvgQuiz: "#f472b6",
   uniqueQuizUsers: "#2dd4bf",
-  onLatestVersionPct: "#34d399",
-  outdatedUsers: "#fb923c",
-  outdatedPct: "#fb923c",
 };
 
 const DRILLDOWN_METRICS: MetricKey[] = [
@@ -119,7 +89,6 @@ const DRILLDOWN_METRICS: MetricKey[] = [
   "issuesReported",
   "issuesVerified",
   "uniqueQuizUsers",
-  "outdatedUsers",
 ];
 
 const USER_METRICS: MetricKey[] = ["newUsers", "activeUsers", "notificationsSent"];
@@ -129,9 +98,6 @@ const ENGAGEMENT_METRICS: MetricKey[] = [
   "dailyAvgQuiz",
   "uniqueQuizUsers",
 ];
-const APP_VERSION_METRICS: MetricKey[] = ["onLatestVersionPct", "outdatedUsers"];
-const APP_VERSION_CHART_METRICS: MetricKey[] = ["onLatestVersionPct", "outdatedPct"];
-const CARD_METRICS: MetricKey[] = [...USER_METRICS, ...ENGAGEMENT_METRICS, "onLatestVersionPct"];
 
 const DRILLDOWN_METRIC_KEYS: Record<MetricKey, string> = {
   newUsers: "NEW_USERS",
@@ -139,11 +105,8 @@ const DRILLDOWN_METRIC_KEYS: Record<MetricKey, string> = {
   issuesReported: "ISSUES_REPORTED",
   issuesVerified: "ISSUES_VERIFIED",
   uniqueQuizUsers: "QUIZ_USERS",
-  outdatedUsers: "OUTDATED_USERS",
   notificationsSent: "",
   dailyAvgQuiz: "",
-  onLatestVersionPct: "",
-  outdatedPct: "",
 };
 
 // ---- ISO week helpers ----
@@ -202,34 +165,17 @@ function fmtDate(iso: string | undefined): string {
   return `${d}/${m}`;
 }
 
-// ---- Value + cell color helpers ----
+// ---- Cell color helpers ----
 
-function rowLabel(metric: MetricKey): string {
-  return METRIC_ROW_LABELS[metric] ?? METRIC_LABELS[metric];
-}
-
-/** A week's value, or null when the metric has no data that week (app version metrics). */
-function metricValue(w: WeekPoint, metric: MetricKey): number | null {
-  return w[metric] ?? null;
-}
-
-function fmtMetric(metric: MetricKey, value: number | null): string {
-  if (value === null) return "—";
-  if (metric === "dailyAvgQuiz") return Number(value).toFixed(1);
-  if (PERCENT_METRICS.includes(metric)) return `${value}%`;
-  return String(value);
-}
-
-function cellColor(metric: MetricKey, value: number | null): string {
-  if (value === null) return "text-zinc-500";
+function cellColor(metric: MetricKey, value: number): string {
   const target = TARGETS[metric];
   if (target === undefined) return "text-white";
   return value >= target ? "text-emerald-400" : "text-red-400";
 }
 
-function cardVariant(metric: MetricKey, value: number | null) {
+function cardVariant(metric: MetricKey, value: number) {
   const target = TARGETS[metric];
-  if (target === undefined || value === null)
+  if (target === undefined)
     return { bg: "bg-zinc-800 border-zinc-700", num: "text-white", hint: "text-blue-400" };
   if (value >= target)
     return { bg: "bg-emerald-950 border-emerald-700", num: "text-emerald-300", hint: "text-emerald-600" };
@@ -292,9 +238,27 @@ export default function MetricsPage() {
     }
   }, []);
 
+  const [appVersions, setAppVersions] = useState<AppVersions | null>(null);
+  const [appVersionsLoading, setAppVersionsLoading] = useState(true);
+
+  const fetchAppVersions = useCallback(async () => {
+    setAppVersionsLoading(true);
+    try {
+      const res = await adminFetch(ADMIN_API.metricsAppVersions);
+      if (!res.ok) throw new Error(`${res.status}`);
+      const json = await res.json();
+      setAppVersions(json.data ?? null);
+    } catch {
+      toast.error("Failed to load app versions");
+    } finally {
+      setAppVersionsLoading(false);
+    }
+  }, []);
+
   useEffect(() => {
     fetchMetrics(fromWeek, toWeek);
     fetchSummary();
+    fetchAppVersions();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -392,31 +356,25 @@ export default function MetricsPage() {
                 )}
               </div>
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
-                {CARD_METRICS.map((key) => {
-                  const val = key === "onLatestVersionPct" ? metricValue(currentWeek, key) : (currentWeek[key] ?? 0);
+                {(Object.keys(METRIC_LABELS) as MetricKey[]).map((key) => {
+                  const val = (currentWeek[key] ?? 0) as number;
                   const target = TARGETS[key];
                   const v = cardVariant(key, val);
-                  const unit = PERCENT_METRICS.includes(key) ? "%" : "";
-                  const latest =
-                    key === "onLatestVersionPct" && currentWeek.latestAppVersion
-                      ? ` · latest ${currentWeek.latestAppVersion}`
-                      : "";
                   return (
-                    <div key={key} className={`rounded-xl border p-4 ${v.bg}`} title={METRIC_HINTS[key]}>
+                    <div key={key} className={`rounded-xl border p-4 ${v.bg}`}>
                       <p className="text-xs text-zinc-300 mb-2 font-medium">{METRIC_LABELS[key]}</p>
-                      <p className={`text-3xl font-bold tracking-tight ${v.num}`}>{fmtMetric(key, val)}</p>
+                      <p className={`text-3xl font-bold tracking-tight ${v.num}`}>
+                        {key === "dailyAvgQuiz" ? Number(val).toFixed(1) : val}
+                      </p>
                       {target !== undefined && (
                         <p className={`text-xs mt-1.5 font-medium ${v.hint}`}>
-                          {val === null
-                            ? "No app data this week"
-                            : val >= target
-                              ? `✓ target ${target}${unit}${latest}`
-                              : `${target - val} below target ${target}${unit}${latest}`}
+                          {val >= target ? `✓ target ${target}` : `${target - val} below target ${target}`}
                         </p>
                       )}
                     </div>
                   );
                 })}
+                <OnLatestVersionCard data={appVersions} loading={appVersionsLoading} />
               </div>
             </section>
           )}
@@ -459,11 +417,6 @@ export default function MetricsPage() {
                   {ENGAGEMENT_METRICS.map((key) => (
                     <MetricRow key={key} metricKey={key} weeks={weeks} drilldown={drilldown} onCellClick={openDrilldown} />
                   ))}
-                  <CategoryRow label="App Version" colCount={weeks.length} />
-                  <LatestVersionRow weeks={weeks} />
-                  {APP_VERSION_METRICS.map((key) => (
-                    <MetricRow key={key} metricKey={key} weeks={weeks} drilldown={drilldown} onCellClick={openDrilldown} />
-                  ))}
                 </tbody>
               </table>
             </div>
@@ -501,9 +454,6 @@ export default function MetricsPage() {
                           {drilldown.items[0]?.platform !== undefined && (
                             <th className="text-left pb-2 text-zinc-200 font-semibold pr-6">Platform</th>
                           )}
-                          {drilldown.metric === "outdatedUsers" && (
-                            <th className="text-left pb-2 text-zinc-200 font-semibold pr-6">App Version</th>
-                          )}
                           {drilldown.items[0]?.date !== undefined && (
                             <th className="text-left pb-2 text-zinc-200 font-semibold">Date</th>
                           )}
@@ -521,9 +471,6 @@ export default function MetricsPage() {
                             <td className="py-2 pr-6 text-zinc-300">{item.locality ?? "—"}</td>
                             {item.platform !== undefined && (
                               <td className="py-2 pr-6"><PlatformBadge platform={item.platform} /></td>
-                            )}
-                            {drilldown.metric === "outdatedUsers" && (
-                              <td className="py-2 pr-6 text-orange-300 font-mono">{item.appVersion ?? "—"}</td>
                             )}
                             {item.date !== undefined && (
                               <td className="py-2 text-zinc-400">
@@ -545,11 +492,212 @@ export default function MetricsPage() {
             <SectionLabel>Trends</SectionLabel>
             <MetricChart title="User" metrics={USER_METRICS} weeks={weeks} />
             <MetricChart title="Engagement" metrics={ENGAGEMENT_METRICS} weeks={weeks} />
-            <MetricChart title="App Version" metrics={APP_VERSION_CHART_METRICS} weeks={weeks} percent />
           </section>
         </>
       )}
+
+      <AppVersionsSection data={appVersions} loading={appVersionsLoading} />
     </div>
+  );
+}
+
+// ---- App Versions ----
+
+type AppVersions = {
+  latestVersion: string | null;
+  totalUsers: number;
+  versions: { version: string; users: number; percent: number }[];
+  users: {
+    username: string | null;
+    locality: string | null;
+    platform: string | null;
+    appVersion: string;
+    lastActive: string | null;
+  }[];
+};
+
+const ON_LATEST_TARGET = 70;
+
+/** Whole-number share of users on the latest version, or null when no app has reported one. */
+function onLatestPercent(data: AppVersions | null): number | null {
+  if (!data || data.totalUsers === 0) return null;
+  const onLatest = data.versions.find((v) => v.version === data.latestVersion)?.users ?? 0;
+  return Math.round((onLatest * 100) / data.totalUsers);
+}
+
+function OnLatestVersionCard({ data, loading }: { data: AppVersions | null; loading: boolean }) {
+  const pct = onLatestPercent(data);
+  const v =
+    pct === null
+      ? { bg: "bg-zinc-800 border-zinc-700", num: "text-white", hint: "text-blue-400" }
+      : pct >= ON_LATEST_TARGET
+        ? { bg: "bg-emerald-950 border-emerald-700", num: "text-emerald-300", hint: "text-emerald-600" }
+        : { bg: "bg-red-950 border-red-800", num: "text-red-300", hint: "text-red-700" };
+  return (
+    <div className={`rounded-xl border p-4 ${v.bg}`}>
+      <p className="text-xs text-zinc-300 mb-2 font-medium">On Latest Version</p>
+      <p className={`text-3xl font-bold tracking-tight ${v.num}`}>
+        {loading ? <Loader2 className="w-6 h-6 animate-spin" /> : pct === null ? "—" : `${pct}%`}
+      </p>
+      {!loading && (
+        <p className={`text-xs mt-1.5 font-medium ${v.hint}`}>
+          {pct === null
+            ? "No app has reported its version yet"
+            : `${pct >= ON_LATEST_TARGET ? `✓ target ${ON_LATEST_TARGET}%` : `${ON_LATEST_TARGET - pct} below target ${ON_LATEST_TARGET}%`} · latest ${data?.latestVersion}`}
+        </p>
+      )}
+    </div>
+  );
+}
+
+function AppVersionsSection({ data, loading }: { data: AppVersions | null; loading: boolean }) {
+  const [search, setSearch] = useState("");
+  const [versionFilter, setVersionFilter] = useState("");
+
+  const query = search.trim().toLowerCase();
+  const users = (data?.users ?? []).filter(
+    (u) =>
+      (!versionFilter || u.appVersion === versionFilter) &&
+      (!query ||
+        (u.username ?? "").toLowerCase().includes(query) ||
+        (u.locality ?? "").toLowerCase().includes(query)),
+  );
+
+  return (
+    <section>
+      <div className="flex items-center gap-2 mb-3">
+        <SectionLabel>App Versions</SectionLabel>
+        {data?.latestVersion && (
+          <span className="mb-3 text-[10px] bg-blue-900 text-blue-200 rounded-full px-2 py-0.5 font-semibold">
+            Latest {data.latestVersion}
+          </span>
+        )}
+      </div>
+
+      {loading ? (
+        <div className="flex items-center gap-2 text-zinc-300 text-sm h-20">
+          <Loader2 className="w-4 h-4 animate-spin" /> Loading…
+        </div>
+      ) : !data ? (
+        <p className="text-red-400 text-sm">Could not load app versions.</p>
+      ) : data.totalUsers === 0 ? (
+        <p className="text-zinc-300 text-sm py-4">No app has reported its version yet.</p>
+      ) : (
+        <div className="space-y-4">
+          {/* Users per version */}
+          <div className="overflow-x-auto rounded-xl border border-zinc-700">
+            <table className="text-sm w-full border-collapse">
+              <thead>
+                <tr className="bg-zinc-900 border-b border-zinc-700">
+                  <th className="text-left px-4 py-3 text-xs text-white font-semibold">Version</th>
+                  <th className="text-right px-4 py-3 text-xs text-white font-semibold">Users</th>
+                  <th className="text-left px-4 py-3 text-xs text-white font-semibold w-1/2">Share</th>
+                </tr>
+              </thead>
+              <tbody>
+                {data.versions.map((v) => {
+                  const isLatest = v.version === data.latestVersion;
+                  return (
+                    <tr
+                      key={v.version}
+                      onClick={() => setVersionFilter(versionFilter === v.version ? "" : v.version)}
+                      title={`Show users on ${v.version}`}
+                      className={`border-b border-zinc-800 cursor-pointer transition-colors ${
+                        versionFilter === v.version ? "bg-zinc-800/60" : "hover:bg-zinc-800/30"
+                      }`}
+                    >
+                      <td className={`px-4 py-2.5 font-mono text-xs font-semibold ${isLatest ? "text-blue-300" : "text-zinc-100"}`}>
+                        {v.version}
+                        {isLatest && <span className="ml-1.5">★</span>}
+                      </td>
+                      <td className="px-4 py-2.5 text-right text-xs font-bold text-white tabular-nums">{v.users}</td>
+                      <td className="px-4 py-2.5">
+                        <div className="flex items-center gap-3">
+                          <div className="h-2 flex-1 rounded-full bg-zinc-800 overflow-hidden">
+                            <div
+                              className={`h-full rounded-full ${isLatest ? "bg-emerald-500" : "bg-zinc-500"}`}
+                              style={{ width: `${v.percent}%` }}
+                            />
+                          </div>
+                          <span className="text-xs text-zinc-300 tabular-nums w-10 text-right">{v.percent}%</span>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+              <tfoot>
+                <tr className="bg-zinc-900">
+                  <td className="px-4 py-2.5 text-xs text-zinc-300 font-semibold">Total</td>
+                  <td className="px-4 py-2.5 text-right text-xs font-bold text-white tabular-nums">{data.totalUsers}</td>
+                  <td />
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+
+          {/* All users */}
+          <div className="rounded-xl border border-zinc-700 bg-zinc-900 p-5">
+            <div className="flex flex-wrap items-center gap-3 mb-4">
+              <p className="text-sm font-bold text-white mr-auto">
+                All users <span className="text-zinc-400 font-medium">({users.length})</span>
+              </p>
+              <input
+                type="search"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Search username or locality"
+                className="bg-zinc-800 border border-zinc-600 rounded-md px-3 py-1.5 text-xs text-white placeholder:text-zinc-500 focus:outline-none focus:border-blue-500 w-56"
+              />
+              <select
+                value={versionFilter}
+                onChange={(e) => setVersionFilter(e.target.value)}
+                className="bg-zinc-800 border border-zinc-600 rounded-md px-2 py-1.5 text-xs text-white focus:outline-none focus:border-blue-500 [color-scheme:dark]"
+              >
+                <option value="">All versions</option>
+                {data.versions.map((v) => (
+                  <option key={v.version} value={v.version}>{v.version}</option>
+                ))}
+              </select>
+            </div>
+            {users.length === 0 ? (
+              <p className="text-zinc-300 text-sm text-center py-4">No users match.</p>
+            ) : (
+              <div className="overflow-x-auto max-h-[480px] overflow-y-auto">
+                <table className="text-xs w-full">
+                  <thead className="sticky top-0 bg-zinc-900">
+                    <tr className="border-b border-zinc-700">
+                      <th className="text-left pb-2 text-zinc-200 font-semibold pr-6">Username</th>
+                      <th className="text-left pb-2 text-zinc-200 font-semibold pr-6">Locality</th>
+                      <th className="text-left pb-2 text-zinc-200 font-semibold pr-6">Platform</th>
+                      <th className="text-left pb-2 text-zinc-200 font-semibold pr-6">App Version</th>
+                      <th className="text-left pb-2 text-zinc-200 font-semibold">Last Active</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {users.map((u, i) => (
+                      <tr key={`${u.username}-${i}`} className="border-b border-zinc-800 hover:bg-zinc-800/40">
+                        <td className="py-2 pr-6 text-white font-medium">{u.username ? `@${u.username}` : "—"}</td>
+                        <td className="py-2 pr-6 text-zinc-300">{u.locality ?? "—"}</td>
+                        <td className="py-2 pr-6"><PlatformBadge platform={u.platform ?? undefined} /></td>
+                        <td className={`py-2 pr-6 font-mono font-semibold ${
+                          u.appVersion === data.latestVersion ? "text-emerald-400" : "text-orange-300"
+                        }`}>
+                          {u.appVersion}
+                        </td>
+                        <td className="py-2 text-zinc-400">
+                          {u.lastActive ? u.lastActive.replace("T", " ").substring(0, 16) : "—"}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+    </section>
   );
 }
 
@@ -692,8 +840,8 @@ function MetricRow({
   return (
     <tr className={`border-b border-zinc-800 transition-colors ${isRowOpen ? "bg-zinc-800/50" : "hover:bg-zinc-800/20"}`}>
       <td className={`sticky left-0 z-10 px-4 py-3 border-r border-zinc-800 ${isRowOpen ? "bg-zinc-800" : "bg-zinc-950"}`}>
-        <div className="flex items-center gap-2" title={METRIC_HINTS[metricKey]}>
-          <span className="text-xs text-zinc-100 font-semibold">{rowLabel(metricKey)}</span>
+        <div className="flex items-center gap-2">
+          <span className="text-xs text-zinc-100 font-semibold">{METRIC_LABELS[metricKey]}</span>
           {canDrill && (
             <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded border ${
               isRowOpen
@@ -709,7 +857,7 @@ function MetricRow({
         {target !== undefined ? target : "—"}
       </td>
       {weeks.map((w) => {
-        const val = metricValue(w, metricKey);
+        const val = (w[metricKey] ?? 0) as number;
         const isSelected =
           drilldown?.metric === metricKey &&
           drilldown.weekYear === w.weekYear &&
@@ -719,7 +867,7 @@ function MetricRow({
             key={`${w.weekYear}-${w.weekNumber}`}
             className={`px-2 py-2 text-center ${w.isCurrentWeek ? "bg-blue-950/20" : ""}`}
           >
-            {canDrill && val !== null ? (
+            {canDrill ? (
               <button
                 onClick={() => onCellClick(metricKey, w.weekYear, w.weekNumber, weekLabel(w))}
                 title={`View ${METRIC_LABELS[metricKey]} details for ${weekLabel(w)}`}
@@ -729,50 +877,19 @@ function MetricRow({
                     : `${cellColor(metricKey, val)} bg-zinc-900 border-zinc-700 hover:border-blue-500 hover:bg-zinc-800`
                 }`}
               >
-                <span className="text-xs font-bold">{fmtMetric(metricKey, val)}</span>
+                <span className="text-xs font-bold">
+                  {metricKey === "dailyAvgQuiz" ? Number(val).toFixed(1) : val}
+                </span>
                 {isSelected
                   ? <ChevronUp className="w-3 h-3 shrink-0" />
                   : <ChevronDown className="w-3 h-3 shrink-0 opacity-50 group-hover:opacity-100" />
                 }
               </button>
             ) : (
-              <span className={`text-xs font-bold ${cellColor(metricKey, val)}`}>{fmtMetric(metricKey, val)}</span>
+              <span className={`text-xs font-bold ${cellColor(metricKey, val)}`}>
+                {metricKey === "dailyAvgQuiz" ? Number(val).toFixed(1) : val}
+              </span>
             )}
-          </td>
-        );
-      })}
-    </tr>
-  );
-}
-
-/** Newest app version per week; a ★ marks the week a new version first appeared. */
-function LatestVersionRow({ weeks }: { weeks: WeekPoint[] }) {
-  return (
-    <tr className="border-b border-zinc-800 hover:bg-zinc-800/20 transition-colors">
-      <td className="sticky left-0 z-10 px-4 py-3 border-r border-zinc-800 bg-zinc-950">
-        <span className="text-xs text-zinc-100 font-semibold" title="Newest app version reported up to the end of the week">
-          Latest Version
-        </span>
-      </td>
-      <td className="px-3 py-3 text-xs text-zinc-300 text-right border-r border-zinc-800 font-mono font-semibold">—</td>
-      {weeks.map((w, i) => {
-        const version = w.latestAppVersion;
-        const previous = i > 0 ? weeks[i - 1].latestAppVersion : null;
-        const isNew = version !== null && previous !== null && version !== previous;
-        return (
-          <td
-            key={`${w.weekYear}-${w.weekNumber}`}
-            className={`px-2 py-2 text-center ${w.isCurrentWeek ? "bg-blue-950/20" : ""}`}
-          >
-            <span
-              className={`text-xs font-mono font-semibold ${
-                version === null ? "text-zinc-500" : isNew ? "text-blue-300" : "text-white"
-              }`}
-              title={isNew ? `New version this week (was ${previous})` : undefined}
-            >
-              {version ?? "—"}
-              {isNew && " ★"}
-            </span>
           </td>
         );
       })}
@@ -796,28 +913,13 @@ function PlatformBadge({ platform }: { platform?: string }) {
 
 // ---- Trend Charts ----
 
-function MetricChart({
-  title,
-  metrics,
-  weeks,
-  percent = false,
-}: {
-  title: string;
-  metrics: MetricKey[];
-  weeks: WeekPoint[];
-  /** Fixes the Y axis at 0–100 and leaves gaps for weeks with no data instead of drawing 0. */
-  percent?: boolean;
-}) {
+function MetricChart({ title, metrics, weeks }: { title: string; metrics: MetricKey[]; weeks: WeekPoint[] }) {
   const chartData = weeks.map((w) => {
-    const row: Record<string, string | number | null> = { name: weekLabel(w) };
+    const row: Record<string, string | number> = { name: weekLabel(w) };
     metrics.forEach((m) => {
-      if (percent) {
-        row[m] = metricValue(w, m);
-      } else {
-        row[m] = m === "dailyAvgQuiz"
-          ? Number(Number(w[m] ?? 0).toFixed(1))
-          : ((w[m] ?? 0) as number);
-      }
+      row[m] = m === "dailyAvgQuiz"
+        ? Number(Number(w[m] ?? 0).toFixed(1))
+        : ((w[m] ?? 0) as number);
     });
     return row;
   });
@@ -829,13 +931,7 @@ function MetricChart({
         <LineChart data={chartData} margin={{ top: 4, right: 20, bottom: 4, left: 0 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="#3f3f46" />
           <XAxis dataKey="name" tick={{ fill: "#d4d4d8", fontSize: 11 }} tickLine={false} />
-          <YAxis
-            tick={{ fill: "#d4d4d8", fontSize: 11 }}
-            width={32}
-            tickLine={false}
-            axisLine={false}
-            domain={percent ? [0, 100] : undefined}
-          />
+          <YAxis tick={{ fill: "#d4d4d8", fontSize: 11 }} width={32} tickLine={false} axisLine={false} />
           <Tooltip
             contentStyle={{ backgroundColor: "#18181b", border: "1px solid #52525b", borderRadius: 8, fontSize: 12 }}
             labelStyle={{ color: "#ffffff", fontWeight: 700 }}
@@ -847,7 +943,7 @@ function MetricChart({
               key={m}
               type="monotone"
               dataKey={m}
-              name={rowLabel(m)}
+              name={METRIC_LABELS[m]}
               stroke={METRIC_COLORS[m]}
               strokeWidth={2}
               dot={false}

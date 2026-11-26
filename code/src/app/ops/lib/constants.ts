@@ -159,4 +159,6 @@ export const ADMIN_API = {
 
   /** Pending action counts for the ops summary section */
   metricsOpsSummary: `${BASE_URL}/admin/metrics/ops-summary`,
+  /** The app version each user is on now: count per version and the list of users */
+  metricsAppVersions: `${BASE_URL}/admin/metrics/app-versions`,
 };
