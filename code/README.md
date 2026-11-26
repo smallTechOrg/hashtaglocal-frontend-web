@@ -19,6 +19,10 @@ Required variables:
 - `NEXT_PUBLIC_BASE_URL`
 - `NEXT_PUBLIC_GOOGLE_CLIENT_ID`
 
+Optional variables:
+
+- `NEXT_PUBLIC_SCRAPER0_DASHBOARD_URL`: the scraper0 dashboard, where event sites are onboarded. Ops → Event sources links to it; without it the page shows the instructions but no link.
+
 For CI/CD, set the same variable names in GitHub Environments:
 
 - `staging` environment variables for `staging` branch deploys

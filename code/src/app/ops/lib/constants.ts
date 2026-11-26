@@ -3,6 +3,9 @@ import { getOrCreateDeviceId } from "./auth";
 
 export const GOOGLE_CLIENT_ID = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID ?? "";
 
+/** scraper0 dashboard, where sites are onboarded before they can be event sources (optional). */
+export const SCRAPER0_DASHBOARD_URL = (process.env.NEXT_PUBLIC_SCRAPER0_DASHBOARD_URL ?? "").trim();
+
 /** Where Google sends the user after they consent. */
 export const GOOGLE_REDIRECT_URI =
   typeof window !== "undefined"
@@ -63,6 +66,24 @@ export const ADMIN_API = {
 
   /** Manually trigger the geocoding pass for events awaiting a location */
   triggerGeocode: `${BASE_URL}/admin/event/geocode`,
+
+  // ---- Event sources (scraper0 sites the event ingestion job reads) ----
+
+  /** GET the list, POST to create (409 when the site + action pair already exists) */
+  eventSources: `${BASE_URL}/admin/event-sources`,
+
+  /** PUT to update, DELETE to remove */
+  eventSource: (id: number) => `${BASE_URL}/admin/event-sources/${id}`,
+
+  /** Live read of one source; imports nothing */
+  testEventSource: (id: number) => `${BASE_URL}/admin/event-sources/${id}/test`,
+
+  /** Run event ingestion now (async, 202) */
+  runEventIngestion: `${BASE_URL}/admin/event-sources/run`,
+
+  /** Sites onboarded in scraper0; optional ?q= search */
+  scraper0Sites: (q?: string | null) =>
+    `${BASE_URL}/admin/event-sources/scraper0-sites${q ? `?q=${encodeURIComponent(q)}` : ""}`,
 
   // ---- City bulletin: quizzes (manual entry, one per locality per date) ----
 
