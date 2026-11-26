@@ -43,6 +43,13 @@ export interface PendingAction {
   action: "REPORT" | "VERIFY" | "RESOLVE";
   approval_status: string;
   created_at: string;
+  /** Media submitted with this specific action (verification / resolution photo), if any. */
+  media?: {
+    url: string;
+    url_thumbnail: string;
+    type?: string;
+    description?: string | null;
+  } | null;
 }
 
 /** The issue detail fetched for the review card */
