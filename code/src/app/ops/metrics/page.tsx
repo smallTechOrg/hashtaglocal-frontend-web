@@ -505,24 +505,40 @@ export default function MetricsPage() {
 
 type AppVersions = {
   latestVersion: string | null;
+  /** Every user, including those whose version is unknown. */
   totalUsers: number;
+  /** Users whose app never reported a version (before 1.0.10, or no session left). */
+  unknownUsers: number;
+  unknownPercent: number;
+  /** Reported versions only; percent is a share of totalUsers. */
   versions: { version: string; users: number; percent: number }[];
   users: {
     username: string | null;
     locality: string | null;
     platform: string | null;
-    appVersion: string;
+    /** null when the app never reported a version. */
+    appVersion: string | null;
     lastActive: string | null;
   }[];
 };
 
 const ON_LATEST_TARGET = 70;
+/** Filter value for users with no reported version (real versions never look like this). */
+const UNKNOWN_FILTER = "__unknown__";
 
-/** Whole-number share of users on the latest version, or null when no app has reported one. */
+/** Users on the latest version. */
+function onLatestCount(data: AppVersions | null): number {
+  if (!data) return 0;
+  return data.versions.find((v) => v.version === data.latestVersion)?.users ?? 0;
+}
+
+/**
+ * Whole-number share of ALL users on the latest version (unknown versions count as not latest),
+ * or null when no app has reported a version yet.
+ */
 function onLatestPercent(data: AppVersions | null): number | null {
-  if (!data || data.totalUsers === 0) return null;
-  const onLatest = data.versions.find((v) => v.version === data.latestVersion)?.users ?? 0;
-  return Math.round((onLatest * 100) / data.totalUsers);
+  if (!data || data.totalUsers === 0 || !data.latestVersion) return null;
+  return Math.round((onLatestCount(data) * 100) / data.totalUsers);
 }
 
 function OnLatestVersionCard({ data, loading }: { data: AppVersions | null; loading: boolean }) {
@@ -543,7 +559,13 @@ function OnLatestVersionCard({ data, loading }: { data: AppVersions | null; load
         <p className={`text-xs mt-1.5 font-medium ${v.hint}`}>
           {pct === null
             ? "No app has reported its version yet"
-            : `${pct >= ON_LATEST_TARGET ? `✓ target ${ON_LATEST_TARGET}%` : `${ON_LATEST_TARGET - pct} below target ${ON_LATEST_TARGET}%`} · latest ${data?.latestVersion}`}
+            : `${pct >= ON_LATEST_TARGET ? `✓ target ${ON_LATEST_TARGET}%` : `${ON_LATEST_TARGET - pct} pts below target ${ON_LATEST_TARGET}%`} · latest ${data?.latestVersion}`}
+        </p>
+      )}
+      {!loading && pct !== null && data && (
+        <p className="text-xs mt-0.5 text-zinc-400">
+          {onLatestCount(data)} of {data.totalUsers} users
+          {data.unknownUsers > 0 && ` · ${data.unknownUsers} with no app version`}
         </p>
       )}
     </div>
@@ -557,7 +579,8 @@ function AppVersionsSection({ data, loading }: { data: AppVersions | null; loadi
   const query = search.trim().toLowerCase();
   const users = (data?.users ?? []).filter(
     (u) =>
-      (!versionFilter || u.appVersion === versionFilter) &&
+      (!versionFilter ||
+        (versionFilter === UNKNOWN_FILTER ? u.appVersion === null : u.appVersion === versionFilter)) &&
       (!query ||
         (u.username ?? "").toLowerCase().includes(query) ||
         (u.locality ?? "").toLowerCase().includes(query)),
@@ -581,7 +604,7 @@ function AppVersionsSection({ data, loading }: { data: AppVersions | null; loadi
       ) : !data ? (
         <p className="text-red-400 text-sm">Could not load app versions.</p>
       ) : data.totalUsers === 0 ? (
-        <p className="text-zinc-300 text-sm py-4">No app has reported its version yet.</p>
+        <p className="text-zinc-300 text-sm py-4">No users yet.</p>
       ) : (
         <div className="space-y-4">
           {/* Users per version */}
@@ -625,6 +648,28 @@ function AppVersionsSection({ data, loading }: { data: AppVersions | null; loadi
                     </tr>
                   );
                 })}
+                {data.unknownUsers > 0 && (
+                  <tr
+                    onClick={() => setVersionFilter(versionFilter === UNKNOWN_FILTER ? "" : UNKNOWN_FILTER)}
+                    title="Apps before 1.0.10 don't report their version; also users with no recent sign-in"
+                    className={`border-b border-zinc-800 cursor-pointer transition-colors ${
+                      versionFilter === UNKNOWN_FILTER ? "bg-zinc-800/60" : "hover:bg-zinc-800/30"
+                    }`}
+                  >
+                    <td className="px-4 py-2.5 text-xs font-semibold text-zinc-400">
+                      No app version
+                    </td>
+                    <td className="px-4 py-2.5 text-right text-xs font-bold text-white tabular-nums">{data.unknownUsers}</td>
+                    <td className="px-4 py-2.5">
+                      <div className="flex items-center gap-3">
+                        <div className="h-2 flex-1 rounded-full bg-zinc-800 overflow-hidden">
+                          <div className="h-full rounded-full bg-zinc-700" style={{ width: `${data.unknownPercent}%` }} />
+                        </div>
+                        <span className="text-xs text-zinc-300 tabular-nums w-10 text-right">{data.unknownPercent}%</span>
+                      </div>
+                    </td>
+                  </tr>
+                )}
               </tbody>
               <tfoot>
                 <tr className="bg-zinc-900">
@@ -658,6 +703,7 @@ function AppVersionsSection({ data, loading }: { data: AppVersions | null; loadi
                 {data.versions.map((v) => (
                   <option key={v.version} value={v.version}>{v.version}</option>
                 ))}
+                {data.unknownUsers > 0 && <option value={UNKNOWN_FILTER}>No app version</option>}
               </select>
             </div>
             {users.length === 0 ? (
@@ -681,9 +727,13 @@ function AppVersionsSection({ data, loading }: { data: AppVersions | null; loadi
                         <td className="py-2 pr-6 text-zinc-300">{u.locality ?? "—"}</td>
                         <td className="py-2 pr-6"><PlatformBadge platform={u.platform ?? undefined} /></td>
                         <td className={`py-2 pr-6 font-mono font-semibold ${
-                          u.appVersion === data.latestVersion ? "text-emerald-400" : "text-orange-300"
+                          u.appVersion === null
+                            ? "text-zinc-500"
+                            : u.appVersion === data.latestVersion
+                              ? "text-emerald-400"
+                              : "text-orange-300"
                         }`}>
-                          {u.appVersion}
+                          {u.appVersion ?? "No app version"}
                         </td>
                         <td className="py-2 text-zinc-400">
                           {u.lastActive ? u.lastActive.replace("T", " ").substring(0, 16) : "—"}
