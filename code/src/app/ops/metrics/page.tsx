@@ -565,7 +565,7 @@ function OnLatestVersionCard({ data, loading }: { data: AppVersions | null; load
       {!loading && pct !== null && data && (
         <p className="text-xs mt-0.5 text-zinc-400">
           {onLatestCount(data)} of {data.totalUsers} users
-          {data.unknownUsers > 0 && ` · ${data.unknownUsers} unknown`}
+          {data.unknownUsers > 0 && ` · ${data.unknownUsers} with no app version`}
         </p>
       )}
     </div>
@@ -657,7 +657,7 @@ function AppVersionsSection({ data, loading }: { data: AppVersions | null; loadi
                     }`}
                   >
                     <td className="px-4 py-2.5 text-xs font-semibold text-zinc-400">
-                      Unknown <span className="font-normal text-zinc-500">(before 1.0.10)</span>
+                      No app version
                     </td>
                     <td className="px-4 py-2.5 text-right text-xs font-bold text-white tabular-nums">{data.unknownUsers}</td>
                     <td className="px-4 py-2.5">
@@ -703,7 +703,7 @@ function AppVersionsSection({ data, loading }: { data: AppVersions | null; loadi
                 {data.versions.map((v) => (
                   <option key={v.version} value={v.version}>{v.version}</option>
                 ))}
-                {data.unknownUsers > 0 && <option value={UNKNOWN_FILTER}>Unknown</option>}
+                {data.unknownUsers > 0 && <option value={UNKNOWN_FILTER}>No app version</option>}
               </select>
             </div>
             {users.length === 0 ? (
@@ -733,7 +733,7 @@ function AppVersionsSection({ data, loading }: { data: AppVersions | null; loadi
                               ? "text-emerald-400"
                               : "text-orange-300"
                         }`}>
-                          {u.appVersion ?? "Unknown"}
+                          {u.appVersion ?? "No app version"}
                         </td>
                         <td className="py-2 text-zinc-400">
                           {u.lastActive ? u.lastActive.replace("T", " ").substring(0, 16) : "—"}
