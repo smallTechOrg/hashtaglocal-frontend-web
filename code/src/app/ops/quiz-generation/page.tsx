@@ -198,12 +198,27 @@ function GenerateTab({ onGenerated }: { onGenerated: () => void | Promise<void> 
     <div className="rounded-lg border border-zinc-800 bg-zinc-900">
       <div className="flex items-center justify-between gap-2 px-4 py-3.5 border-b border-zinc-800">
         <h2 className="text-sm font-semibold text-zinc-200">Select hashtags</h2>
+        {/* On only when every hashtag is selected. Turning it on selects all; off clears all. */}
         <button
           type="button"
-          className="text-sm font-medium text-emerald-500 hover:text-emerald-400"
+          role="switch"
+          aria-checked={allSelected}
           onClick={() => setSelected(allSelected ? new Set() : new Set(localities.map((l) => l.hashtag)))}
+          disabled={running || localities.length === 0}
+          className="flex items-center gap-2 text-sm text-zinc-300 disabled:opacity-40"
         >
-          {allSelected ? "Clear all" : "Select all"}
+          Select all
+          <span
+            className={`relative inline-block w-9 h-5 rounded-full transition-colors ${
+              allSelected ? "bg-emerald-600" : "bg-zinc-600"
+            }`}
+          >
+            <span
+              className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white transition-transform ${
+                allSelected ? "translate-x-4" : ""
+              }`}
+            />
+          </span>
         </button>
       </div>
 
@@ -412,9 +427,10 @@ function PendingTab({
             <p className="text-sm text-zinc-400">
               These quizzes move to the queue. One is published per hashtag each day.
             </p>
-            <ul className="grid gap-1 text-sm text-zinc-200">
+            {/* Capped height so the dialog stays short with many hashtags; the list scrolls instead. */}
+            <ul className="grid gap-1 text-sm text-zinc-200 max-h-48 overflow-y-auto rounded-lg border border-zinc-800 px-3 py-2 [color-scheme:dark]">
               {Object.entries(byTag).map(([tag, n]) => (
-                <li key={tag} className="flex justify-between">
+                <li key={tag} className="flex justify-between gap-3">
                   <span>{tag}</span>
                   <span>{plural(n, "quiz", "quizzes")}</span>
                 </li>
