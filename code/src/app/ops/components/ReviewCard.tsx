@@ -12,6 +12,9 @@ import {
   ImageIcon,
   Loader2,
   BarChart3,
+  Maximize2,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import {
   PendingAction,
@@ -67,6 +70,97 @@ function formatTime(dateStr: string) {
   if (diffHr < 24) return `${diffHr}h ago`;
   const diffDay = Math.floor(diffHr / 24);
   return `${diffDay}d ago`;
+}
+
+/**
+ * Full-screen photo viewer. While open it takes every key press first (capture phase) so the review
+ * page's shortcuts don't fire behind it: on that page ↑ approves and ↓ rejects. Here ←/→ change
+ * photo and Esc closes.
+ */
+function PhotoViewer({
+  urls,
+  index,
+  onIndexChange,
+  onClose,
+}: {
+  urls: string[];
+  index: number;
+  onIndexChange: (i: number) => void;
+  onClose: () => void;
+}) {
+  const count = urls.length;
+  const go = useCallback(
+    (step: number) => onIndexChange((index + step + count) % count),
+    [index, count, onIndexChange],
+  );
+
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      e.stopPropagation();
+      if (e.key === "Escape") onClose();
+      else if (e.key === "ArrowLeft" && count > 1) go(-1);
+      else if (e.key === "ArrowRight" && count > 1) go(1);
+      else return;
+      e.preventDefault();
+    }
+    window.addEventListener("keydown", onKey, true);
+    return () => window.removeEventListener("keydown", onKey, true);
+  }, [go, onClose, count]);
+
+  return (
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-label="Photo viewer"
+      className="fixed inset-0 z-50 bg-black/95 flex items-center justify-center"
+      onClick={onClose}
+    >
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src={urls[index]}
+        alt={`Issue photo ${index + 1} of ${count}`}
+        className="max-w-[95vw] max-h-[90vh] object-contain"
+        onClick={(e) => e.stopPropagation()}
+      />
+      <button
+        type="button"
+        onClick={onClose}
+        aria-label="Close"
+        className="absolute top-4 right-4 rounded-full bg-zinc-800/80 p-2 text-zinc-100 hover:bg-zinc-700"
+      >
+        <X className="w-5 h-5" />
+      </button>
+      {count > 1 && (
+        <>
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              go(-1);
+            }}
+            aria-label="Previous photo"
+            className="absolute left-4 top-1/2 -translate-y-1/2 rounded-full bg-zinc-800/80 p-2 text-zinc-100 hover:bg-zinc-700"
+          >
+            <ChevronLeft className="w-6 h-6" />
+          </button>
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              go(1);
+            }}
+            aria-label="Next photo"
+            className="absolute right-4 top-1/2 -translate-y-1/2 rounded-full bg-zinc-800/80 p-2 text-zinc-100 hover:bg-zinc-700"
+          >
+            <ChevronRight className="w-6 h-6" />
+          </button>
+          <span className="absolute bottom-4 left-1/2 -translate-x-1/2 rounded-md bg-zinc-800/80 px-2.5 py-1 text-sm text-zinc-200">
+            {index + 1} / {count}
+          </span>
+        </>
+      )}
+    </div>
+  );
 }
 
 export default function ReviewCard({
@@ -162,9 +256,12 @@ export default function ReviewCard({
       ]
     : issue?.media_urls ?? [];
 
-  // Reset selected photo when issue or action changes
+  const [viewerOpen, setViewerOpen] = useState(false);
+
+  // Reset selected photo (and close the full-screen viewer) when issue or action changes
   useEffect(() => {
     setSelectedPhoto(0);
+    setViewerOpen(false);
   }, [issue?.id, action.action_id]);
 
   const [showGovPortalForm, setShowGovPortalForm] = useState(false);
@@ -297,16 +394,29 @@ export default function ReviewCard({
             {/* Photos */}
             {photos.length > 0 && (
               <div className="mb-3">
-                <div className="relative rounded-lg overflow-hidden bg-zinc-800 h-48">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={
-                      photos[selectedPhoto]?.url ??
-                      photos[selectedPhoto]?.url_thumbnail
-                    }
-                    alt="Issue photo"
-                    className="w-full h-full object-cover"
-                  />
+                {/* Whole photo, not cropped (object-contain), so reviewers can tell what it shows.
+                    Click to open it full screen. */}
+                <div className="relative rounded-lg overflow-hidden bg-zinc-950 h-80 sm:h-[420px]">
+                  <button
+                    type="button"
+                    onClick={() => setViewerOpen(true)}
+                    className="group w-full h-full cursor-zoom-in"
+                    aria-label="Open photo full screen"
+                  >
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={
+                        photos[selectedPhoto]?.url ??
+                        photos[selectedPhoto]?.url_thumbnail
+                      }
+                      alt="Issue photo"
+                      className="w-full h-full object-contain"
+                    />
+                    <span className="absolute top-2 right-2 flex items-center gap-1 rounded-md bg-black/60 px-2 py-1 text-xs text-zinc-200 opacity-80 group-hover:opacity-100">
+                      <Maximize2 className="w-3.5 h-3.5" />
+                      Full screen
+                    </span>
+                  </button>
                   {photos.length > 1 && (
                     <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1">
                       {photos.map((_, i) => (
@@ -327,7 +437,7 @@ export default function ReviewCard({
                       <button
                         key={i}
                         onClick={() => setSelectedPhoto(i)}
-                        className={`flex-shrink-0 w-12 h-12 rounded overflow-hidden border-2 transition ${
+                        className={`flex-shrink-0 w-16 h-16 rounded overflow-hidden border-2 transition ${
                           i === selectedPhoto
                             ? "border-white"
                             : "border-zinc-700 opacity-60"
@@ -342,6 +452,14 @@ export default function ReviewCard({
                       </button>
                     ))}
                   </div>
+                )}
+                {viewerOpen && (
+                  <PhotoViewer
+                    urls={photos.map((p) => p.url ?? p.url_thumbnail ?? "")}
+                    index={selectedPhoto}
+                    onIndexChange={setSelectedPhoto}
+                    onClose={() => setViewerOpen(false)}
+                  />
                 )}
               </div>
             )}
