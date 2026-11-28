@@ -42,6 +42,8 @@ const STATUS_STYLES: Record<string, string> = {
   PENDING: "bg-amber-600 text-white",
 };
 
+type BulkKind = "approve" | "reject";
+
 const EVENT_TYPES = [
   "OTHER","CLEANLINESS_DRIVE","BEACH_CLEANUP","ROAD_CLEANUP","FOREST_CLEANUP",
   "TREEPLANTATION","TREKANDPLOG","VOLUNTEERING","WORKSHOP",
@@ -56,8 +58,8 @@ export default function EventsPage() {
 
   // ── Bulk reject (pending view) ──
   const [selected, setSelected] = useState<Set<number>>(new Set());
-  const [confirmBulkReject, setConfirmBulkReject] = useState(false);
-  const [bulkRejecting, setBulkRejecting] = useState(false);
+  const [bulkConfirm, setBulkConfirm] = useState<BulkKind | null>(null);
+  const [bulkBusy, setBulkBusy] = useState<BulkKind | null>(null);
 
   // ── Create form ──
   const [showCreateForm, setShowCreateForm] = useState(false);
@@ -121,21 +123,23 @@ export default function EventsPage() {
     setSelected((prev) => (prev.size === events.length ? new Set() : new Set(events.map((e) => e.id))));
   }
 
-  // Rejects the selected events a few at a time with the same per-event endpoint as "Reject".
-  async function handleBulkReject() {
+  // Approves or rejects the selected events a few at a time, with the same per-event endpoints as
+  // the row buttons. Done ones leave the list; failed ones stay selected so they can be retried.
+  async function handleBulk(kind: BulkKind) {
     const ids = [...selected];
     if (ids.length === 0) return;
-    setBulkRejecting(true);
-    const rejected: number[] = [];
+    setBulkBusy(kind);
+    const done: number[] = [];
     let failed = 0;
     const queue = [...ids];
     const worker = async () => {
       for (let id = queue.shift(); id !== undefined; id = queue.shift()) {
         setProcessingState(id, true);
         try {
-          const res = await adminFetch(ADMIN_API.rejectEvent(id), { method: "PUT" });
+          const url = kind === "approve" ? ADMIN_API.approveEvent(id) : ADMIN_API.rejectEvent(id);
+          const res = await adminFetch(url, { method: "PUT" });
           if (!res.ok) throw new Error(`${res.status}`);
-          rejected.push(id);
+          done.push(id);
         } catch {
           failed++;
         } finally {
@@ -144,15 +148,16 @@ export default function EventsPage() {
       }
     };
     await Promise.all(Array.from({ length: Math.min(4, ids.length) }, worker));
-    const done = new Set(rejected);
-    setEvents((prev) => prev.filter((e) => !done.has(e.id)));
-    setSelected((prev) => new Set([...prev].filter((id) => !done.has(id))));
-    setBulkRejecting(false);
-    setConfirmBulkReject(false);
+    const doneIds = new Set(done);
+    setEvents((prev) => prev.filter((e) => !doneIds.has(e.id)));
+    setSelected((prev) => new Set([...prev].filter((id) => !doneIds.has(id))));
+    setBulkBusy(null);
+    setBulkConfirm(null);
+    const verb = kind === "approve" ? "Approved" : "Rejected";
     if (failed === 0) {
-      toast.success(`Rejected ${rejected.length} event${rejected.length === 1 ? "" : "s"}`);
+      toast.success(`${verb} ${done.length} event${done.length === 1 ? "" : "s"}`);
     } else {
-      toast.error(`Rejected ${rejected.length}, failed ${failed} — the failed ones are still selected`);
+      toast.error(`${verb} ${done.length}, failed ${failed} — the failed ones are still selected`);
     }
   }
 
@@ -359,15 +364,26 @@ export default function EventsPage() {
         </div>
 
         {view === "pending" && selected.size > 0 && (
-          <Button
-            onClick={() => setConfirmBulkReject(true)}
-            disabled={bulkRejecting}
-            size="sm"
-            className="bg-red-700 hover:bg-red-600 text-white text-xs"
-          >
-            {bulkRejecting ? <Loader2 className="w-3 h-3 mr-1 animate-spin" /> : <X className="w-3 h-3 mr-1" />}
-            Reject selected ({selected.size})
-          </Button>
+          <>
+            <Button
+              onClick={() => setBulkConfirm("approve")}
+              disabled={bulkBusy !== null}
+              size="sm"
+              className="bg-emerald-700 hover:bg-emerald-600 text-white text-xs"
+            >
+              {bulkBusy === "approve" ? <Loader2 className="w-3 h-3 mr-1 animate-spin" /> : <Check className="w-3 h-3 mr-1" />}
+              Approve selected ({selected.size})
+            </Button>
+            <Button
+              onClick={() => setBulkConfirm("reject")}
+              disabled={bulkBusy !== null}
+              size="sm"
+              className="bg-red-700 hover:bg-red-600 text-white text-xs"
+            >
+              {bulkBusy === "reject" ? <Loader2 className="w-3 h-3 mr-1 animate-spin" /> : <X className="w-3 h-3 mr-1" />}
+              Reject selected ({selected.size})
+            </Button>
+          </>
         )}
 
         {view === "pending" && (
@@ -400,23 +416,27 @@ export default function EventsPage() {
         </Button>
       </div>
 
-      {/* ── Bulk reject confirmation ── */}
-      {confirmBulkReject && (
+      {/* ── Bulk approve / reject confirmation ── */}
+      {bulkConfirm && (
         <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4">
           <div className="bg-zinc-900 border border-zinc-800 rounded-xl w-full max-w-sm p-6">
             <h2 className="text-base font-semibold text-zinc-200 mb-2">
-              Reject {selected.size} event{selected.size === 1 ? "" : "s"}?
+              {bulkConfirm === "approve" ? "Approve" : "Reject"} {selected.size} event{selected.size === 1 ? "" : "s"}?
             </h2>
             <p className="text-sm text-zinc-400 mb-5">
-              They move to History as rejected. You can still approve any of them from there.
+              {bulkConfirm === "approve"
+                ? "They go live on the site and move to History as approved. You can still reject any of them from there."
+                : "They move to History as rejected. You can still approve any of them from there."}
             </p>
             <div className="flex justify-end gap-2">
-              <Button type="button" variant="ghost" size="sm" onClick={() => setConfirmBulkReject(false)}
-                disabled={bulkRejecting} className="text-zinc-400">Cancel</Button>
-              <Button type="button" size="sm" onClick={handleBulkReject} disabled={bulkRejecting}
-                className="bg-red-700 hover:bg-red-600 text-white">
-                {bulkRejecting && <Loader2 className="w-3 h-3 animate-spin mr-1" />}
-                Reject {selected.size}
+              <Button type="button" variant="ghost" size="sm" onClick={() => setBulkConfirm(null)}
+                disabled={bulkBusy !== null} className="text-zinc-400">Cancel</Button>
+              <Button type="button" size="sm" onClick={() => handleBulk(bulkConfirm)} disabled={bulkBusy !== null}
+                className={bulkConfirm === "approve"
+                  ? "bg-emerald-700 hover:bg-emerald-600 text-white"
+                  : "bg-red-700 hover:bg-red-600 text-white"}>
+                {bulkBusy !== null && <Loader2 className="w-3 h-3 animate-spin mr-1" />}
+                {bulkConfirm === "approve" ? "Approve" : "Reject"} {selected.size}
               </Button>
             </div>
           </div>
@@ -586,7 +606,7 @@ export default function EventsPage() {
                         if (el) el.indeterminate = selected.size > 0 && selected.size < events.length;
                       }}
                       onChange={toggleSelectAll}
-                      disabled={bulkRejecting}
+                      disabled={bulkBusy !== null}
                       className="h-4 w-4 accent-red-600 cursor-pointer"
                     />
                   </th>
@@ -614,7 +634,7 @@ export default function EventsPage() {
                           aria-label={`Select ${event.display_name ?? event.name}`}
                           checked={selected.has(event.id)}
                           onChange={() => toggleSelected(event.id)}
-                          disabled={bulkRejecting}
+                          disabled={bulkBusy !== null}
                           className="h-4 w-4 accent-red-600 cursor-pointer"
                         />
                       </td>
