@@ -19,7 +19,6 @@ import {
   BarChart2,
   Sparkles,
   KeyRound,
-  Globe,
 } from "lucide-react";
 import { Toaster } from "sonner";
 
@@ -112,17 +111,6 @@ export default function OpsLayout({ children }: { children: React.ReactNode }) {
           >
             <Calendar className="w-4 h-4" />
             <span className="hidden sm:inline">Events</span>
-          </Link>
-          <Link
-            href="/ops/event-sources"
-            className={`flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-md transition ${
-              pathname === "/ops/event-sources"
-                ? "bg-zinc-800 text-white"
-                : "text-zinc-400 hover:text-white hover:bg-zinc-800/50"
-            }`}
-          >
-            <Globe className="w-4 h-4" />
-            <span className="hidden sm:inline">Event sources</span>
           </Link>
           <Link
             href="/ops/quizzes"

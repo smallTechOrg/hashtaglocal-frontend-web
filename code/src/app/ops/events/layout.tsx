@@ -4,7 +4,10 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 /** Sub-tabs under Ops → Events. Add a tab here to put a new events page under the Events top tab. */
-const EVENT_TABS: { href: string; label: string }[] = [{ href: "/ops/events", label: "Review" }];
+const EVENT_TABS: { href: string; label: string }[] = [
+  { href: "/ops/events", label: "Review" },
+  { href: "/ops/events/sources", label: "Sources" },
+];
 
 export default function EventsLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();

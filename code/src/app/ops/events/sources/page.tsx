@@ -5,8 +5,8 @@
 // (its read action learned and locked); this page only picks from what scraper0 already serves.
 
 import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
-import { adminFetch } from "../lib/api";
-import { ADMIN_API, SCRAPER0_DASHBOARD_URL } from "../lib/constants";
+import { adminFetch } from "../../lib/api";
+import { ADMIN_API, SCRAPER0_DASHBOARD_URL } from "../../lib/constants";
 import {
   DEFAULT_ACTION,
   DEFAULT_FRESHNESS_HOURS,
@@ -16,7 +16,7 @@ import {
   EventSourceTestResult,
   Scraper0Site,
   lockedReadActions,
-} from "../lib/eventSourceTypes";
+} from "../../lib/eventSourceTypes";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
