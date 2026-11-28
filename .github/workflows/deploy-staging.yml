@@ -23,6 +23,8 @@ jobs:
       VERCEL_PROJECT_ID: ${{ vars.VERCEL_PROJECT_ID }}
       NEXT_PUBLIC_BASE_URL: ${{ vars.NEXT_PUBLIC_BASE_URL }}
       NEXT_PUBLIC_GOOGLE_CLIENT_ID: ${{ vars.NEXT_PUBLIC_GOOGLE_CLIENT_ID }}
+      # Ops → Event sources links here for onboarding sites (a repo variable overrides the staging default).
+      NEXT_PUBLIC_SCRAPER0_DASHBOARD_URL: ${{ vars.NEXT_PUBLIC_SCRAPER0_DASHBOARD_URL || 'https://scraper0-staging-web-a23rjysfbq-uc.a.run.app' }}
     steps:
       - name: Checkout 🛎️
         uses: actions/checkout@v4
@@ -39,6 +41,7 @@ jobs:
           echo "url=$(vercel deploy --prod --yes \
             --build-env NEXT_PUBLIC_BASE_URL=${NEXT_PUBLIC_BASE_URL} \
             --build-env NEXT_PUBLIC_GOOGLE_CLIENT_ID=${NEXT_PUBLIC_GOOGLE_CLIENT_ID} \
+            --build-env NEXT_PUBLIC_SCRAPER0_DASHBOARD_URL=${NEXT_PUBLIC_SCRAPER0_DASHBOARD_URL} \
             --token=${{ secrets.VERCEL_TOKEN }})" >> $GITHUB_OUTPUT
         working-directory: ./code
 
