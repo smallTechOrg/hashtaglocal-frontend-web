@@ -3,7 +3,7 @@
 // has_key and key_last4, never the key.
 
 export interface AiProviderConfig {
-  /** DATABASE: saved from this page. ENV: nothing saved, quiz generation uses the .env chain. */
+  /** DATABASE: saved from this page. ENV: nothing saved, all AI uses the deprecated .env chain. */
   source: "DATABASE" | "ENV";
   /** The admin's own name for the connection, e.g. "Claude". */
   name: string | null;
