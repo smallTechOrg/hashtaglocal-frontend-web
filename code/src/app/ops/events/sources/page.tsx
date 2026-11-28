@@ -288,14 +288,15 @@ export default function EventSourcesPage() {
   async function handleRunNow() {
     setRunning(true);
     try {
-      await readJson<{ started: boolean }>(
+      // The backend runs ingestion within this request (it can take a minute or two) and answers
+      // when it is done; 409 means a run was already in progress.
+      await readJson<{ started: boolean; finished?: boolean }>(
         await adminFetch(ADMIN_API.runEventIngestion, { method: "POST" }),
       );
-      toast.success(
-        "Ingestion started. New events go to the Events review queue; refresh here for the run status.",
-      );
+      toast.success("Ingestion finished. New events are in Events → Review; each source shows its last run.");
+      await load();
     } catch (err) {
-      toast.error(errorText(err, "Could not start ingestion"));
+      toast.error(errorText(err, "Ingestion did not run"));
     } finally {
       setRunning(false);
     }
