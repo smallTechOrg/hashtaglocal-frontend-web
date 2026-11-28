@@ -47,6 +47,7 @@ type BulkKind = "approve" | "reject";
 const EVENT_TYPES = [
   "OTHER","CLEANLINESS_DRIVE","BEACH_CLEANUP","ROAD_CLEANUP","FOREST_CLEANUP",
   "TREEPLANTATION","TREKANDPLOG","VOLUNTEERING","WORKSHOP",
+  "OPEN_MIC","MEETUP","CULTURAL","TALK","HERITAGE_WALK","RUN_CLUB",
 ];
 
 export default function EventsPage() {

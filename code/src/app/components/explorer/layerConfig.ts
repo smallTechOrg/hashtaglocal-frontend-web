@@ -44,6 +44,12 @@ export const EVENT_SUBFILTERS: SubFilter[] = [
   { value: EventType.TREKANDPLOG, label: "Trek & plog", icon: "🥾" },
   { value: EventType.VOLUNTEERING, label: "Volunteering", icon: "🤝" },
   { value: EventType.WORKSHOP, label: "Workshop", icon: "🎓" },
+  { value: EventType.OPEN_MIC, label: "Open mic", icon: "🎤" },
+  { value: EventType.MEETUP, label: "Meetup", icon: "👋" },
+  { value: EventType.CULTURAL, label: "Cultural", icon: "🎭" },
+  { value: EventType.TALK, label: "Talk", icon: "🗣️" },
+  { value: EventType.HERITAGE_WALK, label: "Heritage & nature walk", icon: "🏛️" },
+  { value: EventType.RUN_CLUB, label: "Run & cycle club", icon: "🏃" },
   { value: EventType.OTHER, label: "Other", icon: "📌" },
 ];
 

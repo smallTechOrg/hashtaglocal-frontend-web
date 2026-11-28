@@ -8,6 +8,12 @@ export enum EventType {
   VOLUNTEERING = "VOLUNTEERING",
   WORKSHOP = "WORKSHOP",
   OTHER = "OTHER",
+  OPEN_MIC = "OPEN_MIC",
+  MEETUP = "MEETUP",
+  CULTURAL = "CULTURAL",
+  TALK = "TALK",
+  HERITAGE_WALK = "HERITAGE_WALK",
+  RUN_CLUB = "RUN_CLUB",
 }
 
 export interface EventLocation {
