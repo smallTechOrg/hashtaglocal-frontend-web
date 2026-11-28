@@ -104,7 +104,7 @@ export default function OpsLayout({ children }: { children: React.ReactNode }) {
           <Link
             href="/ops/events"
             className={`flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-md transition ${
-              pathname === "/ops/events"
+              pathname === "/ops/events" || pathname.startsWith("/ops/events/")
                 ? "bg-zinc-800 text-white"
                 : "text-zinc-400 hover:text-white hover:bg-zinc-800/50"
             }`}
