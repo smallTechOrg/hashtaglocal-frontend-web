@@ -54,6 +54,11 @@ export default function EventsPage() {
   const [processing, setProcessing] = useState<Set<number>>(new Set());
   const [geocoding, setGeocoding] = useState(false);
 
+  // ── Bulk reject (pending view) ──
+  const [selected, setSelected] = useState<Set<number>>(new Set());
+  const [confirmBulkReject, setConfirmBulkReject] = useState(false);
+  const [bulkRejecting, setBulkRejecting] = useState(false);
+
   // ── Create form ──
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [creating, setCreating] = useState(false);
@@ -90,10 +95,66 @@ export default function EventsPage() {
 
   useEffect(() => {
     setEvents([]);
+    setSelected(new Set());
     const controller = new AbortController();
     loadEvents(controller.signal);
     return () => controller.abort();
   }, [loadEvents]);
+
+  useEffect(() => {
+    setSelected((prev) => {
+      const ids = new Set(events.map((e) => e.id));
+      const next = new Set([...prev].filter((id) => ids.has(id)));
+      return next.size === prev.size ? prev : next;
+    });
+  }, [events]);
+
+  function toggleSelected(id: number) {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) { next.delete(id); } else { next.add(id); }
+      return next;
+    });
+  }
+
+  function toggleSelectAll() {
+    setSelected((prev) => (prev.size === events.length ? new Set() : new Set(events.map((e) => e.id))));
+  }
+
+  // Rejects the selected events a few at a time with the same per-event endpoint as "Reject".
+  async function handleBulkReject() {
+    const ids = [...selected];
+    if (ids.length === 0) return;
+    setBulkRejecting(true);
+    const rejected: number[] = [];
+    let failed = 0;
+    const queue = [...ids];
+    const worker = async () => {
+      for (let id = queue.shift(); id !== undefined; id = queue.shift()) {
+        setProcessingState(id, true);
+        try {
+          const res = await adminFetch(ADMIN_API.rejectEvent(id), { method: "PUT" });
+          if (!res.ok) throw new Error(`${res.status}`);
+          rejected.push(id);
+        } catch {
+          failed++;
+        } finally {
+          setProcessingState(id, false);
+        }
+      }
+    };
+    await Promise.all(Array.from({ length: Math.min(4, ids.length) }, worker));
+    const done = new Set(rejected);
+    setEvents((prev) => prev.filter((e) => !done.has(e.id)));
+    setSelected((prev) => new Set([...prev].filter((id) => !done.has(id))));
+    setBulkRejecting(false);
+    setConfirmBulkReject(false);
+    if (failed === 0) {
+      toast.success(`Rejected ${rejected.length} event${rejected.length === 1 ? "" : "s"}`);
+    } else {
+      toast.error(`Rejected ${rejected.length}, failed ${failed} — the failed ones are still selected`);
+    }
+  }
 
   function setProcessingState(id: number, active: boolean) {
     setProcessing((prev) => {
@@ -297,6 +358,18 @@ export default function EventsPage() {
           </button>
         </div>
 
+        {view === "pending" && selected.size > 0 && (
+          <Button
+            onClick={() => setConfirmBulkReject(true)}
+            disabled={bulkRejecting}
+            size="sm"
+            className="bg-red-700 hover:bg-red-600 text-white text-xs"
+          >
+            {bulkRejecting ? <Loader2 className="w-3 h-3 mr-1 animate-spin" /> : <X className="w-3 h-3 mr-1" />}
+            Reject selected ({selected.size})
+          </Button>
+        )}
+
         {view === "pending" && (
           <Button
             onClick={handleGeocode}
@@ -326,6 +399,29 @@ export default function EventsPage() {
           <RefreshCw className="w-4 h-4" />
         </Button>
       </div>
+
+      {/* ── Bulk reject confirmation ── */}
+      {confirmBulkReject && (
+        <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4">
+          <div className="bg-zinc-900 border border-zinc-800 rounded-xl w-full max-w-sm p-6">
+            <h2 className="text-base font-semibold text-zinc-200 mb-2">
+              Reject {selected.size} event{selected.size === 1 ? "" : "s"}?
+            </h2>
+            <p className="text-sm text-zinc-400 mb-5">
+              They move to History as rejected. You can still approve any of them from there.
+            </p>
+            <div className="flex justify-end gap-2">
+              <Button type="button" variant="ghost" size="sm" onClick={() => setConfirmBulkReject(false)}
+                disabled={bulkRejecting} className="text-zinc-400">Cancel</Button>
+              <Button type="button" size="sm" onClick={handleBulkReject} disabled={bulkRejecting}
+                className="bg-red-700 hover:bg-red-600 text-white">
+                {bulkRejecting && <Loader2 className="w-3 h-3 animate-spin mr-1" />}
+                Reject {selected.size}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ── Create Event modal ── */}
       {showCreateForm && (
@@ -480,6 +576,21 @@ export default function EventsPage() {
           <table className="w-full text-sm text-left">
             <thead className="bg-zinc-900 text-zinc-400 text-xs uppercase tracking-wider">
               <tr>
+                {view === "pending" && (
+                  <th className="pl-4 py-3 w-8">
+                    <input
+                      type="checkbox"
+                      aria-label="Select all pending events"
+                      checked={events.length > 0 && selected.size === events.length}
+                      ref={(el) => {
+                        if (el) el.indeterminate = selected.size > 0 && selected.size < events.length;
+                      }}
+                      onChange={toggleSelectAll}
+                      disabled={bulkRejecting}
+                      className="h-4 w-4 accent-red-600 cursor-pointer"
+                    />
+                  </th>
+                )}
                 <th className="px-4 py-3">Name</th>
                 <th className="px-4 py-3">Portal</th>
                 <th className="px-4 py-3">Type</th>
@@ -494,7 +605,20 @@ export default function EventsPage() {
               {events.map((event) => {
                 const busy = processing.has(event.id);
                 return (
-                  <tr key={event.id} className="bg-zinc-950 hover:bg-zinc-900/60 transition">
+                  <tr key={event.id}
+                    className={`${selected.has(event.id) ? "bg-zinc-900" : "bg-zinc-950"} hover:bg-zinc-900/60 transition`}>
+                    {view === "pending" && (
+                      <td className="pl-4 py-3 w-8">
+                        <input
+                          type="checkbox"
+                          aria-label={`Select ${event.display_name ?? event.name}`}
+                          checked={selected.has(event.id)}
+                          onChange={() => toggleSelected(event.id)}
+                          disabled={bulkRejecting}
+                          className="h-4 w-4 accent-red-600 cursor-pointer"
+                        />
+                      </td>
+                    )}
                     {/* Name */}
                     <td className="px-4 py-3 max-w-xs">
                       <a href={event.link} target="_blank" rel="noopener noreferrer"
