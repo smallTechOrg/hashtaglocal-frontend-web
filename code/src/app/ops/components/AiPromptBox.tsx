@@ -5,7 +5,7 @@ import { adminFetch } from "../lib/api";
 import { ADMIN_API } from "../lib/constants";
 
 /**
- * Collapsible inline view of a single Groq prompt template.
+ * Collapsible inline view of a single AI prompt template.
  * Pass the key ("WEATHER_SUMMARY" or "QUIZ_EXPLANATION") and it fetches + renders the template.
  */
 export default function AiPromptBox({ promptKey }: { promptKey: string }) {

@@ -307,7 +307,7 @@ export default function QuizzesPage() {
               <div>
                 <div className="flex items-center justify-between mb-1">
                   <label className="text-xs text-zinc-400 block">
-                    Explanation {editingQuiz ? "" : "(blank = Groq generates one)"}
+                    Explanation {editingQuiz ? "" : "(blank = AI generates one)"}
                   </label>
                   {editingQuiz && (
                     <Button

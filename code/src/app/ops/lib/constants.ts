@@ -75,10 +75,10 @@ export const ADMIN_API = {
     return `${BASE_URL}/admin/quiz${qs ? `?${qs}` : ""}`;
   },
 
-  /** Create a quiz for a locality + date (Groq generates the explanation) */
+  /** Create a quiz for a locality + date (the AI provider generates the explanation) */
   createQuiz: `${BASE_URL}/admin/quiz`,
 
-  /** Edit a quiz (explanation editable; regenerate_explanation=true re-calls Groq) */
+  /** Edit a quiz (explanation editable; regenerate_explanation=true re-calls the AI provider) */
   editQuiz: (quizId: number) => `${BASE_URL}/admin/quiz/${quizId}`,
 
   /** Delete a quiz (blocked once users have attempted it) */
@@ -89,7 +89,7 @@ export const ADMIN_API = {
 
   // ---- Quiz automation: AI generation and review ----
 
-  /** Generate quizzes with Claude: one hashtag, or every saved-user locality when omitted */
+  /** Generate quizzes with the AI provider: one hashtag, or every saved-user locality when omitted */
   generateQuizzes: (hashtag?: string | null) =>
     `${BASE_URL}/admin/quiz/generate${hashtag ? `?hashtag=${encodeURIComponent(hashtag)}` : ""}`,
 
@@ -136,14 +136,14 @@ export const ADMIN_API = {
 
   /** Send a push notification to every user with an active device token */
   notification: `${BASE_URL}/admin/notification`,
-  // ---- AI prompts (read-only view of GroqClient templates) ----
+  // ---- AI prompts (read-only view of the bulletin AI prompt templates) ----
 
-  /** Read the Groq prompt templates currently in use */
+  /** Read the AI prompt templates currently in use */
   aiPrompts: `${BASE_URL}/admin/ai-prompts`,
 
-  // ---- AI provider for quiz generation (admin only; the key is never returned) ----
+  // ---- AI provider for every AI feature (admin only; the key is never returned) ----
 
-  /** GET current config, PUT to save (blank api_key keeps the saved key), DELETE to reset to .env */
+  /** GET current config, PUT to save (blank api_key keeps the saved key), DELETE to reset to the deprecated .env chain */
   aiProvider: `${BASE_URL}/admin/ai-provider`,
 
   /** One minimal call with the submitted values; blank fields use the saved config */

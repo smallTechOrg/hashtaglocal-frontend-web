@@ -1,6 +1,6 @@
 "use client";
 
-// AI connection for quiz generation: a name the admin chooses plus an OpenAI-compatible endpoint,
+// The AI connection every AI feature uses (quizzes, bulletin texts, feed moderation): a name the admin chooses plus an OpenAI-compatible endpoint,
 // a model and an API key, changed at runtime. Talks to the backend /admin/ai-provider API (ADMIN
 // only, enforced by the backend). The saved key is never sent back; the page only shows whether
 // one is set and its last 4 characters.
@@ -161,7 +161,7 @@ export default function AiProviderPage() {
       );
       fillForm(data);
       setTestResult(null);
-      toast.success("Saved. The next quiz generation uses this connection.");
+      toast.success("Saved. All AI features use this connection from the next call.");
     } catch (err) {
       toast.error(errorText(err, "Could not save"));
     } finally {
@@ -192,7 +192,7 @@ export default function AiProviderPage() {
   async function handleReset() {
     if (
       !window.confirm(
-        "Remove the saved connection and key? Quiz generation goes back to the .env settings.",
+        "Remove the saved connection and key? All AI goes back to the deprecated .env settings.",
       )
     ) {
       return;
@@ -205,7 +205,7 @@ export default function AiProviderPage() {
         ),
       );
       setTestResult(null);
-      toast.success("Removed. Quiz generation uses the .env settings.");
+      toast.success("Removed. AI uses the deprecated .env settings.");
     } catch (err) {
       toast.error(errorText(err, "Could not remove"));
     } finally {
@@ -227,9 +227,9 @@ export default function AiProviderPage() {
         </button>
       </div>
       <p className="text-sm text-zinc-400">
-        The AI used to generate quizzes: any OpenAI-compatible endpoint, which covers Claude,
-        ChatGPT, Gemini and most others. Changes apply to the next quiz generation; no restart
-        needed.
+        The AI used for quizzes, bulletin texts and feed moderation: any OpenAI-compatible
+        endpoint, which covers Claude, ChatGPT, Gemini and most others. Changes apply from the
+        next AI call; no restart needed.
       </p>
 
       {loading && !config ? (
@@ -259,11 +259,13 @@ export default function AiProviderPage() {
               </>
             ) : (
               <>
-                <p className="text-zinc-200">Nothing saved here: using the .env settings.</p>
+                <p className="text-zinc-200">
+                  Nothing saved here: using the deprecated .env settings. Save a provider here.
+                </p>
                 <p className="text-xs text-zinc-500">
                   {config.env_chain.length > 0
                     ? `Tried in order: ${config.env_chain.join(" → ")}`
-                    : "No provider is configured in .env either, so quiz generation cannot run."}
+                    : "No provider is configured in .env either, so quizzes can't be generated, bulletins use the plain weather line and posts go to human review."}
                 </p>
               </>
             )}
@@ -298,7 +300,7 @@ export default function AiProviderPage() {
                 className="bg-zinc-800 border-zinc-700 text-zinc-200"
               />
               <p className="text-xs text-zinc-500 mt-1">
-                Your own label for this connection. It&apos;s recorded on each quiz it writes.
+                Your own label for this connection. It&apos;s recorded on each quiz and moderation verdict it writes.
               </p>
             </div>
 
